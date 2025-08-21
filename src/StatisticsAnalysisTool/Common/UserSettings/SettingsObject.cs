@@ -10,6 +10,8 @@ namespace StatisticsAnalysisTool.Common.UserSettings;
 
 public class SettingsObject
 {
+    public StatisticsAnalysisTool.ViewModels.OverlaySectionSettings OverlaySectionSettings { get; set; } = new StatisticsAnalysisTool.ViewModels.OverlaySectionSettings();
+    public bool IsStreamingOverlayNaviTabActive { get; set; } = true;
     public string CurrentCultureIetfLanguageTag { get; set; }
     public int RefreshRate { get; set; } = 10000;
     public string PacketFilter { get; set; } = "(ip or ip6) and (udp and (port 5055 or port 5056 or port 5058))";

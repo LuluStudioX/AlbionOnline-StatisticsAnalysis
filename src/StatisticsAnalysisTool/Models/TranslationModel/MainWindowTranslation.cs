@@ -4,6 +4,7 @@ namespace StatisticsAnalysisTool.Models.TranslationModel;
 
 public class MainWindowTranslation
 {
+    public static string StreamingOverlay => LocalizationController.Translation("STREAMING_OVERLAY");
     public static string Update => LocalizationController.Translation("UPDATE");
     public static string NumberOfValues => LocalizationController.Translation("NUMBER_OF_VALUES");
     public static string Load => LocalizationController.Translation("LOAD");
