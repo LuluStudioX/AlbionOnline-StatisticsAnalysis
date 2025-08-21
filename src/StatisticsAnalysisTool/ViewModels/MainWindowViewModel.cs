@@ -120,6 +120,7 @@ public class MainWindowViewModel : BaseViewModel
     private Visibility _mapHistoryTabVisibility = Visibility.Visible;
     private Visibility _playerInformationTabVisibility = Visibility.Visible;
     private Visibility _guildTabVisibility = Visibility.Visible;
+    private Visibility _streamingOverlayTabVisibility = Visibility.Visible;
     private Visibility _toolTaskFrontViewVisibility = Visibility.Collapsed;
     private Visibility _statsDropDownVisibility = Visibility.Collapsed;
     private double _toolTaskProgressBarValue;
@@ -1323,6 +1324,15 @@ public class MainWindowViewModel : BaseViewModel
         set
         {
             _playerInformationTabVisibility = value;
+            OnPropertyChanged();
+        }
+    }
+    public Visibility StreamingOverlayTabVisibility
+    {
+        get => _streamingOverlayTabVisibility;
+        set
+        {
+            _streamingOverlayTabVisibility = value;
             OnPropertyChanged();
         }
     }

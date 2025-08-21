@@ -38314,6 +38314,55 @@
           "seg": "Prix sans perte ni gain."
         }
       ]
+    },
+    {
+      "tuid": "STREAMING_OVERLAY",
+      "tuv": [
+        {
+          "lang": "de-DE",
+          "seg": "Streaming Overlay"
+        },
+        {
+          "lang": "en-US",
+          "seg": "Streaming Overlay"
+        },
+        {
+          "lang": "es-ES",
+          "seg": "Superposición de transmisión"
+        },
+        {
+          "lang": "fr-FR",
+          "seg": "Superposition de streaming"
+        },
+        {
+          "lang": "ja-JP",
+          "seg": "ストリーミングオーバーレイ"
+        },
+        {
+          "lang": "ko-KR",
+          "seg": "스트리밍 오버레이"
+        },
+        {
+          "lang": "pl-PL",
+          "seg": "Nakładka streamingu"
+        },
+        {
+          "lang": "pt-BR",
+          "seg": "Sobreposição de streaming"
+        },
+        {
+          "lang": "ru-RU",
+          "seg": "Оверлей трансляции"
+        },
+        {
+          "lang": "zh-CN",
+          "seg": "流媒体叠加层"
+        },
+        {
+          "lang": "zh-TW",
+          "seg": "串流疊加層"
+        }
+      ]
     }
   ]
 }

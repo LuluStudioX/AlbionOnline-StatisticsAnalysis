@@ -183,6 +183,7 @@ public class SettingsWindowViewModel : BaseViewModel
         SettingsController.CurrentSettings.IsStorageHistoryNaviTabActive = TabVisibilities?.FirstOrDefault(x => x?.NavigationTabFilterType == NavigationTabFilterType.StorageHistory)?.IsSelected ?? true;
         SettingsController.CurrentSettings.IsMapHistoryNaviTabActive = TabVisibilities?.FirstOrDefault(x => x?.NavigationTabFilterType == NavigationTabFilterType.MapHistory)?.IsSelected ?? true;
         SettingsController.CurrentSettings.IsPlayerInformationNaviTabActive = TabVisibilities?.FirstOrDefault(x => x?.NavigationTabFilterType == NavigationTabFilterType.PlayerInformation)?.IsSelected ?? true;
+        SettingsController.CurrentSettings.IsStreamingOverlayNaviTabActive = TabVisibilities?.FirstOrDefault(x => x?.NavigationTabFilterType == NavigationTabFilterType.StreamingOverlay)?.IsSelected ?? true;
 
         mainWindowViewModel.DashboardTabVisibility = SettingsController.CurrentSettings.IsDashboardNaviTabActive.BoolToVisibility();
         mainWindowViewModel.ItemSearchTabVisibility = SettingsController.CurrentSettings.IsItemSearchNaviTabActive.BoolToVisibility();
@@ -196,6 +197,7 @@ public class SettingsWindowViewModel : BaseViewModel
         mainWindowViewModel.MapHistoryTabVisibility = SettingsController.CurrentSettings.IsMapHistoryNaviTabActive.BoolToVisibility();
         mainWindowViewModel.PlayerInformationTabVisibility = SettingsController.CurrentSettings.IsPlayerInformationNaviTabActive.BoolToVisibility();
         mainWindowViewModel.GuildTabVisibility = SettingsController.CurrentSettings.IsGuildTabActive.BoolToVisibility();
+        mainWindowViewModel.StreamingOverlayTabVisibility = SettingsController.CurrentSettings.IsStreamingOverlayNaviTabActive.BoolToVisibility();
     }
 
     private void SetPacketFilter()
@@ -444,6 +446,11 @@ public class SettingsWindowViewModel : BaseViewModel
             IsSelected = SettingsController.CurrentSettings.IsPlayerInformationNaviTabActive,
             Name = MainWindowTranslation.PlayerInformation
         });
+        TabVisibilities.Add(new TabVisibilityFilter(NavigationTabFilterType.StreamingOverlay)
+        {
+            IsSelected = SettingsController.CurrentSettings.IsStreamingOverlayNaviTabActive,
+            Name = MainWindowTranslation.StreamingOverlay
+        });
 
         var mainWindowViewModel = ServiceLocator.Resolve<MainWindowViewModel>();
         mainWindowViewModel.DashboardTabVisibility = SettingsController.CurrentSettings.IsDashboardNaviTabActive.BoolToVisibility();
@@ -457,6 +464,7 @@ public class SettingsWindowViewModel : BaseViewModel
         mainWindowViewModel.StorageHistoryTabVisibility = SettingsController.CurrentSettings.IsStorageHistoryNaviTabActive.BoolToVisibility();
         mainWindowViewModel.MapHistoryTabVisibility = SettingsController.CurrentSettings.IsMapHistoryNaviTabActive.BoolToVisibility();
         mainWindowViewModel.PlayerInformationTabVisibility = SettingsController.CurrentSettings.IsPlayerInformationNaviTabActive.BoolToVisibility();
+        mainWindowViewModel.StreamingOverlayTabVisibility = SettingsController.CurrentSettings.IsStreamingOverlayNaviTabActive.BoolToVisibility();
         mainWindowViewModel.GuildTabVisibility = SettingsController.CurrentSettings.IsGuildTabActive.BoolToVisibility();
     }
 

@@ -14,5 +14,6 @@ public enum NavigationTabFilterType
     Party,
     StorageHistory,
     MapHistory,
-    PlayerInformation
+    PlayerInformation,
+    StreamingOverlay
 }
