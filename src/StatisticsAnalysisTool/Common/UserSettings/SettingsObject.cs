@@ -10,6 +10,7 @@ namespace StatisticsAnalysisTool.Common.UserSettings;
 
 public class SettingsObject
 {
+    public StatisticsAnalysisTool.ViewModels.OverlaySectionSettings OverlaySectionSettings { get; set; } = new StatisticsAnalysisTool.ViewModels.OverlaySectionSettings();
     public bool IsStreamingOverlayNaviTabActive { get; set; } = true;
     public string CurrentCultureIetfLanguageTag { get; set; }
     public int RefreshRate { get; set; } = 10000;
