@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:StatisticsAnalysisTool.ViewModels"
+             xmlns:t="clr-namespace:StatisticsAnalysisTool.Models.TranslationModel"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
     <Grid Margin="2">
@@ -16,103 +17,117 @@
         <!-- Top: All settings and tabs -->
         <StackPanel Grid.Row="0">
             <!-- Header -->
-            <TextBlock Text="Streaming Overlay" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}" Margin="0,0,0,12"/>
+            <TextBlock Text="{Binding Translation.STREAMING_OVERLAY, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}" Margin="0,0,0,12"/>
             <!-- Overlay Enable/Port/Apply -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <CheckBox Content="Enable Overlay" IsChecked="{Binding IsOverlayEnabled, Mode=TwoWay}" VerticalAlignment="Center" Height="24" AutomationProperties.Name="Enable Overlay"/>
-                <TextBlock Text="Port:" Margin="18,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                <CheckBox Content="{Binding Translation.ENABLE_OVERLAY, Mode=OneWay}" IsChecked="{Binding IsOverlayEnabled, Mode=TwoWay}" VerticalAlignment="Center" Height="24" AutomationProperties.Name="Enable Overlay"/>
+                <TextBlock>
+                    <Run Text="{Binding Translation.PORT_LABEL, Mode=OneWay}"/><Run Text=":"/>
+                </TextBlock>
                 <TextBox Width="60" Height="24" Text="{Binding OverlayPort, Mode=TwoWay}" Margin="6,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Overlay Port"/>
-                <Button Content="Apply" Command="{Binding ApplySettingsCommand}" Margin="16,0,0,0" Height="24" MinWidth="70" AutomationProperties.Name="Apply Overlay Settings"/>
+                <Button Content="{Binding Translation.APPLY_BUTTON, Mode=OneWay}" Command="{Binding ApplySettingsCommand}" Margin="16,0,0,0" Height="24" MinWidth="70" AutomationProperties.Name="Apply Overlay Settings"/>
             </StackPanel>
             <!-- URL Row -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="URL:" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                    <Run Text="{Binding Translation.URL, Mode=OneWay}"/><Run Text=":"/>
+                </TextBlock>
                 <TextBlock Text="{Binding OverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
-                <Button Content="Copy" Command="{Binding CopyUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
+                <Button Content="{Binding Translation.COPY_BUTTON, Mode=OneWay}" Command="{Binding CopyUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
             </StackPanel>
             <!-- Theme -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="Theme:" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                    <Run Text="{Binding Translation.THEME, Mode=OneWay}"/><Run Text=":"/>
+                </TextBlock>
                 <ComboBox Width="120" Height="24" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" Margin="8,0,0,0" AutomationProperties.Name="Overlay Theme"/>
             </StackPanel>
             <!-- Metrics to Show -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="Metrics to Show:" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                <CheckBox Content="Gathering" IsChecked="{Binding ShowGathering, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Gathering"/>
-                <CheckBox Content="Damage" IsChecked="{Binding ShowDamage, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Damage"/>
-                <CheckBox Content="Dashboard" IsChecked="{Binding ShowDashboard, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Dashboard"/>
+                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                    <Run Text="{Binding Translation.METRICS_TO_SHOW, Mode=OneWay}"/><Run Text=":"/>
+                </TextBlock>
+                <CheckBox Content="{x:Static t:MainWindowTranslation.Gathering}" IsChecked="{Binding ShowGathering, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Gathering"/>
+                <CheckBox Content="{x:Static t:MainWindowTranslation.DamageMeter}" IsChecked="{Binding ShowDamage, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Damage"/>
+                <CheckBox Content="{x:Static t:MainWindowTranslation.Dashboard}" IsChecked="{Binding ShowDashboard, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Dashboard"/>
             </StackPanel>
             <!-- Section Settings Tabs (only once, above preview) -->
             <TabControl Margin="0,8,0,0" x:Name="SectionTabControl" SelectedIndex="{Binding SelectedSectionIndex, Mode=TwoWay}">
-            <TabItem Header="Dashboard">
+            <TabItem Header="{x:Static t:MainWindowTranslation.Dashboard}">
                 <StackPanel Margin="8">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="URL:" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                            <Run Text="{Binding Translation.URL, Mode=OneWay}"/><Run Text=":"/>
+                        </TextBlock>
                         <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
-                        <Button Content="Copy" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
+                        <Button Content="{Binding Translation.COPY_BUTTON, Mode=OneWay}" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Font Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                            <Run Text="{Binding Translation.FONT_SIZE, Mode=OneWay}"/><Run Text=":"/>
+                        </TextBlock>
                         <Slider Minimum="8" Maximum="32" Width="120" Value="{Binding DashboardFontSize, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding DashboardFontSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Icon Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                            <Run Text="{Binding Translation.ICON_SIZE, Mode=OneWay}"/><Run Text=":"/>
+                        </TextBlock>
                         <Slider Minimum="16" Maximum="64" Width="120" Value="{Binding DashboardIconSize, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding DashboardIconSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Apply" Command="{Binding ApplyDashboardSettingsCommand}" Width="80"/>
-                        <Button Content="Reset" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
-                        <Button Content="Cancel" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
+                        <Button Content="{Binding Translation.APPLY_BUTTON, Mode=OneWay}" Command="{Binding ApplyDashboardSettingsCommand}" Width="80"/>
+                        <Button Content="{Binding Translation.RESET_BUTTON, Mode=OneWay}" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
+                        <Button Content="{Binding Translation.CANCEL_BUTTON, Mode=OneWay}" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
                     </StackPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="Gathering">
+            <TabItem Header="{x:Static t:MainWindowTranslation.Gathering}">
                 <StackPanel Margin="8">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="URL:" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock Text="{Binding Translation.URL, Mode=OneWay}" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                         <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
-                        <Button Content="Copy" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
+                        <Button Content="{Binding Translation.COPY_BUTTON, Mode=OneWay}" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Font Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock Text="{Binding Translation.FONT_SIZE, Mode=OneWay}" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                         <Slider Minimum="8" Maximum="32" Width="120" Value="{Binding GatheringFontSize, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding GatheringFontSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Icon Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock Text="{Binding Translation.ICON_SIZE, Mode=OneWay}" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                         <Slider Minimum="16" Maximum="64" Width="120" Value="{Binding GatheringIconSize, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding GatheringIconSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Apply" Command="{Binding ApplyGatheringSettingsCommand}" Width="80"/>
-                        <Button Content="Reset" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
-                        <Button Content="Cancel" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
+                        <Button Content="{Binding Translation.APPLY_BUTTON, Mode=OneWay}" Command="{Binding ApplyGatheringSettingsCommand}" Width="80"/>
+                        <Button Content="{Binding Translation.RESET_BUTTON, Mode=OneWay}" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
+                        <Button Content="{Binding Translation.CANCEL_BUTTON, Mode=OneWay}" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
                     </StackPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="Damage">
+            <TabItem Header="{x:Static t:MainWindowTranslation.DamageMeter}">
                 <StackPanel Margin="8">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="URL:" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock Text="{Binding Translation.URL, Mode=OneWay}" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                         <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
-                        <Button Content="Copy" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
+                        <Button Content="{Binding Translation.COPY_BUTTON, Mode=OneWay}" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Font Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock Text="{Binding Translation.FONT_SIZE, Mode=OneWay}" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                         <Slider Minimum="8" Maximum="32" Width="120" Value="{Binding DamageFontSize, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding DamageFontSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Icon Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <TextBlock Text="{Binding Translation.ICON_SIZE, Mode=OneWay}" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                         <Slider Minimum="16" Maximum="64" Width="120" Value="{Binding DamageIconSize, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding DamageIconSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Apply" Command="{Binding ApplyDamageSettingsCommand}" Width="80"/>
-                        <Button Content="Reset" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
-                        <Button Content="Cancel" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
+                        <Button Content="{Binding Translation.APPLY_BUTTON, Mode=OneWay}" Command="{Binding ApplyDamageSettingsCommand}" Width="80"/>
+                        <Button Content="{Binding Translation.RESET_BUTTON, Mode=OneWay}" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
+                        <Button Content="{Binding Translation.CANCEL_BUTTON, Mode=OneWay}" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
                     </StackPanel>
                 </StackPanel>
             </TabItem>
@@ -124,7 +139,9 @@
 
         <!-- Overlay Preview -->
         <StackPanel Grid.Row="2" Margin="0,0,0,8">
-            <TextBlock Text="Overlay Preview:" FontWeight="SemiBold" Margin="0,0,0,4" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+            <TextBlock FontWeight="SemiBold" Margin="0,0,0,4" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                <Run Text="{Binding Translation.OVERLAY_PREVIEW, Mode=OneWay}"/><Run Text=":"/>
+            </TextBlock>
             <Border BorderBrush="{DynamicResource SolidColorBrush.Accent.Blue.2}" BorderThickness="1" Height="100" Background="Transparent" CornerRadius="4">
                 <TextBlock Text="{Binding OverlayPreviewText}" Foreground="{DynamicResource SolidColorBrush.Text.1}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>

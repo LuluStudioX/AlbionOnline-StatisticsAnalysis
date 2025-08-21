@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using StatisticsAnalysisTool.Common;
+using StatisticsAnalysisTool.Models.TranslationModel;
 
 namespace StatisticsAnalysisTool.ViewModels
 {
@@ -28,6 +29,7 @@ namespace StatisticsAnalysisTool.ViewModels
     /// </summary>
     public class StreamingOverlayViewModel : BaseViewModel
     {
+        public StreamingOverlayTranslation Translation { get; set; } = new StreamingOverlayTranslation();
     // Holds all section font/icon settings (persisted, from main settings)
     private OverlaySectionSettings _sectionSettings => StatisticsAnalysisTool.Common.UserSettings.SettingsController.CurrentSettings.OverlaySectionSettings;
     // Temporary buffer for editing (not yet applied)

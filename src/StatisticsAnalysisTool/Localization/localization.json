@@ -38319,48 +38319,116 @@
       "tuid": "STREAMING_OVERLAY",
       "tuv": [
         {
-          "lang": "de-DE",
-          "seg": "Streaming Overlay"
-        },
-        {
           "lang": "en-US",
           "seg": "Streaming Overlay"
-        },
+        }
+      ]
+    },
+    {
+      "tuid": "ENABLE_OVERLAY",
+      "tuv": [
         {
-          "lang": "es-ES",
-          "seg": "Superposición de transmisión"
-        },
+          "lang": "en-US",
+          "seg": "Enable Overlay"
+        }
+      ]
+    },
+    {
+      "tuid": "PORT_LABEL",
+      "tuv": [
         {
-          "lang": "fr-FR",
-          "seg": "Superposition de streaming"
-        },
+          "lang": "en-US",
+          "seg": "Port"
+        }
+      ]
+    },
+    {
+      "tuid": "APPLY_BUTTON",
+      "tuv": [
         {
-          "lang": "ja-JP",
-          "seg": "ストリーミングオーバーレイ"
-        },
+          "lang": "en-US",
+          "seg": "Apply"
+        }
+      ]
+    },
+    {
+      "tuid": "URL",
+      "tuv": [
         {
-          "lang": "ko-KR",
-          "seg": "스트리밍 오버레이"
-        },
+          "lang": "en-US",
+          "seg": "URL"
+        }
+      ]
+    },
+    {
+      "tuid": "COPY_BUTTON",
+      "tuv": [
         {
-          "lang": "pl-PL",
-          "seg": "Nakładka streamingu"
-        },
+          "lang": "en-US",
+          "seg": "Copy"
+        }
+      ]
+    },
+    {
+      "tuid": "THEME",
+      "tuv": [
         {
-          "lang": "pt-BR",
-          "seg": "Sobreposição de streaming"
-        },
+          "lang": "en-US",
+          "seg": "Theme"
+        }
+      ]
+    },
+    {
+      "tuid": "METRICS_TO_SHOW",
+      "tuv": [
         {
-          "lang": "ru-RU",
-          "seg": "Оверлей трансляции"
-        },
+          "lang": "en-US",
+          "seg": "Metrics to Show"
+        }
+      ]
+    },
+    {
+      "tuid": "FONT_SIZE",
+      "tuv": [
         {
-          "lang": "zh-CN",
-          "seg": "流媒体叠加层"
-        },
+          "lang": "en-US",
+          "seg": "Font Size"
+        }
+      ]
+    },
+    {
+      "tuid": "ICON_SIZE",
+      "tuv": [
         {
-          "lang": "zh-TW",
-          "seg": "串流疊加層"
+          "lang": "en-US",
+          "seg": "Icon Size"
+        }
+      ]
+    },
+    {
+      "tuid": "RESET_BUTTON",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Reset"
+        }
+      ]
+    },
+    {
+      "tuid": "CANCEL_BUTTON",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Cancel"
+        }
+      ]
+    },
+    {
+      "tuid": "OVERLAY_PREVIEW",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Overlay Preview"
         }
       ]
     }
