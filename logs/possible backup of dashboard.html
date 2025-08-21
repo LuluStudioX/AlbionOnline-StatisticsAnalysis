@@ -1,0 +1,946 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Dashboard Overlay</title>
+		<style>
+			body {
+				/* Background is set dynamically by inline script below.
+                   Use query param ?transparent=1 when loading in OBS/Streamlabs to force transparency.
+                   Otherwise a preview background will be applied for browser preview. */
+				background: none;
+				font-family: Arial, sans-serif;
+				margin: 0;
+				padding: 0;
+				min-height: 100vh;
+				overflow: hidden; /* Prevent scrollbars */
+				width: 100vw;
+				height: 100vh;
+			}
+			.dashboard-overlay-row {
+				display: flex;
+				justify-content: center;
+				align-items: flex-start;
+				gap: 40px;
+				margin-top: 20px;
+				padding: 20px;
+			}
+			.dashboard-stat {
+				display: grid;
+				/* Allow rows to size automatically so large font sizes won't overlap the icon */
+				grid-template-rows: auto auto auto auto;
+				align-items: center;
+				justify-items: center;
+				min-width: 60px;
+				gap: 4px;
+				padding: 2px 6px;
+			}
+			/* Removed .dashboard-stat img selector to prevent grid override */
+			.dashboard-stat-value {
+				font-size: 1.5em;
+				font-weight: bold;
+				color: #fff;
+				text-shadow: 0 2px 8px #000a;
+			}
+			.dashboard-stat-perhour {
+				font-size: 1em;
+				color: #b0c4d4;
+				margin-top: 2px;
+			}
+			.dashboard-stat-title {
+				font-size: 1em;
+				color: #b0c4d4;
+				margin: 0;
+				text-align: center;
+				font-weight: bold;
+				grid-row: 1;
+				width: 100%;
+				display: block;
+				/* Prevent long titles or large font sizes from overflowing the icon area */
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.dashboard-stat-icon {
+				grid-row: 2;
+				width: 48px;
+				height: 48px;
+				display: block;
+				object-fit: contain;
+				/* Cap icon size so it doesn't become larger than the column */
+				max-width: 100%;
+				max-height: 4.5rem;
+			}
+			.dashboard-stat-value {
+				grid-row: 3;
+				width: 100%;
+				display: block;
+				text-align: center;
+			}
+			.dashboard-stat-perhour {
+				grid-row: 4;
+				width: 100%;
+				display: block;
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<script>
+			// Read URL parameters to decide whether to render a preview background or transparent for OBS
+			(function () {
+				function getQuery() {
+					var q = {};
+					if (!window.location.search) return q;
+					window.location.search
+						.substring(1)
+						.split("&")
+						.forEach(function (pair) {
+							var parts = pair.split("=");
+							q[decodeURIComponent(parts[0])] = parts[1]
+								? decodeURIComponent(parts[1])
+								: "";
+						});
+					return q;
+				}
+				var qp = getQuery();
+				// If transparent=1, force transparent background for OBS/Streamlabs
+				if (qp.transparent === "1") {
+					document.documentElement.style.background = "transparent";
+					document.body.style.background = "transparent";
+				} else {
+					// Preview mode in browser: apply theme background for better visibility
+					var theme = qp.theme || "Dark";
+					if (theme === "Light" || theme === "White") {
+						document.body.style.background = "#ffffff";
+					} else {
+						// Dark preview background matching overlay dark
+						document.body.style.background = "rgba(0,0,0,0.85)";
+					}
+				}
+				// Expose initial theme globally for the rest of the script
+				window.currentTheme = qp.theme || "Dark";
+			})();
+		</script>
+		<!-- Connection status indicator removed - overlay should not show connection UI -->
+		<div
+			class="dashboard-overlay-row"
+			id="dashboard-metrics-row"></div>
+		<div
+			id="overlay-toast"
+			style="
+				position: fixed;
+				bottom: 24px;
+				left: 50%;
+				transform: translateX(-50%);
+				z-index: 9999;
+				background: #222;
+				color: #fff;
+				padding: 12px 24px;
+				border-radius: 8px;
+				box-shadow: 0 2px 8px #000a;
+				display: none;
+				font-size: 1.2em;
+			">
+			Settings applied!
+		</div>
+		<script>
+			// Show toast notification
+			function showToast(msg) {
+				var toast = document.getElementById("overlay-toast");
+				toast.textContent = msg;
+				toast.style.display = "block";
+				setTimeout(function () {
+					toast.style.display = "none";
+				}, 1800);
+			}
+
+			// Apply overlay settings (font sizes, etc.)
+			function applyOverlaySettings() {
+				var statTitles = document.querySelectorAll(".dashboard-stat-title");
+				var statVals = document.querySelectorAll(".dashboard-stat-value");
+				var statPerHours = document.querySelectorAll(".dashboard-stat-perhour");
+				statTitles.forEach(function (el) {
+					if (!isNaN(overlaySettings.titleFontSize))
+						el.style.fontSize = overlaySettings.titleFontSize + "px";
+				});
+				statVals.forEach(function (el) {
+					if (!isNaN(overlaySettings.totalFontSize))
+						el.style.fontSize = overlaySettings.totalFontSize + "px";
+				});
+				statPerHours.forEach(function (el) {
+					if (!isNaN(overlaySettings.perHourFontSize))
+						el.style.fontSize = overlaySettings.perHourFontSize + "px";
+				});
+				// Apply icon size
+				if (!isNaN(overlaySettings.iconSize)) {
+					document
+						.querySelectorAll(".dashboard-stat img")
+						.forEach(function (el) {
+							el.style.width = overlaySettings.iconSize + "px";
+							el.style.height = overlaySettings.iconSize + "px";
+						});
+				}
+			}
+
+			// Theme switching logic
+			function setOverlayTheme(theme) {
+				// Store current theme
+				currentTheme = theme;
+
+				// NEVER change body background - it must stay transparent for OBS/Streamlabs
+				// Body background is set to transparent in CSS
+
+				// Dynamically update metric text color for theme
+				var statVals = document.querySelectorAll(".dashboard-stat-value");
+				var statTitles = document.querySelectorAll(".dashboard-stat-title");
+				var statPerHours = document.querySelectorAll(".dashboard-stat-perhour");
+				if (theme === "White" || theme === "Light") {
+					statVals.forEach(function (el) {
+						el.style.setProperty("color", "#000", "important");
+						el.style.setProperty(
+							"text-shadow",
+							"0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.6)",
+							"important"
+						);
+					});
+					statTitles.forEach(function (el) {
+						el.style.setProperty("color", "#000", "important");
+						el.style.setProperty(
+							"text-shadow",
+							"0 0 2px rgba(255,255,255,0.8)",
+							"important"
+						);
+					});
+					statPerHours.forEach(function (el) {
+						el.style.setProperty("color", "#222", "important");
+						el.style.setProperty(
+							"text-shadow",
+							"0 0 2px rgba(255,255,255,0.8)",
+							"important"
+						);
+					});
+				} else {
+					statVals.forEach(function (el) {
+						el.style.setProperty("color", "#fff", "important");
+						el.style.setProperty(
+							"text-shadow",
+							"0 2px 8px rgba(0,0,0,0.6)",
+							"important"
+						);
+					});
+					statTitles.forEach(function (el) {
+						el.style.setProperty("color", "#b0c4d4", "important");
+						el.style.setProperty(
+							"text-shadow",
+							"0 1px 4px rgba(0,0,0,0.5)",
+							"important"
+						);
+					});
+					statPerHours.forEach(function (el) {
+						el.style.setProperty("color", "#b0c4d4", "important");
+						el.style.setProperty(
+							"text-shadow",
+							"0 1px 4px rgba(0,0,0,0.5)",
+							"important"
+						);
+					});
+				}
+				// Always apply latest settings after theme change
+				applyOverlaySettings();
+			}
+			// Declare ws globally so it is accessible everywhere
+			var ws;
+			// Store current theme globally
+			var currentTheme = "Dark";
+			// Default/base settings constant
+			const DEFAULT_OVERLAY_SETTINGS = {
+				fontSize: 14,
+				iconSize: 32,
+				titleFontWeight: "bold",
+				titleFontSize: 16,
+				totalFontSize: 18,
+				perHourFontSize: 14,
+				metricSettings: {
+					fame: {
+						showTitle: true,
+						showImage: true,
+						showTotal: true,
+						showPerHour: true,
+						hide: false,
+					},
+					silver: {
+						showTitle: true,
+						showImage: true,
+						showTotal: true,
+						showPerHour: true,
+						hide: false,
+					},
+					respec: {
+						showTitle: true,
+						showImage: true,
+						showTotal: true,
+						showPerHour: true,
+						hide: false,
+					},
+					might: {
+						showTitle: true,
+						showImage: true,
+						showTotal: true,
+						showPerHour: true,
+						hide: false,
+					},
+					favor: {
+						showTitle: true,
+						showImage: true,
+						showTotal: true,
+						showPerHour: true,
+						hide: false,
+					},
+					faction: {
+						showTitle: true,
+						showImage: true,
+						showTotal: true,
+						showPerHour: true,
+						hide: false,
+					},
+				},
+			};
+			// Reset button handler
+			function handleResetButton() {
+				// Send reset request to backend via WebSocket
+				if (window.overlayWs && window.overlayWs.readyState === 1) {
+				} else {
+					// Fallback: try to find an open WebSocket
+					var wsCandidates = Object.values(window).filter(
+						(x) => x && x.readyState === 1 && typeof x.send === "function"
+					);
+					if (wsCandidates.length > 0) {
+						wsCandidates[0].send(JSON.stringify({ type: "reset-settings" }));
+					} else {
+						alert(
+							"Could not send reset request to backend. Please reload overlay."
+						);
+					}
+				}
+				// Immediately reset overlaySettings and re-render metrics for instant feedback
+				overlaySettings = JSON.parse(JSON.stringify(DEFAULT_OVERLAY_SETTINGS));
+				localStorage.setItem(
+					"overlaySettings",
+					JSON.stringify(overlaySettings)
+				);
+				renderMetricsRow();
+				// Send reset request to backend via WebSocket if possible
+				if (window.overlayWs && window.overlayWs.readyState === 1) {
+					window.overlayWs.send(JSON.stringify({ type: "reset-settings" }));
+				}
+			}
+			window.addEventListener("DOMContentLoaded", function () {
+				// Load settings from localStorage if present
+				var saved = localStorage.getItem("overlaySettings");
+				if (saved) {
+					try {
+						overlaySettings = JSON.parse(saved);
+					} catch (e) {
+						console.warn("Failed to parse saved overlaySettings", e);
+					}
+				}
+				renderMetricsRow();
+				// Set initial theme (default to Black)
+				setOverlayTheme(window.overlaySettings?.theme || "Black");
+				// Attach Reset button handler if button exists
+				var resetBtn = document.querySelector(
+					"#resetButton, .reset-button, button[name='reset']"
+				);
+				if (resetBtn) {
+					resetBtn.onclick = handleResetButton;
+				}
+			});
+			// Dynamically render metrics based on settings JSON
+			function renderMetricsRow() {
+				var row = document.getElementById("dashboard-metrics-row");
+				row.innerHTML = "";
+				// Guard: if overlaySettings or metricSettings is missing, set default and return
+				if (!window.overlaySettings) {
+					window.overlaySettings = { metricSettings: {} };
+				}
+				if (
+					!overlaySettings.metricSettings ||
+					Object.keys(overlaySettings.metricSettings).length === 0
+				) {
+					// Set default metrics if missing
+					overlaySettings.metricSettings = {
+						fame: {
+							showTitle: true,
+							showImage: true,
+							showTotal: true,
+							showPerHour: true,
+							hide: false,
+						},
+						silver: {
+							showTitle: true,
+							showImage: true,
+							showTotal: true,
+							showPerHour: true,
+							hide: false,
+						},
+						respec: {
+							showTitle: true,
+							showImage: true,
+							showTotal: true,
+							showPerHour: true,
+							hide: false,
+						},
+						might: {
+							showTitle: true,
+							showImage: true,
+							showTotal: true,
+							showPerHour: true,
+							hide: false,
+						},
+						favor: {
+							showTitle: true,
+							showImage: true,
+							showTotal: true,
+							showPerHour: true,
+							hide: false,
+						},
+						faction: {
+							showTitle: true,
+							showImage: true,
+							showTotal: true,
+							showPerHour: true,
+							hide: false,
+						},
+					};
+				}
+				var metrics = Object.entries(overlaySettings.metricSettings)
+					.map(([key, val]) => ({ key, ...val }))
+					.sort((a, b) => (a.Order ?? 0) - (b.Order ?? 0));
+				// Check if all metrics hide each stat field
+				var allHideTitle = metrics.every((m) => m.showTitle === false);
+				var allHideImage = metrics.every((m) => m.showImage === false);
+				var allHideTotal = metrics.every((m) => m.showTotal === false);
+				var allHidePerHour = metrics.every((m) => m.showPerHour === false);
+				console.log("metrics", metrics);
+				metrics.forEach((metric) => {
+					var statDiv = document.createElement("div");
+					statDiv.className = "dashboard-stat";
+					// Title (always render)
+					var titleDiv = document.createElement("div");
+					titleDiv.className = "dashboard-stat-title";
+					titleDiv.id = metric.key + "-title";
+					titleDiv.textContent = metric.showTitle
+						? metric.key.charAt(0).toUpperCase() + metric.key.slice(1)
+						: "";
+					titleDiv.style.opacity = metric.showTitle ? "1" : "0";
+					statDiv.appendChild(titleDiv);
+					// Icon (always render)
+					var img = document.createElement("img");
+					img.className = "dashboard-stat-icon";
+					img.id = metric.key + "-img";
+					if (metric.key === "faction") {
+						var factionName = window.overlaySettings?.factionName || "generic";
+						// sanitize factionName: allow letters, numbers and underscores only; fallback to generic
+						var safeFaction = /^[a-zA-Z0-9_]+$/.test(String(factionName || ""))
+							? factionName
+							: "generic";
+						var newSrc = "/img/factioncoin_" + safeFaction + ".png";
+						// Only update src if it changed to avoid repeated requests / flicker
+						if (img.src !== newSrc && img.dataset.currentSrc !== newSrc) {
+							img.src = newSrc;
+							img.dataset.currentSrc = newSrc;
+						}
+					} else {
+						var newSrc = metric.Icon || "/img/" + metric.key + ".png";
+						if (img.src !== newSrc && img.dataset.currentSrc !== newSrc) {
+							img.src = newSrc;
+							img.dataset.currentSrc = newSrc;
+						}
+					}
+					img.alt = metric.key;
+					img.style.opacity = metric.showImage ? "1" : "0";
+					statDiv.appendChild(img);
+					// Value (total, always render)
+					var valueDiv = document.createElement("div");
+					valueDiv.className = "dashboard-stat-value";
+					valueDiv.id = metric.key + "-value";
+					valueDiv.textContent = metric.showTotal ? "0" : "0";
+					valueDiv.style.opacity = metric.showTotal ? "1" : "0";
+					statDiv.appendChild(valueDiv);
+					// Per hour (always render)
+					var perHourDiv = document.createElement("div");
+					perHourDiv.className = "dashboard-stat-perhour";
+					perHourDiv.id = metric.key + "-perhour";
+					perHourDiv.textContent = metric.showPerHour ? "0/h" : "0/h";
+					perHourDiv.style.opacity = metric.showPerHour ? "1" : "0";
+					statDiv.appendChild(perHourDiv);
+					// If metric.hide, blank out all content but keep column
+					if (metric.hide) {
+						statDiv.style.opacity = "0";
+						statDiv.style.pointerEvents = "none";
+					}
+					row.appendChild(statDiv);
+				});
+				console.log("row children", row.children);
+
+				// Re-apply current theme to newly created elements
+				setOverlayTheme(currentTheme);
+			}
+
+			// Format numbers to match main app's NumberToKiloMegaConverter:
+			// - >= 1,000,000 => X.XM (one decimal if needed)
+			// - >= 1,000 => X.XK (one decimal if needed)
+			// - otherwise => integer with thousands separators (no decimals)
+			function formatKiloMegaNumber(v) {
+				var num = Number(v);
+				if (!isFinite(num) || isNaN(num)) return "0";
+				const MAX_SAFE = 1e12;
+				if (num > MAX_SAFE) num = MAX_SAFE;
+				if (num < -MAX_SAFE) num = -MAX_SAFE;
+
+				var abs = Math.abs(num);
+				var sign = num < 0 ? "-" : "";
+				if (abs >= 1000000) {
+					var m = (abs / 1000000).toFixed(1).replace(/\.0$/, "");
+					return sign + m + "M";
+				}
+				if (abs >= 1000) {
+					var k = (abs / 1000).toFixed(1).replace(/\.0$/, "");
+					return sign + k + "K";
+				}
+				return sign + Math.round(abs).toLocaleString();
+			}
+
+			// For totals (displayed prominently) use the K/M formatter
+			function formatNumber(num) {
+				return formatKiloMegaNumber(num);
+			}
+
+			// Per-hour should mimic the same formatting used in the main app
+			function formatPerHour(n) {
+				return formatKiloMegaNumber(n);
+			}
+			// Cached settings (populated by settings message)
+			var overlaySettings = JSON.parse(
+				JSON.stringify(DEFAULT_OVERLAY_SETTINGS)
+			);
+			// Helper to update metric display based on settings
+			function updateMetricDisplay(
+				id,
+				value,
+				perHour,
+				settings,
+				titleFontWeight,
+				autoHide
+			) {
+				var stat = document.getElementById(id + "-value");
+				var perh = document.getElementById(id + "-perhour");
+				var title = document.getElementById(id + "-title");
+				var container = stat ? stat.closest(".dashboard-stat") : null;
+				if (!container) return;
+				// Hide entire metric block if requested
+				if ((settings && settings.hide) || autoHide) {
+					container.style.opacity = "0";
+					container.style.pointerEvents = "none";
+					return;
+				} else {
+					container.style.opacity = "1";
+					container.style.pointerEvents = "auto";
+				}
+				// Title
+				if (title) {
+					title.style.opacity = settings && settings.showTitle ? "1" : "0";
+					title.style.fontWeight = titleFontWeight;
+					if (!isNaN(overlaySettings.titleFontSize)) {
+						title.style.fontSize = overlaySettings.titleFontSize + "px";
+					}
+					if (!(settings && settings.showTitle)) {
+						title.textContent = "";
+					}
+				}
+				// Image
+				var img = container.querySelector("img");
+				if (img) {
+					img.style.opacity = settings && settings.showImage ? "1" : "0";
+					img.style.width =
+						settings && settings.showImage && !isNaN(overlaySettings.iconSize)
+							? overlaySettings.iconSize + "px"
+							: "48px";
+					img.style.height =
+						settings && settings.showImage && !isNaN(overlaySettings.iconSize)
+							? overlaySettings.iconSize + "px"
+							: "48px";
+				}
+				// Value (total)
+				if (stat) {
+					stat.style.opacity = settings && settings.showTotal ? "1" : "0";
+					stat.textContent =
+						settings && settings.showTotal ? formatNumber(value) : "";
+					if (!isNaN(overlaySettings.totalFontSize)) {
+						stat.style.fontSize = overlaySettings.totalFontSize + "px";
+					}
+				}
+				// Per hour
+				if (perh) {
+					perh.style.opacity = settings && settings.showPerHour ? "1" : "0";
+					perh.textContent =
+						settings && settings.showPerHour
+							? formatPerHour(perHour) + "/h"
+							: "";
+					if (!isNaN(overlaySettings.perHourFontSize)) {
+						perh.style.fontSize = overlaySettings.perHourFontSize + "px";
+					}
+				}
+			}
+			// Helper to check if a metric should be autohidden
+			function shouldAutoHide(metricId, value) {
+				if (!overlaySettings.autoHideZero) return false;
+				if (
+					!overlaySettings.metricSettings[metricId] ||
+					overlaySettings.metricSettings[metricId].hide
+				)
+					return false;
+				var v = Number(value);
+				return v === 0;
+			}
+			// Main stat update handler (debounced/coalesced)
+			// Coalesce rapid incoming updates to avoid excessive DOM updates
+			window._overlayLatestPayload = null;
+			window._overlayUpdateTimer = null;
+			window._overlayLastMetricsKey = null;
+
+			function scheduleOverlayUpdate(payload) {
+				try {
+					// If payload is an object (server sometimes sends deserialized object),
+					// stringify it to preserve the JSON structure for parsing later.
+					if (payload && typeof payload === "object") {
+						payload = JSON.stringify(payload);
+					} else {
+						payload = String(payload || "");
+					}
+				} catch (e) {
+					payload = "";
+				}
+				// Reject absurdly large payloads
+				if (payload.length > 2000) {
+					console.warn("[Overlay] Incoming payload too large, truncating");
+					payload = payload.substring(0, 2000);
+				}
+				window._overlayLatestPayload = payload;
+				if (window._overlayUpdateTimer)
+					clearTimeout(window._overlayUpdateTimer);
+				window._overlayUpdateTimer = setTimeout(function () {
+					try {
+						handleStatsDelimitedNow(window._overlayLatestPayload);
+					} catch (e) {
+						console.error("[Overlay] Error processing payload", e);
+					}
+				}, 80); // 80ms coalesce window
+			}
+
+			function handleStatsDelimited(data) {
+				scheduleOverlayUpdate(data);
+			}
+
+			function valuesEqual(a, b) {
+				// Compare string representations to avoid numeric/format issues
+				return String(a) === String(b);
+			}
+
+			function setTextIfChanged(el, text) {
+				if (!el) return;
+				if (!valuesEqual(el.textContent, text)) el.textContent = text;
+			}
+
+			// Immediate processor which performs parsing and DOM updates
+			function handleStatsDelimitedNow(data) {
+				// Debug: log the raw payload for troubleshooting
+				try {
+					console.debug("[Overlay] handleStatsDelimited raw:", data);
+				} catch (e) {}
+				// --- PATCH: Support JSON metrics payload ---
+				var metrics = [];
+				var settings = {};
+				var factionName = "unknown";
+				// Try to parse as JSON object
+				try {
+					var obj = typeof data === "string" ? JSON.parse(data) : data;
+					if (obj.metrics && Array.isArray(obj.metrics)) {
+						metrics = obj.metrics;
+						settings = obj.settings || {};
+						factionName = metrics[12] || "unknown";
+						// Update overlaySettings from settings JSON
+						Object.assign(overlaySettings, settings);
+						if (settings.theme) setOverlayTheme(settings.theme);
+					}
+				} catch (e) {
+					// Fallback: try legacy pipe-delimited parsing
+					var statsAndSettings = String(data).split("||");
+					var rawParts = statsAndSettings[0].split("|");
+					metrics = rawParts.slice(0, 13);
+					while (metrics.length < 13) metrics.push("0");
+					if (statsAndSettings.length > 1) {
+						try {
+							var sJson = JSON.parse(statsAndSettings[1]);
+							Object.assign(overlaySettings, sJson);
+							if (sJson.theme) setOverlayTheme(sJson.theme);
+						} catch (e2) {}
+					}
+					factionName = metrics[12] || "unknown";
+				}
+				// Defensive: ensure metrics array has 13 elements
+				while (metrics.length < 13) metrics.push(0);
+				// Compose metricsKey for change detection
+				var metricsKey = metrics.slice(0, 13).join("|");
+				if (metricsKey === window._overlayLastMetricsKey) {
+					applyOverlaySettings();
+					return;
+				}
+				window._overlayLastMetricsKey = metricsKey;
+				// Fame
+				updateMetricDisplay(
+					"fame",
+					metrics[0],
+					metrics[1],
+					overlaySettings.metricSettings.fame,
+					overlaySettings.titleFontWeight,
+					shouldAutoHide("fame", metrics[0])
+				);
+				// Silver
+				updateMetricDisplay(
+					"silver",
+					metrics[2],
+					metrics[3],
+					overlaySettings.metricSettings.silver,
+					overlaySettings.titleFontWeight,
+					shouldAutoHide("silver", metrics[2])
+				);
+				// ReSpec
+				updateMetricDisplay(
+					"respec",
+					metrics[4],
+					metrics[5],
+					overlaySettings.metricSettings.respec,
+					overlaySettings.titleFontWeight,
+					shouldAutoHide("respec", metrics[4])
+				);
+				// Might
+				updateMetricDisplay(
+					"might",
+					metrics[6],
+					metrics[7],
+					overlaySettings.metricSettings.might,
+					overlaySettings.titleFontWeight,
+					shouldAutoHide("might", metrics[6])
+				);
+				// Favor
+				updateMetricDisplay(
+					"favor",
+					metrics[8],
+					metrics[9],
+					overlaySettings.metricSettings.favor,
+					overlaySettings.titleFontWeight,
+					shouldAutoHide("favor", metrics[8])
+				);
+				// Faction
+				var factionTotal = Number(metrics[10]) || 0;
+				var factionPerHour = Number(metrics[11]) || 0;
+				updateMetricDisplay(
+					"faction",
+					factionTotal,
+					factionPerHour,
+					overlaySettings.metricSettings.faction,
+					overlaySettings.titleFontWeight,
+					shouldAutoHide("faction", factionTotal)
+				);
+				// Update faction image if needed
+				var factionImg = document.getElementById("faction-img");
+				if (factionImg && factionName) {
+					var safeFaction = String(factionName)
+						.toLowerCase()
+						.replace(/[^a-z0-9_\-]/g, "");
+					if (
+						safeFaction.length > 0 &&
+						safeFaction !== "unknown" &&
+						safeFaction.length <= 32
+					) {
+						factionImg.src = "/img/factioncoin_" + safeFaction + ".png";
+					} else {
+						factionImg.src = "/img/factioncoin_generic.png";
+					}
+				}
+				// Icon size
+				if (!isNaN(overlaySettings.iconSize)) {
+					document
+						.querySelectorAll(".dashboard-stat img")
+						.forEach(function (el) {
+							el.style.width = overlaySettings.iconSize + "px";
+							el.style.height = overlaySettings.iconSize + "px";
+						});
+				}
+			}
+			// WebSocket connection and stat update
+			var lastStatsPayload = null;
+			function defaultStatsPayload() {
+				// 13 parts: fame|famePerHour|silver|silverPerHour|respec|respecPerHour|might|mightPerHour|favor|favorPerHour|factionPoints|factionPointsPerHour|factionName
+				return "0|0|0|0|0|0|0|0|0|0|0|0|unknown";
+			}
+			function handleSettingsMessage(json) {
+				try {
+					var s = typeof json === "string" ? JSON.parse(json) : json;
+					if (!window.overlaySettings) {
+						window.overlaySettings = JSON.parse(
+							JSON.stringify(DEFAULT_OVERLAY_SETTINGS)
+						);
+					}
+					// Update overlaySettings with received values
+					if (typeof s.fontSize === "number")
+						overlaySettings.fontSize = s.fontSize;
+					if (typeof s.iconSize === "number")
+						overlaySettings.iconSize = s.iconSize;
+					if (typeof s.titleFontSize === "number")
+						overlaySettings.titleFontSize = s.titleFontSize;
+					if (typeof s.totalFontSize === "number")
+						overlaySettings.totalFontSize = s.totalFontSize;
+					if (typeof s.perHourFontSize === "number")
+						overlaySettings.perHourFontSize = s.perHourFontSize;
+					if (typeof s.autoHideZero === "boolean")
+						overlaySettings.autoHideZero = s.autoHideZero;
+					if (typeof s.metricSettings === "object")
+						overlaySettings.metricSettings = s.metricSettings;
+
+					// Re-render metrics with new settings FIRST
+					renderMetricsRow();
+
+					// THEN apply theme to newly created elements
+					if (s.theme) {
+						setOverlayTheme(s.theme);
+					} else {
+						// Re-apply current theme to ensure new elements get styled
+						setOverlayTheme(currentTheme);
+					}
+
+					showToast("Settings applied!");
+				} catch (err) {
+					console.error("Failed to handle settings message:", err);
+					// Fallback for pipe-delimited stat payloads
+					if (typeof json === "string" && json.indexOf("|") > 0) {
+						lastStatsPayload = json;
+						handleStatsDelimited(json);
+					}
+				}
+			}
+			// Connection status UI removed. This function intentionally left blank to avoid runtime errors
+			function setConnectionStatus(status, color) {
+				// no-op
+			}
+			function connectWs() {
+				try {
+					// Determine websocket host. Prefer location.host, fall back to query params or localhost:8080
+					var qp = new URLSearchParams(location.search);
+					var host = location.host || qp.get("host");
+					var port = qp.get("port");
+					if (!host && port) host = "127.0.0.1:" + port;
+					if (!host) {
+						// Last resort fallback to localhost:8080 which is the default overlay server port
+						host = "127.0.0.1:8080";
+						console.warn(
+							"dashboard overlay: no location.host; falling back to",
+							host
+						);
+					}
+
+					var protocol = location.protocol === "https:" ? "wss:" : "ws:";
+					var wsUrl = protocol + "//" + host + "/ws";
+					console.log("[WebSocket] Attempting connection to:", wsUrl);
+					ws = new WebSocket(wsUrl);
+					window.overlayWs = ws;
+				} catch (err) {
+					console.error("[WebSocket] Failed to construct websocket URL", err);
+					// fallback to direct localhost
+					ws = new WebSocket("ws://127.0.0.1:8080/ws");
+					window.overlayWs = ws;
+				}
+				setConnectionStatus("Connecting...", "orange");
+				ws.onopen = function () {
+					setConnectionStatus("Connected", "lime");
+					console.log("[WebSocket] ✅ CONNECTION ESTABLISHED");
+					try {
+						ws.send(
+							JSON.stringify({
+								type: "register",
+								section: "dashboard",
+							})
+						);
+						console.log("[WebSocket] Sent registration for dashboard overlay");
+					} catch (e) {
+						console.warn("[WebSocket] Registration message failed", e);
+					}
+					// Start a light heartbeat/ping so server logs show active messages and we can verify connection
+					try {
+						if (window._overlayPingInterval)
+							clearInterval(window._overlayPingInterval);
+						window._overlayPingInterval = setInterval(function () {
+							try {
+								ws.send(
+									JSON.stringify({
+										type: "ping",
+										ts: Date.now(),
+									})
+								);
+								console.debug("[WebSocket] Sent ping");
+							} catch (e) {}
+						}, 5000);
+					} catch (e) {}
+				};
+				ws.onmessage = function (e) {
+					setConnectionStatus("Connected", "lime");
+					try {
+						if (!window.overlaySettings) {
+							overlaySettings = JSON.parse(
+								JSON.stringify(DEFAULT_OVERLAY_SETTINGS)
+							);
+						}
+						var msg = JSON.parse(e.data);
+						if (msg.type === "stats") {
+							lastStatsPayload = msg.data;
+							handleStatsDelimited(msg.data);
+						} else if (msg.type === "settings") {
+							handleSettingsMessage(msg.data);
+						} else {
+							if (typeof e.data === "string" && e.data.indexOf("|") > 0) {
+								lastStatsPayload = e.data;
+								handleStatsDelimited(e.data);
+							}
+						}
+					} catch (err) {
+						setConnectionStatus("Error", "red");
+						if (typeof e.data === "string" && e.data.indexOf("|") > 0) {
+							lastStatsPayload = e.data;
+							handleStatsDelimited(e.data);
+						}
+					}
+				};
+				ws.onclose = function (event) {
+					setConnectionStatus("Disconnected", "red");
+					try {
+						if (window._overlayPingInterval) {
+							clearInterval(window._overlayPingInterval);
+							window._overlayPingInterval = null;
+						}
+					} catch (_) {}
+					setTimeout(connectWs, 2000);
+				};
+				ws.onerror = function (err) {
+					setConnectionStatus("Error", "red");
+					ws.close();
+				};
+			}
+			console.log("[WebSocket] 🚀 Initializing WebSocket connection...");
+			connectWs();
+		</script>
+	</body>
+</html>

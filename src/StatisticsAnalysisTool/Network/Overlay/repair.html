@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Repair Costs Overlay</title>
+        <link rel="stylesheet" href="/Network/Overlay/overlay-common.css" />
+        <style>
+            body {
+                background: transparent;
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 8px;
+                /* Use overlay variable if present; fallback to a dark color for readability */
+                color: var(--text-on-surface, #111);
+            }
+            .repair-row {
+                display: flex;
+                gap: 24px;
+                align-items: center;
+            }
+            .repair-stat {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-width: 160px;
+            }
+            .repair-title {
+                font-size: 14px;
+                /* Use overlay muted color when available; fallback to a readable dark slate */
+                color: var(--muted, #2f4652);
+                font-weight: bold;
+            }
+            .repair-value {
+                font-size: 20px;
+                font-weight: bold;
+                /* Ensure values are visible regardless of the page background by
+                   using the overlay text color variable (fallback to white) */
+                color: var(--text-on-surface, #fff);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="repair-row">
+            <div class="repair-stat">
+                <div class="repair-title" id="r-today">Repair costs today</div>
+                <div class="repair-value" id="r-today-val">-0</div>
+            </div>
+            <div class="repair-stat">
+                <div class="repair-title" id="r-7">
+                    Repair costs last 7 days
+                </div>
+                <div class="repair-value" id="r-7-val">-682.74K</div>
+            </div>
+            <div class="repair-stat">
+                <div class="repair-title" id="r-30">
+                    Repair costs last 30 days
+                </div>
+                <div class="repair-value" id="r-30-val">-9.11M</div>
+            </div>
+        </div>
+        <script src="/Network/Overlay/overlay-common.js"></script>
+        <script>
+            // Update DOM values with metrics array: [today, last7, last30]
+            function formatNumber(v) {
+                try {
+                    if (v === null || typeof v === "undefined") return "-";
+                    var n = Number(v);
+                    if (!isFinite(n)) return String(v);
+                    // Simple abbreviate
+                    var abs = Math.abs(n);
+                    if (abs >= 1000000) return (n / 1000000).toFixed(2) + "M";
+                    if (abs >= 1000) return (n / 1000).toFixed(2) + "K";
+                    return n.toLocaleString();
+                } catch (e) {
+                    return String(v);
+                }
+            }
+
+            function applySettingsObj(s) {
+                try {
+                    if (!s) return;
+                    if (s.titleFontSize)
+                        document
+                            .querySelectorAll(".repair-title")
+                            .forEach(
+                                (e) =>
+                                    (e.style.fontSize = s.titleFontSize + "px")
+                            );
+                    if (s.totalFontSize)
+                        document
+                            .querySelectorAll(".repair-value")
+                            .forEach(
+                                (e) =>
+                                    (e.style.fontSize = s.totalFontSize + "px")
+                            );
+                    if (s.theme) applyOverlayTheme(s.theme);
+                } catch (e) {}
+            }
+
+            function onStats(data) {
+                // Data may be an object: { metrics: [...], settings: {...} } or an array or a JSON string
+                try {
+                    if (!data) return;
+                    // If server sent a JSON string, parse it
+                    if (typeof data === "string") {
+                        try {
+                            data = JSON.parse(data);
+                        } catch (e) {
+                            // legacy pipe-delimited fallback
+                            if (data.indexOf("|") !== -1) {
+                                var metrics = data
+                                    .split("|")
+                                    .map((s) => s.trim());
+                                if (metrics.length > 0)
+                                    document.getElementById(
+                                        "r-today-val"
+                                    ).textContent = formatNumber(metrics[0]);
+                                if (metrics.length > 1)
+                                    document.getElementById(
+                                        "r-7-val"
+                                    ).textContent = formatNumber(metrics[1]);
+                                if (metrics.length > 2)
+                                    document.getElementById(
+                                        "r-30-val"
+                                    ).textContent = formatNumber(metrics[2]);
+                            }
+                            return;
+                        }
+                    }
+
+                    var metrics = null;
+                    if (Array.isArray(data)) metrics = data;
+                    else if (data.metrics && Array.isArray(data.metrics))
+                        metrics = data.metrics;
+
+                    if (metrics) {
+                        if (metrics.length > 0)
+                            document.getElementById("r-today-val").textContent =
+                                formatNumber(metrics[0]);
+                        if (metrics.length > 1)
+                            document.getElementById("r-7-val").textContent =
+                                formatNumber(metrics[1]);
+                        if (metrics.length > 2)
+                            document.getElementById("r-30-val").textContent =
+                                formatNumber(metrics[2]);
+                    }
+                    // settings may be provided separately
+                    if (data.settings) applySettingsObj(data.settings);
+                } catch (e) {}
+            }
+
+            // Initialize overlay client for 'repair' section
+            try {
+                var client = initOverlayClient("repair", {
+                    onStats: onStats,
+                    onSettings: applySettingsObj,
+                });
+            } catch (e) {
+                // If overlay-common not available, do nothing
+            }
+        </script>
+    </body>
+</html>

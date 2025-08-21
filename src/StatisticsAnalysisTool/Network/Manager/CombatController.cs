@@ -173,6 +173,19 @@ public class CombatController
 
         await RemoveDuplicatesAsync(_mainWindowViewModel?.DamageMeterBindings?.DamageMeter);
         _isUiUpdateActive = false;
+
+        // Ensure overlay is updated after any UI update, but only when overlay is enabled
+        try
+        {
+            if (StatisticsAnalysisTool.Common.UserSettings.SettingsController.CurrentSettings.OverlayIsEnabled)
+            {
+                _mainWindowViewModel?.SyncDamageOverlay();
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "[CombatController] SyncDamageOverlay failed after damage update");
+        }
     }
 
     private static async Task UpdateDamageMeterFragmentAsync(DamageMeterFragment fragment, KeyValuePair<Guid, PlayerGameObject> healthChangeObject,

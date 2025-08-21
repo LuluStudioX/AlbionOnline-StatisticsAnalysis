@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Gathering Overlay</title>
+        <style>
+            body {
+                background: rgba(0, 0, 0);
+                color: #fff;
+                font-family: Arial, sans-serif;
+                margin: 0;
+            }
+            .center {
+                text-align: center;
+                margin-top: 40px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="gathering" style="padding: 12px">
+            <div class="center">
+                <h1>Gathering Overlay</h1>
+                <p>
+                    This overlay is currently a placeholder but will respect
+                    settings messages.
+                </p>
+            </div>
+        </div>
+        <script>
+            console.log("gathering.html loaded at " + new Date().toISOString());
+            // Minimal overlay settings support so the server can broadcast settings without forcing UI
+            window.overlaySettings = window.overlaySettings || {
+                autoHideZero: true,
+            };
+            window._overlayHasReceivedData =
+                window._overlayHasReceivedData || false;
+
+            function handleSettingsMessage(json) {
+                try {
+                    var s = typeof json === "string" ? JSON.parse(json) : json;
+                    if (s.theme) {
+                        if (s.theme === "Light" || s.theme === "White")
+                            document.body.style.background = "#fff";
+                        else document.body.style.background = "rgba(0,0,0,1)";
+                    }
+                    Object.assign(overlaySettings, s);
+                    // For gathering placeholder: only update visible content if real data already present or autoHideZero==false
+                    if (
+                        window._overlayHasReceivedData ||
+                        overlaySettings.autoHideZero === false
+                    ) {
+                        // re-render minimal preview
+                        var el = document.getElementById("gathering");
+                        if (el)
+                            el.style.border =
+                                "1px solid rgba(255,255,255,0.06)";
+                    }
+                } catch (e) {}
+            }
+
+            // Wire websocket client so settings messages are handled
+            (function () {
+                var s = document.createElement("script");
+                s.src = "/Network/Overlay/overlay-common.js";
+                s.onload = function () {
+                    var client = initOverlayClient("gathering", {
+                        onStats: function (data) {
+                            window._overlayHasReceivedData = true;
+                            // not implemented: actual gathering render logic
+                        },
+                        onSettings: function (data) {
+                            handleSettingsMessage(data);
+                        },
+                    });
+                    window._overlayClient_gathering = client;
+                };
+                document.head.appendChild(s);
+            })();
+        </script>
+    </body>
+</html>

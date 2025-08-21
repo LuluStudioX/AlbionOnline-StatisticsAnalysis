@@ -4,116 +4,494 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:StatisticsAnalysisTool.ViewModels"
+             xmlns:fa5="http://schemas.fontawesome.com/icons/"
+             xmlns:t="clr-namespace:StatisticsAnalysisTool.Models.TranslationModel"
+             xmlns:local="clr-namespace:StatisticsAnalysisTool.UserControls"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
+    <UserControl.Resources>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <local:NumberToKiloMegaConverter x:Key="NumberToKiloMegaConverter" />
+    <local:MetricNameToIconPathConverter x:Key="MetricNameToIconPathConverter" />
+        <local:FontSizeConverter x:Key="FontSizeConverter" />
+        <!-- Using app-wide CheckBox style from MainStyles.xaml instead of local toggle style -->
+    </UserControl.Resources>
     <Grid Margin="2">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="5"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Top: All settings and tabs -->
-        <StackPanel Grid.Row="0">
+        <StackPanel Grid.Row="0" HorizontalAlignment="Stretch">
             <!-- Header -->
-            <TextBlock Text="Streaming Overlay" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}" Margin="0,0,0,12"/>
-            <!-- Overlay Enable/Port/Apply -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <CheckBox Content="Enable Overlay" IsChecked="{Binding IsOverlayEnabled, Mode=TwoWay}" VerticalAlignment="Center" Height="24" AutomationProperties.Name="Enable Overlay"/>
-                <TextBlock Text="Port:" Margin="18,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                <TextBox Width="60" Height="24" Text="{Binding OverlayPort, Mode=TwoWay}" Margin="6,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Overlay Port"/>
-                <Button Content="Apply" Command="{Binding ApplySettingsCommand}" Margin="16,0,0,0" Height="24" MinWidth="70" AutomationProperties.Name="Apply Overlay Settings"/>
-            </StackPanel>
-            <!-- URL Row -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="URL:" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                <TextBlock Text="{Binding OverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
-                <Button Content="Copy" Command="{Binding CopyUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
-            </StackPanel>
+            <TextBlock Text="{Binding Translation.STREAMING_OVERLAY, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}" Margin="0,0,0,12"/>
+            <!-- Overlay Enable/Port/Apply (Grid for alignment) -->
+            <Grid Margin="0,0,0,8" HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- flexible spacer so the right-side URL copy area can float without overlapping -->
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Use same visual toggle as DamageMeter: FontAwesome icon that toggles on/off -->
+                    <Grid Height="25" Width="35" Margin="0,0,6,0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <fa5:ImageAwesome x:Name="OverlayEnableToggle"
+                                          Visibility="Visible"
+                                          ToolTip="{Binding Translation.ENABLE_OVERLAY, Mode=OneWay}"
+                                          MouseUp="OverlayEnableToggle_MouseUp" />
+                        <Grid.Resources>
+                            <Style TargetType="fa5:ImageAwesome">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsOverlayEnabled}" Value="True">
+                                        <Setter Property="Icon" Value="Solid_ToggleOn" />
+                                        <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Accent.Blue.3}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsOverlayEnabled}" Value="False">
+                                        <Setter Property="Icon" Value="Solid_ToggleOff" />
+                                        <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Text.1}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Resources>
+                    </Grid>
+                    <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Text="{Binding Translation.ENABLE_OVERLAY, Mode=OneWay}" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Foreground="{DynamicResource SolidColorBrush.Text.1}" VerticalAlignment="Center">
+                    <Run Text="{Binding Translation.PORT_LABEL, Mode=OneWay}"/><Run Text=":"/>
+                </TextBlock>
+                <TextBox Grid.Column="3" Width="60" Height="24" Text="{Binding OverlayPort, Mode=TwoWay}" Margin="6,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="{x:Static t:StreamingOverlayTranslation.PORT_LABEL}"/>
+                <Button Grid.Column="5" Content="{x:Static t:StreamingOverlayTranslation.APPLY}" Command="{Binding ApplySectionSettingsCommand}" CommandParameter="{Binding SelectedSectionIndex}" Height="24" MinWidth="70" AutomationProperties.Name="{x:Static t:StreamingOverlayTranslation.APPLY}"/>
+                <!-- Global overlay URL + Copy (right aligned in header) -->
+                <!-- Right-aligned global overlay URL + Copy in its own flexible column -->
+                <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                        <Run Text="{Binding Translation.URL, Mode=OneWay}"/><Run Text=":"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding BaseUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+                    <Button Content="{x:Static t:MainWindowTranslation.CopyToClipboard}" Command="{Binding CopyUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="100"/>
+                </StackPanel>
+            </Grid>
+            <!-- Main Overlay URL Row (moved into header) -->
             <!-- Theme -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="Theme:" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                <ComboBox Width="120" Height="24" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" Margin="8,0,0,0" AutomationProperties.Name="Overlay Theme"/>
+                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                    <Run Text="{Binding Translation.THEME, Mode=OneWay}"/><Run Text=":"/>
+                </TextBlock>
+                <ComboBox Width="120" Height="24" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" Margin="8,0,0,0" AutomationProperties.Name="{x:Static t:StreamingOverlayTranslation.THEME}"/>
             </StackPanel>
-            <!-- Metrics to Show -->
+            <!-- Overlays to Show -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <TextBlock Text="Metrics to Show:" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                <CheckBox Content="Gathering" IsChecked="{Binding ShowGathering, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Gathering"/>
-                <CheckBox Content="Damage" IsChecked="{Binding ShowDamage, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Damage"/>
-                <CheckBox Content="Dashboard" IsChecked="{Binding ShowDashboard, Mode=TwoWay}" Margin="12,0,0,0" Height="24" AutomationProperties.Name="Show Dashboard"/>
+                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                    <Run Text="{Binding Translation.OVERLAYS_TO_SHOW, Mode=OneWay}"/><Run Text=":"/>
+                </TextBlock>
+                <!-- Gathering toggle -->
+                <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <Grid Height="24" Width="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <fa5:ImageAwesome Visibility="Visible" ToolTip="{x:Static t:MainWindowTranslation.Gathering}" MouseUp="ToggleGathering_MouseUp">
+                            <fa5:ImageAwesome.Style>
+                                <Style TargetType="fa5:ImageAwesome">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowGathering}" Value="True">
+                                            <Setter Property="Icon" Value="Solid_ToggleOn" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Accent.Blue.3}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ShowGathering}" Value="False">
+                                            <Setter Property="Icon" Value="Solid_ToggleOff" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Text.1}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </fa5:ImageAwesome.Style>
+                        </fa5:ImageAwesome>
+                    </Grid>
+                    <TextBlock Text="{x:Static t:MainWindowTranslation.Gathering}" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Margin="6,0,0,0" />
+                </StackPanel>
+
+                <!-- Damage toggle -->
+                <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <Grid Height="24" Width="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <fa5:ImageAwesome Visibility="Visible" ToolTip="{x:Static t:MainWindowTranslation.DamageMeter}" MouseUp="ToggleDamage_MouseUp">
+                            <fa5:ImageAwesome.Style>
+                                <Style TargetType="fa5:ImageAwesome">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowDamage}" Value="True">
+                                            <Setter Property="Icon" Value="Solid_ToggleOn" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Accent.Blue.3}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ShowDamage}" Value="False">
+                                            <Setter Property="Icon" Value="Solid_ToggleOff" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Text.1}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </fa5:ImageAwesome.Style>
+                        </fa5:ImageAwesome>
+                    </Grid>
+                    <TextBlock Text="{x:Static t:MainWindowTranslation.DamageMeter}" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Margin="6,0,0,0" />
+                </StackPanel>
+
+                <!-- Repair toggle -->
+                <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <Grid Height="24" Width="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <fa5:ImageAwesome Visibility="Visible" ToolTip="{x:Static t:MainWindowTranslation.CurrentRepairCosts}" MouseUp="ToggleRepair_MouseUp">
+                            <fa5:ImageAwesome.Style>
+                                <Style TargetType="fa5:ImageAwesome">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowRepair}" Value="True">
+                                            <Setter Property="Icon" Value="Solid_ToggleOn" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Accent.Blue.3}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ShowRepair}" Value="False">
+                                            <Setter Property="Icon" Value="Solid_ToggleOff" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Text.1}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </fa5:ImageAwesome.Style>
+                        </fa5:ImageAwesome>
+                    </Grid>
+                    <TextBlock Text="{x:Static t:MainWindowTranslation.CurrentRepairCosts}" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Margin="6,0,0,0" />
+                </StackPanel>
+
+                <!-- Dashboard toggle -->
+                <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <Grid Height="24" Width="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <fa5:ImageAwesome Visibility="Visible" ToolTip="{x:Static t:MainWindowTranslation.Dashboard}" MouseUp="ToggleDashboard_MouseUp">
+                            <fa5:ImageAwesome.Style>
+                                <Style TargetType="fa5:ImageAwesome">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowDashboard}" Value="True">
+                                            <Setter Property="Icon" Value="Solid_ToggleOn" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Accent.Blue.3}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ShowDashboard}" Value="False">
+                                            <Setter Property="Icon" Value="Solid_ToggleOff" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SolidColorBrush.Text.1}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </fa5:ImageAwesome.Style>
+                        </fa5:ImageAwesome>
+                    </Grid>
+                    <TextBlock Text="{x:Static t:MainWindowTranslation.Dashboard}" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Margin="6,0,0,0" />
+                </StackPanel>
             </StackPanel>
             <!-- Section Settings Tabs (only once, above preview) -->
             <TabControl Margin="0,8,0,0" x:Name="SectionTabControl" SelectedIndex="{Binding SelectedSectionIndex, Mode=TwoWay}">
-            <TabItem Header="Dashboard">
+            <TabItem Header="{x:Static t:MainWindowTranslation.Dashboard}">
                 <StackPanel Margin="8">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="URL:" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                        <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
-                        <Button Content="Copy" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                                    <Run Text="{Binding Translation.URL, Mode=OneWay}"/><Run Text=":"/>
+                                </TextBlock>
+                                <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="{x:Static t:MainWindowTranslation.CopyToClipboard}" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70" HorizontalAlignment="Right"/>
+                        </Grid>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Font Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                        <Slider Minimum="8" Maximum="32" Width="120" Value="{Binding DashboardFontSize, Mode=TwoWay}"/>
-                        <TextBlock Text="{Binding DashboardFontSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Icon Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                        <Slider Minimum="16" Maximum="64" Width="120" Value="{Binding DashboardIconSize, Mode=TwoWay}"/>
-                        <TextBlock Text="{Binding DashboardIconSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Apply" Command="{Binding ApplyDashboardSettingsCommand}" Width="80"/>
-                        <Button Content="Reset" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
-                        <Button Content="Cancel" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
-                    </StackPanel>
+
+                    <!-- Grouped Font & Size Settings (styled like Metrics Display Settings) -->
+                    <Expander Margin="0,0,0,8">
+                <Expander.Header>
+                    <TextBlock FontSize="14" FontWeight="Bold" Text="{x:Static t:StreamingOverlayTranslation.FONT_AND_SIZE_SETTINGS}" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                </Expander.Header>
+                        <StackPanel Margin="8">
+                            <!-- Dashboard font sliders (labels simplified to metric names) -->
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.TITLE}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="8" Maximum="32" Width="220" Value="{Binding EditBuffer.DashboardTitleFontSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DashboardTitleFontSize, StringFormat=F1}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.TOTAL}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="8" Maximum="48" Width="220" Value="{Binding EditBuffer.DashboardTotalFontSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DashboardTotalFontSize, StringFormat=F1}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.PER_HOUR}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="8" Maximum="32" Width="220" Value="{Binding EditBuffer.DashboardPerHourFontSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DashboardPerHourFontSize, StringFormat=F1}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                            <!-- Moved Dashboard Icon Size inside Font and Size Settings -->
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,12,0,0">
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{Binding Translation.ICON, Mode=OneWay}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="16" Maximum="64" Width="220" Value="{Binding EditBuffer.DashboardIconSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DashboardIconSize, StringFormat=F1}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Dashboard Metrics Display Settings Panel -->
+                    <Expander Margin="0,16,0,0" IsExpanded="False"
+                              Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}">
+                        <Expander.Header>
+                            <TextBlock FontSize="14" FontWeight="Bold" Text="{x:Static t:StreamingOverlayTranslation.METRICS_DISPLAY_SETTINGS}" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                        </Expander.Header>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <CheckBox Content="{x:Static t:StreamingOverlayTranslation.AUTOHIDE_ZERO_VALUES}" IsChecked="{Binding EditBuffer.DashboardAutoHideZeroValues, Mode=TwoWay}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Grid Margin="0,8,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="28"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Header Row -->
+                                <TextBlock Grid.Row="0" Grid.Column="0"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.TITLE}"/>
+                                </TextBlock>
+                                <TextBlock Grid.Row="0" Grid.Column="2" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.ICON}"/>
+                                </TextBlock>
+                                <TextBlock Grid.Row="0" Grid.Column="3" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.TOTAL}"/>
+                                </TextBlock>
+                                <TextBlock Grid.Row="0" Grid.Column="4" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.PER_HOUR}"/>
+                                </TextBlock>
+                                <TextBlock Grid.Row="0" Grid.Column="5" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.HIDE_METRIC}"/>
+                                </TextBlock>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding EditBuffer.Metrics}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="80"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Foreground="{DynamicResource SolidColorBrush.Text.1}" VerticalAlignment="Center"/>
+                                            <CheckBox Grid.Column="1" IsChecked="{Binding ShowTitle, Mode=TwoWay}"/>
+                                            <CheckBox Grid.Column="2" IsChecked="{Binding ShowImage, Mode=TwoWay}"/>
+                                            <CheckBox Grid.Column="3" IsChecked="{Binding ShowTotal, Mode=TwoWay}"/>
+                                            <CheckBox Grid.Column="4" IsChecked="{Binding ShowPerHour, Mode=TwoWay}"/>
+                                            <CheckBox Grid.Column="5" IsChecked="{Binding HideMetric, Mode=TwoWay}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Expander>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="Gathering">
+            <TabItem Header="{x:Static t:MainWindowTranslation.Gathering}">
                 <StackPanel Margin="8">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="URL:" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                        <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
-                        <Button Content="Copy" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Font Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                                <Run Text="{Binding Translation.URL, Mode=OneWay}"/><Run Text=":"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                            <Button Content="{x:Static t:MainWindowTranslation.CopyToClipboard}" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                                <Run Text="{Binding Translation.TITLE, Mode=OneWay}"/><Run Text=":"/>
+                            </TextBlock>
                         <Slider Minimum="8" Maximum="32" Width="120" Value="{Binding GatheringFontSize, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding GatheringFontSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Icon Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Center">
+                        <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                            <Run Text="{Binding Translation.ICON, Mode=OneWay}"/><Run Text=":"/>
+                        </TextBlock>
                         <Slider Minimum="16" Maximum="64" Width="120" Value="{Binding GatheringIconSize, Mode=TwoWay}"/>
-                        <TextBlock Text="{Binding GatheringIconSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Apply" Command="{Binding ApplyGatheringSettingsCommand}" Width="80"/>
-                        <Button Content="Reset" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
-                        <Button Content="Cancel" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
+                        <TextBlock Text="{Binding GatheringIconSize, StringFormat=F1}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
                     </StackPanel>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="Damage">
+            <TabItem Header="{x:Static t:MainWindowTranslation.DamageMeter}">
                 <StackPanel Margin="8">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="URL:" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                        <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
-                        <Button Content="Copy" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Font Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                        <Slider Minimum="8" Maximum="32" Width="120" Value="{Binding DamageFontSize, Mode=TwoWay}"/>
-                        <TextBlock Text="{Binding DamageFontSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Icon Size: " Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                        <Slider Minimum="16" Maximum="64" Width="120" Value="{Binding DamageIconSize, Mode=TwoWay}"/>
-                        <TextBlock Text="{Binding DamageIconSize}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Apply" Command="{Binding ApplyDamageSettingsCommand}" Width="80"/>
-                        <Button Content="Reset" Command="{Binding ResetSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
-                        <Button Content="Cancel" Command="{Binding CancelSectionSettingsCommand}" Width="80" Margin="8,0,0,0"/>
-                    </StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                                <Run Text="{Binding Translation.URL, Mode=OneWay}"/><Run Text=":"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                            <Button Content="{x:Static t:MainWindowTranslation.CopyToClipboard}" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                            <Button Margin="8,0,0,0" Height="26" Width="160" Command="{Binding ResetAllCommand}" ToolTip="{x:Static t:StreamingOverlayTranslation.RESET_DAMAGE_METER}">
+                                <TextBlock TextAlignment="Center">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.RESET_DAMAGE_METER}"/>
+                                </TextBlock>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <!-- Grouped Font & Size Settings for Damage Meter (styled like Metrics Display Settings) -->
+                    <Expander Margin="0,0,0,8">
+                        <Expander.Header>
+                            <TextBlock FontSize="14" FontWeight="Bold" Text="{x:Static t:StreamingOverlayTranslation.FONT_AND_SIZE_SETTINGS}" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                        </Expander.Header>
+                        <StackPanel Margin="8">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
+                <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                    <Run Text="{x:Static t:StreamingOverlayTranslation.NAME}"/><Run Text=":"/>
+                </TextBlock>
+                                <Slider Minimum="8" Maximum="48" Width="220" Value="{Binding EditBuffer.DamageTitleFontSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DamageTitleFontSize, StringFormat=F0}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
+                                <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.TOTAL}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="8" Maximum="64" Width="220" Value="{Binding EditBuffer.DamageValueFontSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DamageValueFontSize, StringFormat=F0}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
+                                <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.DPS}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="8" Maximum="32" Width="220" Value="{Binding EditBuffer.DamageDpsFontSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DamageDpsFontSize, StringFormat=F0}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
+                                <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.HEAL}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="8" Maximum="32" Width="220" Value="{Binding EditBuffer.DamageHealFontSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DamageHealFontSize, StringFormat=F0}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{Binding Translation.ICON, Mode=OneWay}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="16" Maximum="96" Width="220" Value="{Binding EditBuffer.DamageIconSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding EditBuffer.DamageIconSize, StringFormat=F1}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+                    <!-- Damage Preview Settings -->
+                    <Expander Margin="0,12,0,0">
+                        <Expander.Header>
+                            <TextBlock FontSize="14" FontWeight="Bold" Text="{x:Static t:StreamingOverlayTranslation.METRICS_DISPLAY_SETTINGS}" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                        </Expander.Header>
+                        <StackPanel Margin="8">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8">
+                                <TextBlock Text="{x:Static t:StreamingOverlayTranslation.PREVIEW_COUNT}" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                                <Slider Minimum="1" Maximum="10" Width="160" Value="{Binding EditBuffer.DamagePreviewCount, Mode=TwoWay}" Margin="8,0,0,0"/>
+                                <TextBlock Text="{Binding EditBuffer.DamagePreviewCount}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <CheckBox Content="{x:Static t:StreamingOverlayTranslation.DPS}" IsChecked="{Binding EditBuffer.DamageShowDps, Mode=TwoWay}" Margin="0,0,12,0"/>
+                                <CheckBox Content="{x:Static t:StreamingOverlayTranslation.HEAL}" IsChecked="{Binding EditBuffer.DamageShowHeal, Mode=TwoWay}" Margin="0,0,12,0"/>
+                                <CheckBox Content="{x:Static t:StreamingOverlayTranslation.ICON}" IsChecked="{Binding EditBuffer.DamageShowIcons, Mode=TwoWay}" Margin="0,0,12,0"/>
+                                <!-- Show PvP checkbox removed -->
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Content="{x:Static t:StreamingOverlayTranslation.FORCE_HEALER}" IsChecked="{Binding EditBuffer.DamageForceHealer, Mode=TwoWay}" Margin="0,0,12,0"/>
+                                <CheckBox Content="{x:Static t:StreamingOverlayTranslation.HIDE_YOURSELF}" IsChecked="{Binding EditBuffer.DamageHideSelf, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="{x:Static t:MainWindowTranslation.CurrentRepairCosts}">
+                <StackPanel Margin="8">
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                                <Run Text="{Binding Translation.URL, Mode=OneWay}"/><Run Text=":"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding SectionOverlayUrl}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                            <Button Content="{x:Static t:MainWindowTranslation.CopyToClipboard}" Command="{Binding CopySectionUrlCommand}" Margin="12,0,0,0" Height="24" MinWidth="70" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                    <!-- Repair Font & Size Settings -->
+                    <Expander Margin="0,0,0,8">
+                        <Expander.Header>
+                            <TextBlock FontSize="14" FontWeight="Bold" Text="{x:Static t:StreamingOverlayTranslation.FONT_AND_SIZE_SETTINGS}" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                        </Expander.Header>
+                        <StackPanel Margin="8">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{x:Static t:StreamingOverlayTranslation.TITLE}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="8" Maximum="32" Width="220" Value="{Binding RepairTitleFontSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding RepairTitleFontSize, StringFormat=F1}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="140">
+                                    <Run Text="{Binding Translation.ICON, Mode=OneWay}"/><Run Text=":"/>
+                                </TextBlock>
+                                <Slider Minimum="16" Maximum="64" Width="220" Value="{Binding RepairIconSize, Mode=TwoWay}"/>
+                                <TextBlock Text="{Binding RepairIconSize, StringFormat=F1}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SolidColorBrush.Text.1}" Width="48"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Repair Metrics Display Settings -->
+                    <Expander Margin="0,16,0,0" IsExpanded="False"
+                              Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}">
+                        <Expander.Header>
+                            <TextBlock FontSize="14" FontWeight="Bold" Text="{x:Static t:StreamingOverlayTranslation.METRICS_DISPLAY_SETTINGS}" Foreground="{DynamicResource SolidColorBrush.Accent.Blue.2}"/>
+                        </Expander.Header>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <TextBlock Width="240" Foreground="{DynamicResource SolidColorBrush.Text.1}">{x:Static t:StreamingOverlayTranslation.REPAIR_COSTS_TODAY}</TextBlock>
+                                <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}" Text="-0" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <TextBlock Width="240" Foreground="{DynamicResource SolidColorBrush.Text.1}">{x:Static t:StreamingOverlayTranslation.REPAIR_COSTS_LAST_7_DAYS}</TextBlock>
+                                <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}" Text="-682.74K" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" VerticalAlignment="Center">
+                                <TextBlock Width="240" Foreground="{DynamicResource SolidColorBrush.Text.1}">{x:Static t:StreamingOverlayTranslation.REPAIR_COSTS_LAST_30_DAYS}</TextBlock>
+                                <TextBlock Foreground="{DynamicResource SolidColorBrush.Text.1}" Text="-9.11M" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
                 </StackPanel>
             </TabItem>
         </TabControl>
@@ -124,11 +502,191 @@
 
         <!-- Overlay Preview -->
         <StackPanel Grid.Row="2" Margin="0,0,0,8">
-            <TextBlock Text="Overlay Preview:" FontWeight="SemiBold" Margin="0,0,0,4" Foreground="{DynamicResource SolidColorBrush.Text.1}"/>
-            <Border BorderBrush="{DynamicResource SolidColorBrush.Accent.Blue.2}" BorderThickness="1" Height="100" Background="Transparent" CornerRadius="4">
-                <TextBlock Text="{Binding OverlayPreviewText}" Foreground="{DynamicResource SolidColorBrush.Text.1}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <TextBlock FontWeight="SemiBold" Margin="0,0,0,4" Foreground="{DynamicResource SolidColorBrush.Text.1}">
+                <Run Text="{Binding Translation.OVERLAY_PREVIEW, Mode=OneWay}"/><Run Text=":"/>
+            </TextBlock>
+            <Border BorderBrush="{DynamicResource SolidColorBrush.Accent.Blue.2}" BorderThickness="1" MinHeight="80" Background="Transparent" CornerRadius="4" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding PreviewMetrics}" HorizontalAlignment="Stretch">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="8,0,8,0" VerticalAlignment="Center" MinWidth="110" Visibility="{Binding HideMetric, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="{Binding Name}" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Text.1}" Margin="0,0,0,2" TextAlignment="Center">
+                                        <TextBlock.FontSize>
+                                            <MultiBinding Converter="{StaticResource FontSizeConverter}">
+                                                <Binding Path="DataContext.SelectedSectionIndex" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                <Binding Path="DataContext.EditBuffer.DashboardTitleFontSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                <Binding Path="DataContext.EditBuffer.DamageTitleFontSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </MultiBinding>
+                                        </TextBlock.FontSize>
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ShowTitle}" Value="False">
+                                                        <Setter Property="Visibility" Value="Hidden"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <!-- Image using metric name converter to resolve icon path -->
+                                    <Image Grid.Row="1" Margin="0,0,0,4">
+                                        <Image.Source>
+                                            <PriorityBinding>
+                                                <Binding Path="Icon" Converter="{StaticResource MetricNameToIconPathConverter}" />
+                                                <Binding Path="Name" Converter="{StaticResource MetricNameToIconPathConverter}" />
+                                            </PriorityBinding>
+                                        </Image.Source>
+                                        <Image.Width>
+                                            <MultiBinding Converter="{StaticResource FontSizeConverter}">
+                                                <Binding Path="DataContext.SelectedSectionIndex" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                <Binding Path="DataContext.EditBuffer.DashboardIconSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                <Binding Path="DataContext.EditBuffer.DamageIconSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </MultiBinding>
+                                        </Image.Width>
+                                        <Image.Height>
+                                            <MultiBinding Converter="{StaticResource FontSizeConverter}">
+                                                <Binding Path="DataContext.SelectedSectionIndex" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                <Binding Path="DataContext.EditBuffer.DashboardIconSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                <Binding Path="DataContext.EditBuffer.DamageIconSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </MultiBinding>
+                                        </Image.Height>
+                                        <Image.Style>
+                                            <Style TargetType="Image">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ShowImage}" Value="False">
+                                                        <Setter Property="Visibility" Value="Hidden"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Image.Style>
+                                    </Image>
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding TotalValue, Converter={StaticResource NumberToKiloMegaConverter}}" FontWeight="Bold" Foreground="{DynamicResource SolidColorBrush.Text.1}" TextAlignment="Center">
+                                            <TextBlock.FontSize>
+                                                <MultiBinding Converter="{StaticResource FontSizeConverter}">
+                                                    <Binding Path="DataContext.SelectedSectionIndex" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    <Binding Path="DataContext.EditBuffer.DashboardTotalFontSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    <Binding Path="DataContext.EditBuffer.DamageValueFontSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                </MultiBinding>
+                                            </TextBlock.FontSize>
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ShowTotal}" Value="False">
+                                                            <Setter Property="Visibility" Value="Hidden"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <!-- PvP inline removed -->
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="3" Orientation="Vertical" Margin="0,0,0,0">
+                                        <!-- Legacy single-line per-hour value: only show when not a damage preview (dashboard metrics) -->
+                                        <TextBlock Text="{Binding PerHourValue, Converter={StaticResource NumberToKiloMegaConverter}}" Foreground="#b0c4d4" TextAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ShowPerHour}" Value="False">
+                                                            <Setter Property="Visibility" Value="Hidden"/>
+                                                        </DataTrigger>
+                                                        <!-- Hide this single-line PerHourValue when the item is a damage preview (we show explicit DPS/HPS lines instead) -->
+                                                        <DataTrigger Binding="{Binding IsDamagePreview}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <!-- DPS line with inline PvP parentheses when enabled -->
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding DpsValue}" Foreground="#b0c4d4" TextAlignment="Center">
+                                                <TextBlock.FontSize>
+                                                    <Binding Path="DataContext.EditBuffer.DamageDpsFontSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                </TextBlock.FontSize>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ShowPerHour}" Value="False">
+                                                                <Setter Property="Visibility" Value="Hidden"/>
+                                                            </DataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding IsDamagePreview}" Value="True"/>
+                                                                    <Condition Binding="{Binding DataContext.EditBuffer.DamageShowDps, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </MultiDataTrigger>
+                                                            <DataTrigger Binding="{Binding IsDamagePreview}" Value="False">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <!-- PvP DPS inline removed -->
+                                        </StackPanel>
+                                        <!-- Heal (HPS) line with inline PvP parentheses when enabled -->
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding HpsValue}" Foreground="#b0c4d4" TextAlignment="Center">
+                                                <TextBlock.FontSize>
+                                                    <Binding Path="DataContext.EditBuffer.DamageHealFontSize" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                </TextBlock.FontSize>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ShowPerHour}" Value="False">
+                                                                <Setter Property="Visibility" Value="Hidden"/>
+                                                            </DataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding IsDamagePreview}" Value="True"/>
+                                                                    <Condition Binding="{Binding DataContext.EditBuffer.DamageShowHeal, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </MultiDataTrigger>
+                                                            <DataTrigger Binding="{Binding IsDamagePreview}" Value="False">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <!-- PvP HPS inline removed -->
+                                        </StackPanel>
+                                        <!-- removed separate PvP DPS/HPS lines; PvP now shown inline with DPS/HPS and Total -->
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Border>
         </StackPanel>
 
+        <!-- Apply/Reset/Cancel Buttons at bottom -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+            <Button Content="{x:Static t:StreamingOverlayTranslation.APPLY}" Command="{Binding ApplySectionSettingsCommand}" CommandParameter="{Binding SelectedSectionIndex}" Width="80" Height="28"/>
+            <Button Content="{x:Static t:StreamingOverlayTranslation.RESET}" Command="{Binding ResetSectionSettingsCommand}" Width="80" Height="28" Margin="12,0,0,0"/>
+            <Button Content="{x:Static t:StreamingOverlayTranslation.CANCEL}" Command="{Binding CancelSectionSettingsCommand}" Width="80" Height="28" Margin="12,0,0,0"/>
+        </StackPanel>
     </Grid>
 </UserControl>

@@ -43,6 +43,46 @@ namespace StatisticsAnalysisTool.ViewModels;
 
 public class MainWindowViewModel : BaseViewModel
 {
+    // Instance method that performs the actual sync to the overlay for the damage meter.
+    // This allows manual or programmatic triggering of overlay payload update for damage.
+    public void SyncDamageOverlay()
+    {
+        try
+        {
+            // Best-effort: ask OverlaySectionManager to send current damage payload
+            try
+            {
+                var mgr = StatisticsAnalysisTool.Overlay.OverlaySectionManager.Instance;
+                // Force an update using the current DamageMeterBindings
+                mgr?.UpdateDamage(this.DamageMeterBindings);
+            }
+            catch (Exception inner)
+            {
+                Serilog.Log.Warning(inner, "[MainWindowViewModel] OverlaySectionManager.UpdateDamage failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "[MainWindowViewModel] SyncDamageOverlay failed");
+        }
+    }
+    // Expose a static instance for legacy callers (some code expects MainWindowViewModel.Instance)
+    public static MainWindowViewModel Instance { get; private set; }
+
+    // Legacy static sync method used by DashboardBindings to notify overlay updates.
+    // Forward to the instance method when available.
+    public static void SyncDashboardOverlayStatic()
+    {
+        try
+        {
+            Instance?.SyncDashboardOverlay();
+        }
+        catch (Exception ex)
+        {
+            // Swallow exceptions here to avoid bubbling up from property setters; log for visibility
+            Serilog.Log.Warning(ex, "[MainWindowViewModel] SyncDashboardOverlayStatic failed");
+        }
+    }
     private double _allianceInfoWidth;
     private double _currentMapInfoWidth;
     private string _errorBarText;
@@ -135,9 +175,36 @@ public class MainWindowViewModel : BaseViewModel
 
     public MainWindowViewModel()
     {
+        // set the static instance for legacy code paths
+        Instance = this;
         UpgradeSettings();
         SetUiElements();
         Translation = new MainWindowTranslation();
+    }
+
+    // Instance method that performs the actual sync to the overlay.
+    // If there is existing overlay sync logic elsewhere, this method should call it.
+    // For now provide a best-effort implementation that triggers the overlay payload update.
+    public void SyncDashboardOverlay()
+    {
+        try
+        {
+            // Best-effort: ask OverlaySectionManager to send current dashboard payload
+            try
+            {
+                var mgr = StatisticsAnalysisTool.Overlay.OverlaySectionManager.Instance;
+                // Force an update using the current DashboardBindings
+                mgr?.UpdateDashboard(this.DashboardBindings, true);
+            }
+            catch (Exception inner)
+            {
+                Serilog.Log.Warning(inner, "[MainWindowViewModel] OverlaySectionManager.UpdateDashboard failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "[MainWindowViewModel] SyncDashboardOverlay failed");
+        }
     }
 
     public void SetUiElements()

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Albion Destiny Board Profile</title>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+            crossorigin="anonymous"
+        />
+        <style>
+            body {
+                background: rgba(0, 0, 0);
+                color: #fff;
+                font-family: Arial, sans-serif;
+                margin: 0;
+                min-height: 100vh;
+            }
+            .dashboard-root {
+                max-width: 700px;
+                margin: 38px auto;
+                background: #162027;
+                border-radius: 16px;
+                box-shadow: 0 4px 24px #0006;
+                padding: 38px 28px 30px 28px;
+            }
+            .dashboard-header {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-bottom: 20px;
+            }
+            .dashboard-header img {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 2px solid #7ecbff;
+            }
+            .dashboard-title {
+                font-size: 2em;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+            .destiny-family {
+                margin-bottom: 30px;
+                background: #1a2731;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px #0002;
+                padding-bottom: 6px;
+            }
+            .family-header {
+                padding: 12px 20px;
+                color: #ffc857;
+                font-size: 1.18em;
+                font-weight: 600;
+                border-bottom: 1px solid #22303a;
+            }
+            .tree-list {
+                padding: 10px 32px 12px 36px;
+            }
+            .end-node {
+                display: flex;
+                align-items: center;
+                margin-bottom: 10px;
+            }
+            .end-node:last-child {
+                margin-bottom: 0;
+            }
+            .item-icon {
+                font-size: 1.1em;
+                margin-right: 10px;
+                color: #7ecbff;
+            }
+            .item-name {
+                flex: 1;
+            }
+            .item-level {
+                font-weight: bold;
+                color: #f5e5a8;
+                margin-left: 16px;
+            }
+            .progress-bar {
+                background: #28435c;
+                height: 9px;
+                border-radius: 6px;
+                margin-top: 3px;
+                margin-bottom: 4px;
+                width: 200px;
+                margin-left: 56px;
+            }
+            .progress-fill {
+                background: linear-gradient(90deg, #7ecbff, #ffe265);
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="dashboard-root">
+            <div class="dashboard-header">
+                <img
+                    src="https://albiononline.com/assets/images/profiles/portrait-knight.png"
+                    alt="User Portrait"
+                />
+                <span class="dashboard-title">Destiny Board Profile</span>
+            </div>
+
+            <!-- Combat: Warrior weapons -->
+            <div class="destiny-family">
+                <div class="family-header">
+                    <i class="fa-solid fa-shield-halved"></i> Warrior Weapons
+                </div>
+                <div class="tree-list">
+                    <div class="end-node">
+                        <i class="fa-solid fa-hammer item-icon"></i
+                        ><span class="item-name">Hammer Mastery</span
+                        ><span class="item-level">Level 20</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-axes item-icon"></i
+                        ><span class="item-name">Axe Mastery</span
+                        ><span class="item-level">Level 34</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 34%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-sword item-icon"></i
+                        ><span class="item-name">Sword Mastery</span
+                        ><span class="item-level">Level 55</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 55%"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Combat: Hunter weapons -->
+            <div class="destiny-family">
+                <div class="family-header">
+                    <i class="fa-solid fa-bow-arrow"></i> Hunter Weapons
+                </div>
+                <div class="tree-list">
+                    <div class="end-node">
+                        <i class="fa-solid fa-bow-arrow item-icon"></i
+                        ><span class="item-name">Bow Mastery</span
+                        ><span class="item-level">Level 72</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 72%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-crosshairs item-icon"></i
+                        ><span class="item-name">Crossbow Mastery</span
+                        ><span class="item-level">Level 28</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 28%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-dagger item-icon"></i
+                        ><span class="item-name">Dagger Mastery</span
+                        ><span class="item-level">Level 17</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 17%"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Combat: Mage weapons -->
+            <div class="destiny-family">
+                <div class="family-header">
+                    <i class="fa-solid fa-hat-wizard"></i> Mage Weapons
+                </div>
+                <div class="tree-list">
+                    <div class="end-node">
+                        <i class="fa-solid fa-staff item-icon"></i
+                        ><span class="item-name">Fire Staff Mastery</span
+                        ><span class="item-level">Level 44</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 44%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-icicles item-icon"></i
+                        ><span class="item-name">Frost Staff Mastery</span
+                        ><span class="item-level">Level 37</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 37%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-bolt item-icon"></i
+                        ><span class="item-name">Lightning Staff Mastery</span
+                        ><span class="item-level">Level 11</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 11%"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Armor trees -->
+            <div class="destiny-family">
+                <div class="family-header">
+                    <i class="fa-solid fa-shirt"></i> Armor Mastery
+                </div>
+                <div class="tree-list">
+                    <div class="end-node">
+                        <i class="fa-solid fa-shirt item-icon"></i
+                        ><span class="item-name">Cloth Armor</span
+                        ><span class="item-level">Level 60</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 60%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-chest-armor item-icon"></i
+                        ><span class="item-name">Leather Armor</span
+                        ><span class="item-level">Level 24</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 24%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-shield item-icon"></i
+                        ><span class="item-name">Plate Armor</span
+                        ><span class="item-level">Level 34</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 34%"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Gathering trees -->
+            <div class="destiny-family">
+                <div class="family-header">
+                    <i class="fa-solid fa-leaf"></i> Gathering Mastery
+                </div>
+                <div class="tree-list">
+                    <div class="end-node">
+                        <i class="fa-solid fa-mountain item-icon"></i
+                        ><span class="item-name">Ore Miner</span
+                        ><span class="item-level">Level 49</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 49%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-tree item-icon"></i
+                        ><span class="item-name">Woodcutter</span
+                        ><span class="item-level">Level 36</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 36%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-droplet item-icon"></i
+                        ><span class="item-name">Fiber Harvester</span
+                        ><span class="item-level">Level 23</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 23%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-cube item-icon"></i
+                        ><span class="item-name">Stone Gatherer</span
+                        ><span class="item-level">Level 29</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 29%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-fish item-icon"></i
+                        ><span class="item-name">Fisher</span
+                        ><span class="item-level">Level 7</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 7%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-cow item-icon"></i
+                        ><span class="item-name">Skinner</span
+                        ><span class="item-level">Level 12</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 12%"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Crafting trees -->
+            <div class="destiny-family">
+                <div class="family-header">
+                    <i class="fa-solid fa-hammer"></i> Crafting Mastery
+                </div>
+                <div class="tree-list">
+                    <div class="end-node">
+                        <i class="fa-solid fa-anvil item-icon"></i
+                        ><span class="item-name">Blacksmith</span
+                        ><span class="item-level">Level 18</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 18%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-flask item-icon"></i
+                        ><span class="item-name">Alchemist</span
+                        ><span class="item-level">Level 12</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 12%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-utensils item-icon"></i
+                        ><span class="item-name">Cook</span
+                        ><span class="item-level">Level 25</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 25%"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Farming trees -->
+            <div class="destiny-family">
+                <div class="family-header">
+                    <i class="fa-solid fa-seedling"></i> Farming Mastery
+                </div>
+                <div class="tree-list">
+                    <div class="end-node">
+                        <i class="fa-solid fa-carrot item-icon"></i
+                        ><span class="item-name">Farmer</span
+                        ><span class="item-level">Level 11</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 11%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-leaf item-icon"></i
+                        ><span class="item-name">Herbalist</span
+                        ><span class="item-level">Level 9</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 9%"></div>
+                    </div>
+                    <div class="end-node">
+                        <i class="fa-solid fa-dog item-icon"></i
+                        ><span class="item-name">Animal Breeder</span
+                        ><span class="item-level">Level 5</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 5%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -52,6 +52,7 @@
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Explicit compile entries for new helper / converter / viewmodel files added by the overlay feature -->
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -101,7 +102,69 @@
     <Compile Update="Views\LanguageSelectionWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <!-- New/added source files (include only once each) -->
+    <Compile Include="UserControls\BoolToVisibilityConverter.cs" />
+    <Compile Include="UserControls\FontSizeConverter.cs" />
+    <Compile Include="UserControls\MetricNameToIconPathConverter.cs" />
+    <Compile Include="UserControls\NumberToKiloMegaConverter.cs" />
+    <Compile Include="ViewModels\RelayCommand.cs" />
+    <Compile Include="Models\MetricDisplayOption.cs" />
+    <Compile Include="Network\Overlay\OverlayServer.cs" />
+    <Compile Include="Network\Overlay\ResourceImageController.cs" />
   </ItemGroup>
+
+  <!-- Overlay stat icons as embedded resources -->
+  <ItemGroup>
+    <EmbeddedResource Include="sat-icon.ico" />
+    <EmbeddedResource Include="Resources\fame.png" />
+    <EmbeddedResource Include="Resources\silver.png" />
+    <EmbeddedResource Include="Resources\might.png" />
+    <EmbeddedResource Include="Resources\gold.png" />
+    <EmbeddedResource Include="Resources\favor.png" />
+    <EmbeddedResource Include="Resources\respec.png" />
+    <EmbeddedResource Include="Resources\factioncoin_lymhurst.png"/>
+    <EmbeddedResource Include="Resources\factioncoin_thetford.png"/>
+    <EmbeddedResource Include="Resources\factioncoin_martlock.png"/>
+    <EmbeddedResource Include="Resources\factioncoin_bridgewatch.png"/>
+    <EmbeddedResource Include="Resources\factioncoin_fortsterling.png"/>
+    <EmbeddedResource Include="Resources\factioncoin_caerleon.png"/>
+    <EmbeddedResource Include="Resources\factioncoin_generic.png"/>
+  </ItemGroup>
+
+  <!-- Ensure overlay HTML/CSS/JS and image assets are copied to output directory -->
+  <ItemGroup>
+    <Content Include="Network\Overlay\overlay.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\dashboard.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\damage.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\gathering.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\repair.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\UserProfile.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+
+    <Content Include="Network\Overlay\overlay-common.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\overlay-common.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+
+    <!-- Overlay image assets -->
+    <Content Include="Network\Overlay\Resources\factioncoin_generic.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <None Update="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -642,6 +705,7 @@
     <PackageReference Include="BinaryFormat.EthernetFrame" Version="0.1.5" />
     <PackageReference Include="BinaryFormat.IPv4" Version="0.1.5" />
     <PackageReference Include="BinaryFormat.Udp" Version="0.1.5" />
+    <PackageReference Include="EmbedIO" Version="3.5.2" />
     <PackageReference Include="Libpcap" Version="0.1.5" />
     <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc5.4" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3405.78" />

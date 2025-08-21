@@ -23,7 +23,7 @@ using StatisticsAnalysisTool.Network;
 
 namespace StatisticsAnalysisTool;
 
-public partial class App
+public partial class App : System.Windows.Application
 {
     private MainWindowViewModel _mainWindowViewModel;
     private TrackingController _trackingController;
@@ -103,6 +103,11 @@ public partial class App
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7,
                 restrictedToMinimumLevel: LogEventLevel.Information)
+            .WriteTo.File(
+                Path.Combine(logFolderName, "sat-debug-.logs"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 3,
+                restrictedToMinimumLevel: LogEventLevel.Debug)
             .MinimumLevel.Verbose()
             .WriteTo.Debug(
                 restrictedToMinimumLevel: LogEventLevel.Verbose)
@@ -113,6 +118,15 @@ public partial class App
     {
         _mainWindowViewModel = new MainWindowViewModel();
         ServiceLocator.Register<MainWindowViewModel>(_mainWindowViewModel);
+
+        // Register a single shared OverlayOptionsObject so all parts of the app use the same instance
+        var sharedOverlayOptions = new Overlay.OverlayOptionsObject();
+        ServiceLocator.Register<Overlay.OverlayOptionsObject>(sharedOverlayOptions);
+
+        // Overlay: initialize StreamingOverlayViewModel and register it (it will resolve the shared OverlayOptionsObject)
+        var overlayVm = new StreamingOverlayViewModel();
+        ServiceLocator.Register<StreamingOverlayViewModel>(overlayVm);
+        // Overlay server auto-start logic is handled by StreamingOverlayViewModel/OverlayOptionsObject only
 
         var satNotifications = new SatNotificationManager(new NotificationManager(Current.Dispatcher));
         ServiceLocator.Register<SatNotificationManager>(satNotifications);

@@ -38283,48 +38283,215 @@
       "tuid": "STREAMING_OVERLAY",
       "tuv": [
         {
-          "lang": "de-DE",
-          "seg": "Streaming Overlay"
-        },
-        {
           "lang": "en-US",
           "seg": "Streaming Overlay"
-        },
+        }
+      ]
+    },
+    {
+      "tuid": "ENABLE_OVERLAY",
+      "tuv": [
         {
-          "lang": "es-ES",
-          "seg": "Superposición de transmisión"
-        },
+          "lang": "en-US",
+          "seg": "Enable Overlay"
+        }
+      ]
+    },
+    {
+      "tuid": "PORT_LABEL",
+      "tuv": [
         {
-          "lang": "fr-FR",
-          "seg": "Superposition de streaming"
-        },
+          "lang": "en-US",
+          "seg": "Port"
+        }
+      ]
+    },
+    {
+      "tuid": "URL",
+      "tuv": [
         {
-          "lang": "ja-JP",
-          "seg": "ストリーミングオーバーレイ"
-        },
+          "lang": "en-US",
+          "seg": "URL"
+        }
+      ]
+    },
+    {
+      "tuid": "THEME",
+      "tuv": [
         {
-          "lang": "ko-KR",
-          "seg": "스트리밍 오버레이"
-        },
+          "lang": "en-US",
+          "seg": "Theme"
+        }
+      ]
+    },
+    {
+      "tuid": "METRICS_TO_SHOW",
+      "tuv": [
         {
-          "lang": "pl-PL",
-          "seg": "Nakładka streamingu"
-        },
+          "lang": "en-US",
+          "seg": "Metrics to Show"
+        }
+      ]
+    },
+    {
+      "tuid": "OVERLAYS_TO_SHOW",
+      "tuv": [
         {
-          "lang": "pt-BR",
-          "seg": "Sobreposição de streaming"
-        },
+          "lang": "en-US",
+          "seg": "Overlays to Show"
+        }
+      ]
+    },
+    {
+      "tuid": "TITLE",
+      "tuv": [
         {
-          "lang": "ru-RU",
-          "seg": "Оверлей трансляции"
-        },
+          "lang": "en-US",
+          "seg": "Title"
+        }
+      ]
+    },
+    {
+      "tuid": "CANCEL",
+      "tuv": [
         {
-          "lang": "zh-CN",
-          "seg": "流媒体叠加层"
-        },
+          "lang": "en-US",
+          "seg": "Cancel"
+        }
+      ]
+    },
+    {
+      "tuid": "OVERLAY_PREVIEW",
+      "tuv": [
         {
-          "lang": "zh-TW",
-          "seg": "串流疊加層"
+          "lang": "en-US",
+          "seg": "Overlay Preview"
+        }
+      ]
+    },
+    {
+      "tuid": "METRICS_DISPLAY_SETTINGS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Metrics Display Settings"
+        }
+      ]
+    },
+    {
+      "tuid": "FONT_AND_SIZE_SETTINGS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Font and Size Settings"
+        }
+      ]
+    },
+    {
+      "tuid": "AUTOHIDE_ZERO_VALUES",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Autohide 0 values"
+        }
+      ]
+    },
+    {
+      "tuid": "HIDE_METRIC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Hide Metric"
+        }
+      ]
+    },
+    {
+      "tuid": "APPLY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Apply"
+        }
+      ]
+    },
+    {
+      "tuid": "DPS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "DPS"
+        }
+      ]
+    },
+    {
+      "tuid": "HEAL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Heal"
+        }
+      ]
+    },
+    {
+      "tuid": "FORCE_HEALER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Force Healer"
+        }
+      ]
+    },
+    {
+      "tuid": "HIDE_YOURSELF",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Hide yourself"
+        }
+      ]
+    },
+    {
+      "tuid": "PREVIEW_COUNT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Preview Count"
+        }
+      ]
+    },
+    {
+      "tuid": "OVERLAY_WELCOME_LINE1",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Welcome! Select a section to view your live Dashboard, Gathering, or Damage Meter overlay."
+        }
+      ]
+    },
+    {
+      "tuid": "OVERLAY_WELCOME_LINE2",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Each section is optimized and approved by Albion Online for streaming and real-time stats."
+        }
+      ]
+    },
+    {
+      "tuid": "OVERLAY_WELCOME_FUN",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Have fun!"
+        }
+      ]
+    },
+    {
+      "tuid": "OVERLAY_WELCOME_ENJOY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Enjoy your stream!"
         }
       ]
     },

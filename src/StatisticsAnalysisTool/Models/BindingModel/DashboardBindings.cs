@@ -641,4 +641,13 @@ public class DashboardBindings : BaseViewModel
     public static string TranslationKillsDeathsLoading => LocalizationController.Translation("KILLS_DEATHS_LOADING");
     public static string TranslationLootedChests => LocalizationController.Translation("LOOTED_CHESTS");
     public static string TranslationRepairCosts => LocalizationController.Translation("REPAIR_COSTS");
+    /// <summary>
+    /// Override OnPropertyChanged to also trigger dashboard overlay sync after any property change.
+    /// </summary>
+    protected override void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+    {
+        base.OnPropertyChanged(propertyName);
+        // PERF: This will trigger overlay update after every property change. If needed, add property filtering or debounce.
+        StatisticsAnalysisTool.ViewModels.MainWindowViewModel.SyncDashboardOverlayStatic();
+    }
 }

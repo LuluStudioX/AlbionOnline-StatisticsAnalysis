@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Albion Online Streaming Overlay</title>
+        <style>
+            body {
+                background: rgba(0, 0, 0);
+                color: #fff;
+                font-family: Arial, sans-serif;
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .nav-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 32px;
+            }
+            .nav-title {
+                font-size: 2.2em;
+                font-weight: bold;
+                margin-bottom: 12px;
+                letter-spacing: 1px;
+            }
+            .nav-buttons {
+                display: flex;
+                gap: 24px;
+            }
+            .nav-btn {
+                background: #18242b;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                padding: 18px 38px;
+                font-size: 1.3em;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s, transform 0.2s;
+                box-shadow: 0 2px 8px #0004;
+            }
+            .nav-btn:hover {
+                background: #1e2e38;
+                transform: translateY(-2px) scale(1.04);
+            }
+            .nav-desc {
+                margin-top: 18px;
+                color: #b0c4d4;
+                font-size: 1.1em;
+                text-align: center;
+                max-width: 420px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="nav-container">
+            <div class="nav-title">Albion Online Streaming Overlay</div>
+            <div class="nav-buttons">
+                <button
+                    id="btn-dashboard"
+                    class="nav-btn"
+                    onclick="location.href='/dashboard'"
+                >
+                    <span id="lbl-dashboard">Dashboard</span>
+                </button>
+                <button
+                    id="btn-gathering"
+                    class="nav-btn"
+                    onclick="location.href='/gathering'"
+                >
+                    <span id="lbl-gathering">Gathering</span>
+                </button>
+                <button
+                    id="btn-damage"
+                    class="nav-btn"
+                    onclick="location.href='/damage'"
+                >
+                    <span id="lbl-damage">Damage Meter</span>
+                </button>
+            </div>
+            <div class="nav-desc" id="overlay-welcome-desc">
+                Welcome! Select a section to view your live Dashboard,
+                Gathering, or Damage Meter overlay.<br />
+                Each section is optimized and approved by Albion Online for
+                streaming and real-time stats.<br /><br />
+                <b>Have fun!</b><br />
+                <b>Enjoy your stream!</b>
+            </div>
+        </div>
+        <script>
+            async function applyOverlayLocalization(lang = "en-US") {
+                try {
+                    const res = await fetch("/localization?lang=" + lang);
+                    const data = await res.json();
+                    const translations = {};
+                    for (const entry of data.translations) {
+                        const tuv = entry.tuv.find((t) => t.lang === lang);
+                        if (tuv) translations[entry.tuid] = tuv.seg;
+                    }
+                    // Compose the welcome message with formatting
+                    const desc = document.getElementById(
+                        "overlay-welcome-desc"
+                    );
+                    if (desc) {
+                        desc.innerHTML =
+                            (translations.OVERLAY_WELCOME_LINE1 ||
+                                "Welcome! Select a section to view your live Dashboard, Gathering, or Damage Meter overlay.") +
+                            "<br />" +
+                            (translations.OVERLAY_WELCOME_LINE2 ||
+                                "Each section is optimized and approved by Albion Online for streaming and real-time stats.") +
+                            "<br /><br />" +
+                            "<b>" +
+                            (translations.OVERLAY_WELCOME_FUN || "Have fun!") +
+                            "</b><br />" +
+                            "<b>" +
+                            (translations.OVERLAY_WELCOME_ENJOY ||
+                                "Enjoy your stream!") +
+                            "</b>";
+                    }
+                } catch (e) {
+                    console.warn("Localization fetch failed", e);
+                }
+            }
+            window.addEventListener("DOMContentLoaded", () =>
+                applyOverlayLocalization()
+            );
+
+            // Query current overlay section status and disable buttons for disabled sections
+            async function applyOverlayAvailability() {
+                try {
+                    const res = await fetch("/overlay-status");
+                    if (!res.ok) return;
+                    const st = await res.json();
+                    function disable(btnId, lblId) {
+                        const b = document.getElementById(btnId);
+                        const l = document.getElementById(lblId);
+                        if (!b || !l) return;
+                        b.style.background = "#111";
+                        b.style.color = "#777";
+                        b.disabled = true;
+                        // apply strikethrough to label
+                        l.style.textDecoration = "line-through";
+                        l.style.opacity = "0.7";
+                        b.onclick = null;
+                    }
+                    if (!st.showDashboard)
+                        disable("btn-dashboard", "lbl-dashboard");
+                    if (!st.showGathering)
+                        disable("btn-gathering", "lbl-gathering");
+                    if (!st.showDamage) disable("btn-damage", "lbl-damage");
+                } catch (e) {
+                    console.warn("overlay-status fetch failed", e);
+                }
+            }
+            window.addEventListener(
+                "DOMContentLoaded",
+                applyOverlayAvailability
+            );
+        </script>
+    </body>
+</html>
