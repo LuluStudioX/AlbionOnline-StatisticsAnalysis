@@ -4,11 +4,14 @@ using System.Windows.Input;
 using StatisticsAnalysisTool.Network.Overlay;
 using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.Models.TranslationModel;
+<<<<<<< HEAD
 using StatisticsAnalysisTool.ViewModels;
 using System.Linq;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using StatisticsAnalysisTool.Models;
+=======
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
 
 namespace StatisticsAnalysisTool.ViewModels;
 
@@ -241,7 +244,35 @@ public class StreamingOverlayViewModel : BaseViewModel
     // Preview items for the overlay panel. Returns dashboard metrics or a damage preview depending on selected section.
     public System.Collections.IEnumerable PreviewMetrics
     {
+<<<<<<< HEAD
         get
+=======
+        public StreamingOverlayTranslation Translation { get; set; } = new StreamingOverlayTranslation();
+    // Holds all section font/icon settings (persisted, from main settings)
+    private OverlaySectionSettings _sectionSettings => StatisticsAnalysisTool.Common.UserSettings.SettingsController.CurrentSettings.OverlaySectionSettings;
+    // Temporary buffer for editing (not yet applied)
+    private OverlaySectionSettings _editSectionSettings = new OverlaySectionSettings();
+        // Overlay enabled/disabled
+        private bool _isOverlayEnabled = false;
+        // Overlay server port
+        private int _overlayPort = 8080;
+        // Selected theme name
+        private string _selectedTheme = "Dark";
+        // Section visibility toggles
+        private bool _showGathering = true;
+        private bool _showDamage = true;
+        private bool _showDashboard = true;
+        // Theme options
+        private List<string> _themeOptions = new List<string> { "Dark", "Light" };
+        // Index of selected overlay section for preview
+        private int _selectedSectionIndex;
+
+
+        /// <summary>
+        /// Enables or disables the overlay server.
+        /// </summary>
+        public bool IsOverlayEnabled
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
         {
             // Helper: compact number formatting (e.g., 1.2k)
             static string CompactNumber(double value)

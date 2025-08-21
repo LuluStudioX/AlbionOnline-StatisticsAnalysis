@@ -38283,6 +38283,7 @@
       "tuid": "STREAMING_OVERLAY",
       "tuv": [
         {
+<<<<<<< HEAD
           "lang": "en-US",
           "seg": "Streaming Overlay"
         }
@@ -38509,10 +38510,33 @@
         {
           "lang": "fr-FR",
           "seg": "Ouvrir la console de debug au démarrage"
+=======
+          "lang": "en-US",
+          "seg": "Streaming Overlay"
         }
       ]
     },
     {
+      "tuid": "ENABLE_OVERLAY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Enable Overlay"
+        }
+      ]
+    },
+    {
+      "tuid": "PORT_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Port"
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
+        }
+      ]
+    },
+    {
+<<<<<<< HEAD
       "tuid": "DEBUG",
       "tuv": [
         {
@@ -38526,10 +38550,27 @@
         {
           "lang": "fr-FR",
           "seg": "Debug"
+=======
+      "tuid": "APPLY_BUTTON",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Apply"
         }
       ]
     },
     {
+      "tuid": "URL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "URL"
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
+        }
+      ]
+    },
+    {
+<<<<<<< HEAD
       "tuid": "NO_LISTENING_ADAPTERS",
       "tuv": [
         {
@@ -38543,10 +38584,27 @@
         {
           "lang": "fr-FR",
           "seg": "Aucune carte réseau appropriée n'a été trouvée. Vérifiez la carte sélectionnée dans les Paramètres et envisagez de désactiver le VPN ou les cartes réseau virtuelles."
+=======
+      "tuid": "COPY_BUTTON",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Copy"
         }
       ]
     },
     {
+      "tuid": "THEME",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Theme"
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
+        }
+      ]
+    },
+    {
+<<<<<<< HEAD
       "tuid": "ERR_SOCKET_FAILED_WITH_CODE",
       "tuv": [
         {
@@ -38560,10 +38618,27 @@
         {
           "lang": "fr-FR",
           "seg": "Échec du démarrage du socket (code: {0}). Exécutez l'application en tant qu'administrateur ou passez à \"Npcap\" dans les paramètres."
+=======
+      "tuid": "METRICS_TO_SHOW",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Metrics to Show"
         }
       ]
     },
     {
+      "tuid": "FONT_SIZE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Font Size"
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
+        }
+      ]
+    },
+    {
+<<<<<<< HEAD
       "tuid": "START_APPLICATION_AS_ADMINISTRATOR",
       "tuv": [
         {
@@ -38577,10 +38652,18 @@
         {
           "lang": "fr-FR",
           "seg": "Veuillez exécuter l'application en tant qu'administrateur."
+=======
+      "tuid": "ICON_SIZE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Icon Size"
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
         }
       ]
     },
     {
+<<<<<<< HEAD
       "tuid": "ERR_NPCAP_DLL_MISSING",
       "tuv": [
         {
@@ -38594,10 +38677,18 @@
         {
           "lang": "fr-FR",
           "seg": "Impossible de trouver Npcap (wpcap.dll). Veuillez installer ou réparer Npcap (sans l'ancien WinPcap)."
+=======
+      "tuid": "RESET_BUTTON",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Reset"
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
         }
       ]
     },
     {
+<<<<<<< HEAD
       "tuid": "ERR_NPCAP_OPEN_FAILED",
       "tuv": [
         {
@@ -38611,10 +38702,18 @@
         {
           "lang": "fr-FR",
           "seg": "Npcap n'a pas pu ouvrir d'adaptateur. Vérifiez les droits d'administrateur, le pare-feu/VPN et l'adaptateur sélectionné."
+=======
+      "tuid": "CANCEL_BUTTON",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Cancel"
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
         }
       ]
     },
     {
+<<<<<<< HEAD
       "tuid": "ERR_CAPTURE_START_INVALID_OPERATION",
       "tuv": [
         {
@@ -38645,6 +38744,13 @@
         {
           "lang": "fr-FR",
           "seg": "Impossible de démarrer le suivi. Veuillez vérifier l'installation et les paramètres."
+=======
+      "tuid": "OVERLAY_PREVIEW",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Overlay Preview"
+>>>>>>> 08a701a6 (add localization support for streaming overlay controls and implement translation bindings)
         }
       ]
     }
