@@ -1,0 +1,4 @@
+src/StatisticsAnalysisTool/Localization/localization.json merge=ours
+src/StatisticsAnalysisTool/Models/TranslationModel/StreamingOverlayTranslation.cs merge=ours
+src/StatisticsAnalysisTool/UserControls/StreamingOverlayControl.xaml merge=ours
+src/StatisticsAnalysisTool/ViewModels/StreamingOverlayViewModel.cs merge=ours
