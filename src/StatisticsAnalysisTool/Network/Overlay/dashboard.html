@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Dashboard Overlay</title>
+        <style>
+            body {
+                /* Background is set dynamically by inline script below.
+                   Use query param ?transparent=1 when loading in OBS/Streamlabs to force transparency.
+                   Otherwise a preview background will be applied for browser preview. */
+                background: none;
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                min-height: 100vh;
+                overflow: hidden; /* Prevent scrollbars */
+                width: 100vw;
+                height: 100vh;
+            }
+            .dashboard-overlay-row {
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                gap: 40px;
+                margin-top: 20px;
+                padding: 20px;
+            }
+            .dashboard-stat {
+                display: grid;
+                /* Allow rows to size automatically so large font sizes won't overlap the icon */
+                grid-template-rows: auto auto auto auto;
+                align-items: center;
+                justify-items: center;
+                min-width: 60px;
+                gap: 4px;
+                padding: 2px 6px;
+            }
+            /* Removed .dashboard-stat img selector to prevent grid override */
+            .dashboard-stat-value {
+                font-size: 1.5em;
+                font-weight: bold;
+                color: #fff;
+                text-shadow: 0 2px 8px #000a;
+            }
+            .dashboard-stat-perhour {
+                font-size: 1em;
+                color: #b0c4d4;
+                margin-top: 2px;
+            }
+            .dashboard-stat-title {
+                font-size: 1em;
+                color: #b0c4d4;
+                margin: 0;
+                text-align: center;
+                font-weight: bold;
+                grid-row: 1;
+                width: 100%;
+                display: block;
+                /* Prevent long titles or large font sizes from overflowing the icon area */
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .dashboard-stat-icon {
+                grid-row: 2;
+                width: 48px;
+                height: 48px;
+                display: block;
+                object-fit: contain;
+                /* Cap icon size so it doesn't become larger than the column */
+                max-width: 100%;
+                max-height: 4.5rem;
+            }
+            .dashboard-stat-value {
+                grid-row: 3;
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+            .dashboard-stat-perhour {
+                grid-row: 4;
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+        </style>
+        <!-- Shared overlay CSS (variables) so other overlays can share theme -->
+        <link rel="stylesheet" href="/Network/Overlay/overlay-common.css" />
+        <script>
+            (function () {
+                // Minimal query param parsing used by the rest of the script.
+                function getQuery() {
+                    var q = {};
+                    try {
+                        var sp = new URLSearchParams(location.search);
+                        for (var pair of sp.entries()) q[pair[0]] = pair[1];
+                    } catch (e) {}
+                    return q;
+                }
+                var qp = getQuery();
+
+                function applyInitialBackground() {
+                    try {
+                        if (qp.transparent === "1") {
+                            document.body.style.background = "transparent";
+                        } else {
+                            // lightweight preview background when not transparent
+                            document.body.style.background = "rgba(0,0,0,0.85)";
+                        }
+                    } catch (e) {}
+                }
+
+                // Expose initial theme so subsequent code can use qp.theme
+                window.currentTheme = qp.theme || "Dark";
+
+                if (document.body) applyInitialBackground();
+                else
+                    window.addEventListener(
+                        "DOMContentLoaded",
+                        applyInitialBackground,
+                        { once: true }
+                    );
+            })();
+        </script>
+    </head>
+    <body>
+        <!-- Connection status indicator removed - overlay should not show connection UI -->
+        <div class="dashboard-overlay-row" id="dashboard-metrics-row"></div>
+        <div
+            id="overlay-toast"
+            style="
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9999;
+                background: #222;
+                color: #fff;
+                padding: 12px 24px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px #000a;
+                display: none;
+                font-size: 1.2em;
+            "
+        >
+            Settings applied!
+        </div>
+        <script>
+            // Show toast notification
+            function showToast(msg) {
+                var toast = document.getElementById("overlay-toast");
+                toast.textContent = msg;
+                toast.style.display = "block";
+                setTimeout(function () {
+                    toast.style.display = "none";
+                }, 1800);
+            }
+
+            // Apply overlay settings (font sizes, etc.)
+            function applyOverlaySettings() {
+                var statTitles = document.querySelectorAll(
+                    ".dashboard-stat-title"
+                );
+                var statVals = document.querySelectorAll(
+                    ".dashboard-stat-value"
+                );
+                var statPerHours = document.querySelectorAll(
+                    ".dashboard-stat-perhour"
+                );
+                statTitles.forEach(function (el) {
+                    if (!isNaN(overlaySettings.titleFontSize))
+                        el.style.fontSize =
+                            overlaySettings.titleFontSize + "px";
+                });
+                statVals.forEach(function (el) {
+                    if (!isNaN(overlaySettings.totalFontSize))
+                        el.style.fontSize =
+                            overlaySettings.totalFontSize + "px";
+                });
+                statPerHours.forEach(function (el) {
+                    if (!isNaN(overlaySettings.perHourFontSize))
+                        el.style.fontSize =
+                            overlaySettings.perHourFontSize + "px";
+                });
+                // Apply icon size
+                if (!isNaN(overlaySettings.iconSize)) {
+                    document
+                        .querySelectorAll(".dashboard-stat img")
+                        .forEach(function (el) {
+                            el.style.width = overlaySettings.iconSize + "px";
+                            el.style.height = overlaySettings.iconSize + "px";
+                        });
+                }
+            }
+
+            // Theme switching logic
+            function setOverlayTheme(theme) {
+                // Store current theme
+                currentTheme = theme;
+
+                // NEVER change body background - it must stay transparent for OBS/Streamlabs
+                // Body background is set to transparent in CSS
+
+                // Dynamically update metric text color for theme
+                var statVals = document.querySelectorAll(
+                    ".dashboard-stat-value"
+                );
+                var statTitles = document.querySelectorAll(
+                    ".dashboard-stat-title"
+                );
+                var statPerHours = document.querySelectorAll(
+                    ".dashboard-stat-perhour"
+                );
+                if (typeof applyOverlayTheme === "function") {
+                    try {
+                        applyOverlayTheme(theme);
+                    } catch (e) {}
+                }
+
+                if (theme === "White" || theme === "Light") {
+                    statVals.forEach(function (el) {
+                        el.style.setProperty("color", "#000", "important");
+                        el.style.setProperty(
+                            "text-shadow",
+                            "0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.6)",
+                            "important"
+                        );
+                    });
+                    statTitles.forEach(function (el) {
+                        el.style.setProperty("color", "#000", "important");
+                        el.style.setProperty(
+                            "text-shadow",
+                            "0 0 2px rgba(255,255,255,0.8)",
+                            "important"
+                        );
+                    });
+                    statPerHours.forEach(function (el) {
+                        el.style.setProperty("color", "#222", "important");
+                        el.style.setProperty(
+                            "text-shadow",
+                            "0 0 2px rgba(255,255,255,0.8)",
+                            "important"
+                        );
+                    });
+                } else {
+                    statVals.forEach(function (el) {
+                        el.style.setProperty("color", "#fff", "important");
+                        el.style.setProperty(
+                            "text-shadow",
+                            "0 2px 8px rgba(0,0,0,0.6)",
+                            "important"
+                        );
+                    });
+                    statTitles.forEach(function (el) {
+                        el.style.setProperty("color", "#b0c4d4", "important");
+                        el.style.setProperty(
+                            "text-shadow",
+                            "0 1px 4px rgba(0,0,0,0.5)",
+                            "important"
+                        );
+                    });
+                    statPerHours.forEach(function (el) {
+                        el.style.setProperty("color", "#b0c4d4", "important");
+                        el.style.setProperty(
+                            "text-shadow",
+                            "0 1px 4px rgba(0,0,0,0.5)",
+                            "important"
+                        );
+                    });
+                }
+                // Always apply latest settings after theme change
+                applyOverlaySettings();
+            }
+            // Declare ws globally so it is accessible everywhere
+            var ws;
+            // Debug counters
+            window._overlayUpdateCount = window._overlayUpdateCount || 0;
+            window._overlayLastReceived = window._overlayLastReceived || null;
+            // Store current theme globally
+            var currentTheme = "Dark";
+            // Default/base settings constant
+            const DEFAULT_OVERLAY_SETTINGS = {
+                fontSize: 14,
+                iconSize: 32,
+                titleFontWeight: "bold",
+                titleFontSize: 16,
+                totalFontSize: 18,
+                perHourFontSize: 14,
+                metricSettings: {
+                    fame: {
+                        showTitle: true,
+                        showImage: true,
+                        showTotal: true,
+                        showPerHour: true,
+                        hide: false,
+                    },
+                    silver: {
+                        showTitle: true,
+                        showImage: true,
+                        showTotal: true,
+                        showPerHour: true,
+                        hide: false,
+                    },
+                    respec: {
+                        showTitle: true,
+                        showImage: true,
+                        showTotal: true,
+                        showPerHour: true,
+                        hide: false,
+                    },
+                    might: {
+                        showTitle: true,
+                        showImage: true,
+                        showTotal: true,
+                        showPerHour: true,
+                        hide: false,
+                    },
+                    favor: {
+                        showTitle: true,
+                        showImage: true,
+                        showTotal: true,
+                        showPerHour: true,
+                        hide: false,
+                    },
+                    faction: {
+                        showTitle: true,
+                        showImage: true,
+                        showTotal: true,
+                        showPerHour: true,
+                        hide: false,
+                    },
+                },
+            };
+            // Reset button handler
+            function handleResetButton() {
+                // Send reset request to backend via WebSocket
+                if (window.overlayWs && window.overlayWs.readyState === 1) {
+                } else {
+                    // Fallback: try to find an open WebSocket
+                    var wsCandidates = Object.values(window).filter(
+                        (x) =>
+                            x &&
+                            x.readyState === 1 &&
+                            typeof x.send === "function"
+                    );
+                    if (wsCandidates.length > 0) {
+                        wsCandidates[0].send(
+                            JSON.stringify({ type: "reset-settings" })
+                        );
+                    } else {
+                        alert(
+                            "Could not send reset request to backend. Please reload overlay."
+                        );
+                    }
+                }
+                // Immediately reset overlaySettings and re-render metrics for instant feedback
+                overlaySettings = JSON.parse(
+                    JSON.stringify(DEFAULT_OVERLAY_SETTINGS)
+                );
+                localStorage.setItem(
+                    "overlaySettings",
+                    JSON.stringify(overlaySettings)
+                );
+                renderMetricsRow();
+                // Send reset request to backend via WebSocket if possible
+                if (window.overlayWs && window.overlayWs.readyState === 1) {
+                    window.overlayWs.send(
+                        JSON.stringify({ type: "reset-settings" })
+                    );
+                }
+            }
+            window.addEventListener("DOMContentLoaded", function () {
+                // Load settings from localStorage if present and merge with defaults
+                try {
+                    var saved = localStorage.getItem("overlaySettings");
+                    if (saved) {
+                        var parsed = JSON.parse(saved);
+                        overlaySettings = Object.assign(
+                            JSON.parse(JSON.stringify(DEFAULT_OVERLAY_SETTINGS)),
+                            parsed
+                        );
+                        overlaySettings.metricSettings = Object.assign(
+                            JSON.parse(JSON.stringify(DEFAULT_OVERLAY_SETTINGS)).metricSettings,
+                            overlaySettings.metricSettings || {}
+                        );
+                    }
+                } catch (e) {
+                    console.warn("Failed to parse saved overlaySettings", e);
+                }
+                // Only render the full metrics row initially if we already have
+                // real metric data or settings explicitly request showing zeros.
+                var shouldRenderNow =
+                    !!window._overlayHasReceivedData ||
+                    (typeof overlaySettings !== "undefined" &&
+                        overlaySettings.autoHideZero === false);
+                if (shouldRenderNow) {
+                    renderMetricsRow();
+                } else {
+                    // Show a lightweight placeholder matching damage overlay behavior
+                    var row = document.getElementById("dashboard-metrics-row");
+                    row.innerHTML = "";
+                    var p = document.createElement("div");
+                    p.className = "center";
+                    // layout handled by shared CSS (.center)
+                    p.textContent = "Waiting for metrics";
+                    row.appendChild(p);
+                    // Apply settings to placeholder so font sizing (per-hour) is visible
+                    try {
+                        applyOverlaySettings();
+                    } catch (e) {}
+                }
+                // Set initial theme (default to Black)
+                setOverlayTheme(window.overlaySettings?.theme || "Black");
+                // Also apply shared CSS variables immediately when available
+                try {
+                    if (typeof applyOverlayTheme === "function")
+                        applyOverlayTheme(
+                            window.overlaySettings?.theme || "Black"
+                        );
+                } catch (e) {}
+                // Attach Reset button handler if button exists
+                var resetBtn = document.querySelector(
+                    "#resetButton, .reset-button, button[name='reset']"
+                );
+                if (resetBtn) {
+                    resetBtn.onclick = handleResetButton;
+                }
+            });
+            // Dynamically render metrics based on settings JSON
+            function renderMetricsRow() {
+                var row = document.getElementById("dashboard-metrics-row");
+                row.innerHTML = "";
+                // If we haven't received any real metrics yet, show a placeholder
+                // matching the damage overlay behavior (avoid rendering empty stat columns)
+                if (!window._overlayHasReceivedData) {
+                    var p = document.createElement("div");
+                    p.className = "center";
+                    // layout handled by shared CSS (.center)
+                    p.textContent = "Waiting for metrics";
+                    row.appendChild(p);
+                    return;
+                }
+                // Guard: if overlaySettings or metricSettings is missing, set default and return
+                if (!window.overlaySettings) {
+                    window.overlaySettings = { metricSettings: {} };
+                }
+                if (
+                    !overlaySettings.metricSettings ||
+                    Object.keys(overlaySettings.metricSettings).length === 0
+                ) {
+                    // Set default metrics if missing
+                    overlaySettings.metricSettings = {
+                        fame: {
+                            showTitle: true,
+                            showImage: true,
+                            showTotal: true,
+                            showPerHour: true,
+                            hide: false,
+                        },
+                        silver: {
+                            showTitle: true,
+                            showImage: true,
+                            showTotal: true,
+                            showPerHour: true,
+                            hide: false,
+                        },
+                        respec: {
+                            showTitle: true,
+                            showImage: true,
+                            showTotal: true,
+                            showPerHour: true,
+                            hide: false,
+                        },
+                        might: {
+                            showTitle: true,
+                            showImage: true,
+                            showTotal: true,
+                            showPerHour: true,
+                            hide: false,
+                        },
+                        favor: {
+                            showTitle: true,
+                            showImage: true,
+                            showTotal: true,
+                            showPerHour: true,
+                            hide: false,
+                        },
+                        faction: {
+                            showTitle: true,
+                            showImage: true,
+                            showTotal: true,
+                            showPerHour: true,
+                            hide: false,
+                        },
+                    };
+                }
+                var metrics = Object.entries(overlaySettings.metricSettings)
+                    .map(([key, val]) => ({ key, ...val }))
+                    .sort((a, b) => (a.Order ?? 0) - (b.Order ?? 0));
+                // Check if all metrics hide each stat field
+                var allHideTitle = metrics.every((m) => m.showTitle === false);
+                var allHideImage = metrics.every((m) => m.showImage === false);
+                var allHideTotal = metrics.every((m) => m.showTotal === false);
+                var allHidePerHour = metrics.every(
+                    (m) => m.showPerHour === false
+                );
+                console.log("metrics", metrics);
+                metrics.forEach((metric) => {
+                    // If the metric is explicitly hidden in settings and the overlay is
+                    // configured to auto-hide zeros, skip creating the column entirely
+                    if (metric.hide && overlaySettings.autoHideZero !== false) {
+                        return; // do not create this metric column
+                    }
+                    var statDiv = document.createElement("div");
+                    statDiv.className = "dashboard-stat";
+                    // Title (always render)
+                    var titleDiv = document.createElement("div");
+                    titleDiv.className = "dashboard-stat-title";
+                    titleDiv.id = metric.key + "-title";
+                    titleDiv.textContent = metric.showTitle
+                        ? metric.key.charAt(0).toUpperCase() +
+                          metric.key.slice(1)
+                        : "";
+                    titleDiv.style.opacity = metric.showTitle ? "1" : "0";
+                    statDiv.appendChild(titleDiv);
+                    // Icon (always render)
+                    var img = document.createElement("img");
+                    img.className = "dashboard-stat-icon";
+                    img.id = metric.key + "-img";
+                    if (metric.key === "faction") {
+                        var factionName =
+                            window.overlaySettings?.factionName || "generic";
+                        // sanitize factionName: allow letters, numbers and underscores only; fallback to generic
+                        var safeFaction = /^[a-zA-Z0-9_]+$/.test(
+                            String(factionName || "")
+                        )
+                            ? factionName
+                            : "generic";
+                        var newSrc = "/img/factioncoin_" + safeFaction + ".png";
+                        // Only update src if it changed to avoid repeated requests / flicker
+                        if (
+                            img.src !== newSrc &&
+                            img.dataset.currentSrc !== newSrc
+                        ) {
+                            img.src = newSrc;
+                            img.dataset.currentSrc = newSrc;
+                        }
+                    } else {
+                        var newSrc =
+                            metric.Icon || "/img/" + metric.key + ".png";
+                        if (
+                            img.src !== newSrc &&
+                            img.dataset.currentSrc !== newSrc
+                        ) {
+                            img.src = newSrc;
+                            img.dataset.currentSrc = newSrc;
+                        }
+                    }
+                    img.alt = metric.key;
+                    img.onload = function () {
+                        try {
+                            var naturalW = this.naturalWidth || 0;
+                            var naturalH = this.naturalHeight || 0;
+                            var cs = getComputedStyle(this);
+                            var displayW =
+                                parseFloat(cs.width) ||
+                                this.width ||
+                                this.offsetWidth ||
+                                0;
+                            var dpr = window.devicePixelRatio || 1;
+                            if (
+                                naturalW > 0 &&
+                                displayW / (naturalW * dpr) > 1.05
+                            ) {
+                                var target = Math.max(
+                                    8,
+                                    Math.round(naturalW / dpr)
+                                );
+                                this.style.width = target + "px";
+                                this.style.height = "auto";
+                            }
+                        } catch (e) {}
+                        try {
+                            if (
+                                typeof window.removeImageBackground ===
+                                "function"
+                            )
+                                window.removeImageBackground(this, 16);
+                        } catch (e) {}
+                    };
+                    // Do not show icons until we've received real metrics to avoid flash of placeholders.
+                    // If overlaySettings explicitly requests showing zeros (autoHideZero === false), allow icons to show.
+                    var showImagesNow =
+                        window._overlayHasReceivedData ||
+                        (overlaySettings &&
+                            overlaySettings.autoHideZero === false);
+                    img.style.opacity =
+                        metric.showImage && showImagesNow ? "1" : "0";
+                    statDiv.appendChild(img);
+                    // Value (total, always render)
+                    var valueDiv = document.createElement("div");
+                    valueDiv.className = "dashboard-stat-value";
+                    valueDiv.id = metric.key + "-value";
+                    // Don't populate visible zeros until we have real data unless autoHideZero is disabled
+                    var showValuesNow =
+                        window._overlayHasReceivedData ||
+                        (overlaySettings &&
+                            overlaySettings.autoHideZero === false);
+                    valueDiv.textContent =
+                        metric.showTotal && showValuesNow ? "0" : "";
+                    valueDiv.style.opacity =
+                        metric.showTotal && showValuesNow ? "1" : "0";
+                    statDiv.appendChild(valueDiv);
+                    // Per hour (always render)
+                    var perHourDiv = document.createElement("div");
+                    perHourDiv.className = "dashboard-stat-perhour";
+                    perHourDiv.id = metric.key + "-perhour";
+                    perHourDiv.textContent =
+                        metric.showPerHour && showValuesNow ? "0/h" : "";
+                    perHourDiv.style.opacity =
+                        metric.showPerHour && showValuesNow ? "1" : "0";
+                    statDiv.appendChild(perHourDiv);
+                    // If metric.hide, blank out all content but keep column
+                    if (metric.hide) {
+                        // Metric explicitly hidden in settings: remove column from layout
+                        statDiv.style.display = "none";
+                    }
+                    row.appendChild(statDiv);
+                });
+                console.log("row children", row.children);
+
+                // Re-apply current theme to newly created elements
+                setOverlayTheme(currentTheme);
+            }
+
+            // Format numbers to match main app's NumberToKiloMegaConverter:
+            // - >= 1,000,000 => X.XM (one decimal if needed)
+            // - >= 1,000 => X.XK (one decimal if needed)
+            // - otherwise => integer with thousands separators (no decimals)
+            function formatKiloMegaNumber(v) {
+                var num = Number(v);
+                if (!isFinite(num) || isNaN(num)) return "0";
+                const MAX_SAFE = 1e12;
+                if (num > MAX_SAFE) num = MAX_SAFE;
+                if (num < -MAX_SAFE) num = -MAX_SAFE;
+
+                var abs = Math.abs(num);
+                var sign = num < 0 ? "-" : "";
+                if (abs >= 1000000) {
+                    var m = (abs / 1000000).toFixed(1).replace(/\.0$/, "");
+                    return sign + m + "M";
+                }
+                if (abs >= 1000) {
+                    var k = (abs / 1000).toFixed(1).replace(/\.0$/, "");
+                    return sign + k + "K";
+                }
+                return sign + Math.round(abs).toLocaleString();
+            }
+
+            // For totals (displayed prominently) use the K/M formatter
+            function formatNumber(num) {
+                return formatKiloMegaNumber(num);
+            }
+
+            // Per-hour should mimic the same formatting used in the main app
+            function formatPerHour(n) {
+                // Return the formatted per-hour string WITHOUT the '/h' suffix.
+                var precise =
+                    new URLSearchParams(location.search).get("precise") ===
+                        "1" ||
+                    new URLSearchParams(location.search).get("debug") === "1";
+                var num = Number(n);
+                if (!isFinite(num) || isNaN(num)) return "0";
+                // Use more precision in precise/debug mode so small deltas are visible
+                if (precise) {
+                    if (Math.abs(num) >= 1000000)
+                        return (
+                            (num / 1000000).toFixed(2).replace(/\.00$/, "") +
+                            "M"
+                        );
+                    if (Math.abs(num) >= 1000)
+                        return (
+                            (num / 1000).toFixed(2).replace(/\.00$/, "") + "K"
+                        );
+                    return num.toFixed(2);
+                }
+                return formatKiloMegaNumber(num);
+            }
+            // Cached settings (populated by settings message)
+            var overlaySettings = JSON.parse(
+                JSON.stringify(DEFAULT_OVERLAY_SETTINGS)
+            );
+            // Whether we've received any real metrics payload from the server yet.
+            // Until this is true, the dashboard will not show metric icons or values.
+            window._overlayHasReceivedData = false;
+            // Helper to update metric display based on settings
+            function updateMetricDisplay(
+                id,
+                value,
+                perHour,
+                settings,
+                titleFontWeight,
+                autoHide
+            ) {
+                var stat = document.getElementById(id + "-value");
+                var perh = document.getElementById(id + "-perhour");
+                var title = document.getElementById(id + "-title");
+                var container = stat ? stat.closest(".dashboard-stat") : null;
+                if (!container) return;
+                // If we have not yet received real data, keep icons and numeric fields hidden.
+                if (!window._overlayHasReceivedData) {
+                    // Title can still follow settings, but values and icons stay blank/hidden.
+                    if (title) {
+                        title.style.opacity =
+                            settings && settings.showTitle ? "1" : "0";
+                        title.style.fontWeight = titleFontWeight;
+                    }
+                    var imgEl = container.querySelector("img");
+                    if (imgEl) {
+                        imgEl.style.opacity = "0";
+                    }
+                    if (stat) {
+                        stat.style.opacity = "0";
+                        stat.textContent = "";
+                    }
+                    if (perh) {
+                        perh.style.opacity = "0";
+                        perh.textContent = "";
+                    }
+                    container.style.pointerEvents = "none";
+                    return;
+                }
+                // Hide entire metric block if requested
+                if ((settings && settings.hide) || autoHide) {
+                    // Fully hide column so layout collapses (auto-shrink behavior)
+                    container.style.display = "none";
+                    return;
+                } else {
+                    // Ensure column is visible and uses grid layout
+                    container.style.display = "grid";
+                    container.style.pointerEvents = "auto";
+                }
+                // Title
+                if (title) {
+                    title.style.opacity =
+                        settings && settings.showTitle ? "1" : "0";
+                    title.style.fontWeight = titleFontWeight;
+                    if (!isNaN(overlaySettings.titleFontSize)) {
+                        title.style.fontSize =
+                            overlaySettings.titleFontSize + "px";
+                    }
+                    if (!(settings && settings.showTitle)) {
+                        // Only clear title text when it needs to be hidden
+                        setTextIfChanged(title, "");
+                    }
+                }
+                // Image
+                var img = container.querySelector("img");
+                if (img) {
+                    img.style.opacity =
+                        settings && settings.showImage ? "1" : "0";
+                    img.style.width =
+                        settings &&
+                        settings.showImage &&
+                        !isNaN(overlaySettings.iconSize)
+                            ? overlaySettings.iconSize + "px"
+                            : "48px";
+                    img.style.height =
+                        settings &&
+                        settings.showImage &&
+                        !isNaN(overlaySettings.iconSize)
+                            ? overlaySettings.iconSize + "px"
+                            : "48px";
+                }
+                // Value (total)
+                if (stat) {
+                    stat.style.opacity =
+                        settings && settings.showTotal ? "1" : "0";
+                    // Only update text when it actually changes to avoid unnecessary DOM writes
+                    setTextIfChanged(
+                        stat,
+                        settings && settings.showTotal
+                            ? formatNumber(value)
+                            : ""
+                    );
+                    if (!isNaN(overlaySettings.totalFontSize)) {
+                        stat.style.fontSize =
+                            overlaySettings.totalFontSize + "px";
+                    }
+                }
+                // Per hour
+                if (perh) {
+                    perh.style.opacity =
+                        settings && settings.showPerHour ? "1" : "0";
+                    // Only update text when it actually changes to avoid unnecessary DOM writes
+                    setTextIfChanged(
+                        perh,
+                        settings && settings.showPerHour
+                            ? formatPerHour(perHour) + "/h"
+                            : ""
+                    );
+                    if (!isNaN(overlaySettings.perHourFontSize)) {
+                        perh.style.fontSize =
+                            overlaySettings.perHourFontSize + "px";
+                    }
+                }
+            }
+            // Helper to check if a metric should be autohidden
+            function shouldAutoHide(metricId, value) {
+                // Default behavior: auto-hide zeros when autoHideZero is true or undefined
+                var autoHide = overlaySettings.autoHideZero !== false;
+                if (!autoHide) return false;
+                var ms =
+                    overlaySettings.metricSettings &&
+                    overlaySettings.metricSettings[metricId];
+                if (!ms) return false;
+                if (ms.hide) return true; // explicit hide takes precedence
+                var v = Number(value);
+                return v === 0;
+            }
+            // Main stat update handler (debounced/coalesced)
+            // Coalesce rapid incoming updates to avoid excessive DOM updates
+            window._overlayLatestPayload = null;
+            window._overlayUpdateTimer = null;
+            window._overlayLastMetricsKey = null;
+
+            function scheduleOverlayUpdate(payload) {
+                try {
+                    // If payload is an object (server sometimes sends deserialized object),
+                    // stringify it to preserve the JSON structure for parsing later.
+                    if (payload && typeof payload === "object") {
+                        payload = JSON.stringify(payload);
+                    } else {
+                        payload = String(payload || "");
+                    }
+                } catch (e) {
+                    payload = "";
+                }
+                // Reject absurdly large payloads
+                if (payload.length > 2000) {
+                    console.warn(
+                        "[Overlay] Incoming payload too large, truncating"
+                    );
+                    payload = payload.substring(0, 2000);
+                }
+                window._overlayLatestPayload = payload;
+                if (window._overlayUpdateTimer)
+                    clearTimeout(window._overlayUpdateTimer);
+                window._overlayUpdateTimer = setTimeout(function () {
+                    try {
+                        handleStatsDelimitedNow(window._overlayLatestPayload);
+                    } catch (e) {
+                        console.error("[Overlay] Error processing payload", e);
+                    }
+                }, 80); // 80ms coalesce window
+            }
+
+            function handleStatsDelimited(data) {
+                scheduleOverlayUpdate(data);
+            }
+
+            function valuesEqual(a, b) {
+                // Compare string representations to avoid numeric/format issues
+                return String(a) === String(b);
+            }
+
+            function setTextIfChanged(el, text) {
+                if (!el) return;
+                if (!valuesEqual(el.textContent, text)) {
+                    try {
+                        if (
+                            new URLSearchParams(location.search).get(
+                                "debug"
+                            ) === "1"
+                        ) {
+                            console.debug(
+                                "[Overlay] setTextIfChanged",
+                                el.id || el.className || el.tagName,
+                                "old=",
+                                el.textContent,
+                                "new=",
+                                text
+                            );
+                        }
+                    } catch (e) {}
+                    el.textContent = text;
+                }
+            }
+
+            // Immediate processor which performs parsing and DOM updates
+            function handleStatsDelimitedNow(data) {
+                // Debug: log the raw payload for troubleshooting
+                try {
+                    // console.debug("[Overlay] handleStatsDelimited raw:", data);
+                } catch (e) {}
+                // Debug query parameter removed - overlays always run in non-debug mode.
+                var __overlay_debug = false;
+                // --- PATCH: Support JSON metrics payload ---
+                // Helper: determine whether parsed metrics array contains meaningful non-zero data
+                function hasRealMetrics(arr) {
+                    if (!arr || !Array.isArray(arr)) return false;
+                    for (var i = 0; i < arr.length; i++) {
+                        var raw = arr[i];
+                        var v = String(raw || "").trim();
+                        if (!v) continue;
+                        // ignore placeholders
+                        if (v === "unknown") continue;
+                        // strip per-hour suffix
+                        v = v.replace(/\/h$/i, "");
+                        // remove commas and spaces
+                        var numeric = v.replace(/[,_\s]/g, "");
+                        // check if numeric and non-zero
+                        if (/^-?\d+(?:\.\d+)?$/.test(numeric)) {
+                            // treat only non-zero numeric values as real
+                            try {
+                                var dv = parseFloat(numeric);
+                                if (!isNaN(dv) && dv !== 0) return true;
+                                // zero is not considered "real" for initial payload purposes
+                                continue;
+                            } catch (e) {
+                                return true; // be conservative on parse errors
+                            }
+                        } else {
+                            // if it's not purely numeric but has any digits, treat as real
+                            if (/[0-9]/.test(numeric)) return true;
+                        }
+                    }
+                    return false;
+                }
+                var metrics = [];
+                var settings = {};
+                var factionName = "unknown";
+                // Try to parse as JSON object
+                try {
+                    var obj =
+                        typeof data === "string" ? JSON.parse(data) : data;
+                    if (obj.metrics && Array.isArray(obj.metrics)) {
+                        metrics = obj.metrics;
+                        settings = obj.settings || {};
+                        factionName = metrics[12] || "unknown";
+                        // Update overlaySettings from settings JSON
+                        Object.assign(overlaySettings, settings);
+                        if (settings.theme) setOverlayTheme(settings.theme);
+                        // Mark that we have received real metric data only if payload contains non-empty / non-zero entries
+                        if (typeof hasRealMetrics === "function") {
+                            window._overlayHasReceivedData =
+                                hasRealMetrics(metrics);
+                        } else {
+                            window._overlayHasReceivedData = true;
+                        }
+                    }
+                } catch (e) {
+                    // Fallback: try legacy pipe-delimited parsing
+                    var statsAndSettings = String(data).split("||");
+                    var rawParts = statsAndSettings[0].split("|");
+                    metrics = rawParts.slice(0, 13);
+                    while (metrics.length < 13) metrics.push("0");
+                    if (statsAndSettings.length > 1) {
+                        try {
+                            var sJson = JSON.parse(statsAndSettings[1]);
+                            Object.assign(overlaySettings, sJson);
+                            if (sJson.theme) setOverlayTheme(sJson.theme);
+                        } catch (e2) {}
+                    }
+                    factionName = metrics[12] || "unknown";
+                    // Legacy parsing: mark as received only if metrics look real
+                    if (typeof hasRealMetrics === "function") {
+                        window._overlayHasReceivedData =
+                            hasRealMetrics(metrics);
+                    } else {
+                        window._overlayHasReceivedData = true;
+                    }
+                }
+                // Defensive: ensure metrics array has 13 elements
+                while (metrics.length < 13) metrics.push(0);
+                // Compose metricsKey for change detection
+                var metricsKey = metrics.slice(0, 13).join("|");
+                try {
+                    if (__overlay_debug)
+                        console.debug(
+                            "[Overlay] metricsKey=",
+                            metricsKey,
+                            "metrics=",
+                            metrics
+                        );
+                } catch (e) {}
+                // If we've just transitioned from no real data to having real data,
+                // ensure the metrics row DOM is rendered so updateMetricDisplay
+                // can find the elements it needs.
+                if (
+                    window._overlayHasReceivedData &&
+                    !window._overlayLastHadData
+                ) {
+                    try {
+                        renderMetricsRow();
+                    } catch (e) {}
+                }
+                window._overlayLastHadData = !!window._overlayHasReceivedData;
+                if (metricsKey === window._overlayLastMetricsKey) {
+                    // Metrics key unchanged, still re-apply settings and continue
+                    // to update numeric displays. Earlier behavior returned early
+                    // which could prevent visual refresh when values changed
+                    // due to formatting or other transient updates.
+                    applyOverlaySettings();
+                    // do not return; continue to call updateMetricDisplay to
+                    // ensure DOM numeric/text values are refreshed.
+                }
+                window._overlayLastMetricsKey = metricsKey;
+                // Fame
+                updateMetricDisplay(
+                    "fame",
+                    metrics[0],
+                    metrics[1],
+                    overlaySettings.metricSettings.fame,
+                    overlaySettings.titleFontWeight,
+                    shouldAutoHide("fame", metrics[0])
+                );
+                // Silver
+                updateMetricDisplay(
+                    "silver",
+                    metrics[2],
+                    metrics[3],
+                    overlaySettings.metricSettings.silver,
+                    overlaySettings.titleFontWeight,
+                    shouldAutoHide("silver", metrics[2])
+                );
+                // ReSpec
+                updateMetricDisplay(
+                    "respec",
+                    metrics[4],
+                    metrics[5],
+                    overlaySettings.metricSettings.respec,
+                    overlaySettings.titleFontWeight,
+                    shouldAutoHide("respec", metrics[4])
+                );
+                // Might
+                updateMetricDisplay(
+                    "might",
+                    metrics[6],
+                    metrics[7],
+                    overlaySettings.metricSettings.might,
+                    overlaySettings.titleFontWeight,
+                    shouldAutoHide("might", metrics[6])
+                );
+                // Favor
+                updateMetricDisplay(
+                    "favor",
+                    metrics[8],
+                    metrics[9],
+                    overlaySettings.metricSettings.favor,
+                    overlaySettings.titleFontWeight,
+                    shouldAutoHide("favor", metrics[8])
+                );
+                // Faction
+                var factionTotal = Number(metrics[10]) || 0;
+                var factionPerHour = Number(metrics[11]) || 0;
+                updateMetricDisplay(
+                    "faction",
+                    factionTotal,
+                    factionPerHour,
+                    overlaySettings.metricSettings.faction,
+                    overlaySettings.titleFontWeight,
+                    shouldAutoHide("faction", factionTotal)
+                );
+                // Update faction image if needed
+                var factionImg = document.getElementById("faction-img");
+                if (factionImg && factionName) {
+                    var safeFaction = String(factionName)
+                        .toLowerCase()
+                        .replace(/[^a-z0-9_\-]/g, "");
+                    if (
+                        safeFaction.length > 0 &&
+                        safeFaction !== "unknown" &&
+                        safeFaction.length <= 32
+                    ) {
+                        factionImg.src =
+                            "/img/factioncoin_" + safeFaction + ".png";
+                    } else {
+                        factionImg.src = "/img/factioncoin_generic.png";
+                    }
+                }
+                // Icon size
+                if (!isNaN(overlaySettings.iconSize)) {
+                    document
+                        .querySelectorAll(".dashboard-stat img")
+                        .forEach(function (el) {
+                            el.style.width = overlaySettings.iconSize + "px";
+                            el.style.height = overlaySettings.iconSize + "px";
+                        });
+                }
+            }
+            // WebSocket connection and stat update
+            var lastStatsPayload = null;
+            function defaultStatsPayload() {
+                // 13 parts: fame|famePerHour|silver|silverPerHour|respec|respecPerHour|might|mightPerHour|favor|favorPerHour|factionPoints|factionPointsPerHour|factionName
+                return "0|0|0|0|0|0|0|0|0|0|0|0|unknown";
+            }
+            function handleSettingsMessage(json) {
+                try {
+                    var s = typeof json === "string" ? JSON.parse(json) : json;
+                    if (!window.overlaySettings) {
+                        window.overlaySettings = JSON.parse(
+                            JSON.stringify(DEFAULT_OVERLAY_SETTINGS)
+                        );
+                    }
+                    // Update overlaySettings with received values
+                    if (typeof s.fontSize === "number")
+                        overlaySettings.fontSize = s.fontSize;
+                    if (typeof s.iconSize === "number")
+                        overlaySettings.iconSize = s.iconSize;
+                    if (typeof s.titleFontSize === "number")
+                        overlaySettings.titleFontSize = s.titleFontSize;
+                    if (typeof s.totalFontSize === "number")
+                        overlaySettings.totalFontSize = s.totalFontSize;
+                    if (typeof s.perHourFontSize === "number")
+                        overlaySettings.perHourFontSize = s.perHourFontSize;
+                    if (typeof s.autoHideZero === "boolean")
+                        overlaySettings.autoHideZero = s.autoHideZero;
+                    if (typeof s.metricSettings === "object")
+                        overlaySettings.metricSettings = s.metricSettings;
+
+                    // Apply theme immediately so UI/look updates even if no metrics yet
+                    if (s.theme) {
+                        setOverlayTheme(s.theme);
+                    } else {
+                        // Re-apply current theme to ensure styling consistency
+                        setOverlayTheme(currentTheme);
+                    }
+
+                    // Only re-render metric DOM when either we've already received
+                    // real metric data, or the settings explicitly request showing
+                    // zero values (autoHideZero === false). This prevents settings
+                    // updates from forcing an empty dashboard to display zeros.
+                    var shouldRenderNow =
+                        !!window._overlayHasReceivedData ||
+                        overlaySettings.autoHideZero === false;
+                    if (shouldRenderNow) {
+                        renderMetricsRow();
+                    }
+
+                    showToast("Settings applied!");
+                } catch (err) {
+                    console.error("Failed to handle settings message:", err);
+                    // Fallback for pipe-delimited stat payloads
+                    if (typeof json === "string" && json.indexOf("|") > 0) {
+                        lastStatsPayload = json;
+                        handleStatsDelimited(json);
+                    }
+                }
+            }
+            // Connection status UI removed. This function intentionally left blank to avoid runtime errors
+            function setConnectionStatus(status, color) {
+                // no-op
+            }
+            // Initialize overlay client using shared overlay-common.js
+            (function () {
+                var s = document.createElement("script");
+                s.src = "/Network/Overlay/overlay-common.js";
+                s.onload = function () {
+                    try {
+                        if (typeof initOverlayClient !== "function") {
+                            console.warn(
+                                "initOverlayClient is not a function - overlay-common.js may have changed"
+                            );
+                            return;
+                        }
+
+                        var client = initOverlayClient("dashboard", {
+                            onStats: function (data) {
+                                try {
+                                    // Keep a copy for debugging
+                                    lastStatsPayload = data;
+
+                                    // Update debug counters and indicator
+                                    window._overlayUpdateCount =
+                                        (window._overlayUpdateCount || 0) + 1;
+                                    window._overlayLastReceived = Date.now();
+                                    try {
+                                        var dbgEl = document.getElementById(
+                                            "overlay-debug-indicator"
+                                        );
+                                        if (!dbgEl) {
+                                            dbgEl =
+                                                document.createElement("div");
+                                            dbgEl.id =
+                                                "overlay-debug-indicator";
+                                            dbgEl.style.position = "fixed";
+                                            dbgEl.style.right = "8px";
+                                            dbgEl.style.bottom = "8px";
+                                            dbgEl.style.padding = "6px 8px";
+                                            dbgEl.style.background =
+                                                "rgba(0,0,0,0.6)";
+                                            dbgEl.style.color = "#fff";
+                                            dbgEl.style.fontSize = "12px";
+                                            dbgEl.style.borderRadius = "6px";
+                                            dbgEl.style.zIndex = 10000;
+                                            dbgEl.style.display = "none";
+                                            document.body.appendChild(dbgEl);
+                                        }
+                                        if (
+                                            new URLSearchParams(
+                                                location.search
+                                            ).get("debug") === "1"
+                                        ) {
+                                            dbgEl.style.display = "block";
+                                            dbgEl.textContent =
+                                                "Updates: " +
+                                                window._overlayUpdateCount +
+                                                " • " +
+                                                new Date(
+                                                    window._overlayLastReceived
+                                                ).toLocaleTimeString();
+                                        }
+                                    } catch (e) {}
+
+                                    // Use existing pipeline to schedule/coalesce updates
+                                    handleStatsDelimited(data);
+
+                                    // Visual pulse to show updates in OBS (opt-in via ?pulse=1)
+                                    try {
+                                        if (
+                                            new URLSearchParams(
+                                                location.search
+                                            ).get("pulse") === "1"
+                                        ) {
+                                            var row = document.getElementById(
+                                                "dashboard-metrics-row"
+                                            );
+                                            if (row) {
+                                                row.classList.remove(
+                                                    "overlay-update-pulse"
+                                                );
+                                                // trigger reflow to restart animation
+                                                void row.offsetWidth;
+                                                row.classList.add(
+                                                    "overlay-update-pulse"
+                                                );
+                                                setTimeout(function () {
+                                                    row.classList.remove(
+                                                        "overlay-update-pulse"
+                                                    );
+                                                }, 500);
+                                            }
+                                        }
+                                    } catch (e) {}
+
+                                    // Forward payload to host environments that might embed
+                                    // this overlay (Electron/CEF webview, parent frames, VS Code webview)
+                                    try {
+                                        // Edge/Chromium webview in some hosts
+                                        if (
+                                            window.chrome &&
+                                            window.chrome.webview &&
+                                            typeof window.chrome.webview
+                                                .postMessage === "function"
+                                        ) {
+                                            window.chrome.webview.postMessage({
+                                                type: "overlay-stats",
+                                                payload: data,
+                                            });
+                                        }
+                                    } catch (e) {
+                                        console.debug(
+                                            "chrome.webview.postMessage failed",
+                                            e
+                                        );
+                                    }
+                                    try {
+                                        // VS Code webview API
+                                        if (
+                                            typeof acquireVsCodeApi ===
+                                            "function"
+                                        ) {
+                                            try {
+                                                var vscodeApi =
+                                                    acquireVsCodeApi();
+                                                vscodeApi.postMessage({
+                                                    type: "overlay-stats",
+                                                    payload: data,
+                                                });
+                                            } catch (e) {
+                                                console.debug(
+                                                    "acquireVsCodeApi().postMessage failed",
+                                                    e
+                                                );
+                                            }
+                                        }
+                                    } catch (e) {}
+                                    try {
+                                        // Parent frames (generic embedding)
+                                        if (
+                                            window.parent &&
+                                            window.parent !== window &&
+                                            typeof window.parent.postMessage ===
+                                                "function"
+                                        ) {
+                                            window.parent.postMessage(
+                                                {
+                                                    type: "overlay-stats",
+                                                    payload: data,
+                                                },
+                                                "*"
+                                            );
+                                        }
+                                    } catch (e) {
+                                        console.debug(
+                                            "parent.postMessage failed",
+                                            e
+                                        );
+                                    }
+                                } catch (err) {
+                                    console.error(
+                                        "Error in onStats handler:",
+                                        err
+                                    );
+                                }
+                            },
+                            onSettings: function (data) {
+                                try {
+                                    handleSettingsMessage(data);
+
+                                    // Also forward settings to host environments
+                                    try {
+                                        if (
+                                            window.chrome &&
+                                            window.chrome.webview &&
+                                            typeof window.chrome.webview
+                                                .postMessage === "function"
+                                        ) {
+                                            window.chrome.webview.postMessage({
+                                                type: "overlay-settings",
+                                                payload: data,
+                                            });
+                                        }
+                                    } catch (e) {
+                                        console.debug(
+                                            "chrome.webview.postMessage failed for settings",
+                                            e
+                                        );
+                                    }
+                                    try {
+                                        if (
+                                            typeof acquireVsCodeApi ===
+                                            "function"
+                                        ) {
+                                            var vscodeApi2 = acquireVsCodeApi();
+                                            vscodeApi2.postMessage({
+                                                type: "overlay-settings",
+                                                payload: data,
+                                            });
+                                        }
+                                    } catch (e) {}
+                                    try {
+                                        if (
+                                            window.parent &&
+                                            window.parent !== window &&
+                                            typeof window.parent.postMessage ===
+                                                "function"
+                                        ) {
+                                            window.parent.postMessage(
+                                                {
+                                                    type: "overlay-settings",
+                                                    payload: data,
+                                                },
+                                                "*"
+                                            );
+                                        }
+                                    } catch (e) {}
+                                } catch (err) {
+                                    console.error(
+                                        "Error in onSettings handler:",
+                                        err
+                                    );
+                                }
+                            },
+                            onOpen: function () {
+                                try {
+                                    setConnectionStatus &&
+                                        setConnectionStatus(
+                                            "Connected",
+                                            "lime"
+                                        );
+                                } catch (e) {}
+                            },
+                            onClose: function () {
+                                try {
+                                    setConnectionStatus &&
+                                        setConnectionStatus(
+                                            "Disconnected",
+                                            "red"
+                                        );
+                                } catch (e) {}
+                            },
+                        });
+
+                        // Expose the client for debugging/controls
+                        window._overlayClient = client;
+                    } catch (err) {
+                        console.error(
+                            "Failed to initialize overlay client:",
+                            err
+                        );
+                    }
+                };
+                document.head.appendChild(s);
+            })();
+        </script>
+    </body>
+</html>

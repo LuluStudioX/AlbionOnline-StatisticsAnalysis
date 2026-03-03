@@ -30,6 +30,7 @@ bld/
 #wwwroot/
 
 # Visual Studio 2017 auto generated files
+backups/
 Generated\ Files/
 
 # MSTest test Results
@@ -329,3 +330,10 @@ ASALocalRun/
 .mfractor/
 
 *.bak
+.github/chatmodes/*
+.github/instructions/*
+.vscode/*
+logs/*
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

@@ -6,6 +6,7 @@
         xmlns:fa5="http://schemas.fontawesome.com/icons/"
         xmlns:userControls="clr-namespace:StatisticsAnalysisTool.UserControls"
         xmlns:viewModels="clr-namespace:StatisticsAnalysisTool.ViewModels"
+        xmlns:t="clr-namespace:StatisticsAnalysisTool.Models.TranslationModel"
         xmlns:vwp="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
         xmlns:glob="clr-namespace:System.Globalization;assembly=System.Runtime"
         mc:Ignorable="d"
@@ -251,6 +252,12 @@
             <TabItem Visibility="{Binding PlayerInformationTabVisibility, Mode=OneWay}" Header="{Binding Translation.PlayerInformation, FallbackValue=PLAYER__INFORMATION}">
                 <Grid Style="{StaticResource TabItemGridStyle}">
                     <userControls:PlayerInformationControl />
+                </Grid>
+            </TabItem>
+            <TabItem Visibility="{Binding StreamingOverlayTabVisibility, Mode=OneWay}" Header="{x:Static t:StreamingOverlayTranslation.STREAMING_OVERLAY}">
+                <Grid Style="{StaticResource TabItemGridStyle}">
+                    <!-- Allow the control to resolve its own DataContext (ServiceLocator/VM instance) -->
+                    <userControls:StreamingOverlayControl />
                 </Grid>
             </TabItem>
             <TabItem Style="{StaticResource ItemContainerDonationStyle}" Header="{Binding Translation.Donations, FallbackValue=DONATIONS}">

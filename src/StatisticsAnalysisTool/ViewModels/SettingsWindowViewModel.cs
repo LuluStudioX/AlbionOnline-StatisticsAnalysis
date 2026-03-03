@@ -96,7 +96,7 @@ public class SettingsWindowViewModel : BaseViewModel
         MaximumNumberOfBackupsSelection = MaximumNumberOfBackups.FirstOrDefault(x => x.Value == SettingsController.CurrentSettings.MaximumNumberOfBackups);
 
         // Backup storage dir path
-        BackupStorageDirectoryPath = string.IsNullOrEmpty(SettingsController.CurrentSettings.BackupStorageDirectoryPath) 
+        BackupStorageDirectoryPath = string.IsNullOrEmpty(SettingsController.CurrentSettings.BackupStorageDirectoryPath)
             ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Settings.Default.BackupDirectoryName) : SettingsController.CurrentSettings.BackupStorageDirectoryPath;
 
         // Another app to start path
@@ -431,6 +431,11 @@ public class SettingsWindowViewModel : BaseViewModel
             IsSelected = SettingsController.CurrentSettings.IsPlayerInformationNaviTabActive,
             Name = MainWindowTranslation.PlayerInformation
         });
+        TabVisibilities.Add(new TabVisibilityFilter(NavigationTabFilterType.StreamingOverlay)
+        {
+            IsSelected = SettingsController.CurrentSettings.IsStreamingOverlayNaviTabActive,
+            Name = StreamingOverlayTranslation.STREAMING_OVERLAY
+        });
 
         var mainWindowViewModel = ServiceLocator.Resolve<MainWindowViewModel>();
         mainWindowViewModel.DashboardTabVisibility = SettingsController.CurrentSettings.IsDashboardNaviTabActive.BoolToVisibility();
@@ -445,6 +450,7 @@ public class SettingsWindowViewModel : BaseViewModel
         mainWindowViewModel.MapHistoryTabVisibility = SettingsController.CurrentSettings.IsMapHistoryNaviTabActive.BoolToVisibility();
         mainWindowViewModel.PlayerInformationTabVisibility = SettingsController.CurrentSettings.IsPlayerInformationNaviTabActive.BoolToVisibility();
         mainWindowViewModel.GuildTabVisibility = SettingsController.CurrentSettings.IsGuildTabActive.BoolToVisibility();
+        mainWindowViewModel.StreamingOverlayTabVisibility = SettingsController.CurrentSettings.IsStreamingOverlayNaviTabActive.BoolToVisibility();
     }
 
     private void InitNotificationAreas()

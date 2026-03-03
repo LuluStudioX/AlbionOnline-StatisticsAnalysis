@@ -102,6 +102,136 @@
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
+
+  <!-- Overlay stat icons as embedded resources -->
+  <ItemGroup>
+    <!-- Copy to Resources (for WPF XAML) -->
+    <Content Include="Resources\fame.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\silver.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\might.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\gold.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\favor.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\respec.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\factioncoin_lymhurst.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\factioncoin_thetford.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\factioncoin_martlock.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\factioncoin_bridgewatch.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\factioncoin_fortsterling.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\factioncoin_caerleon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\factioncoin_generic.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Resource Include="Resources\brecilien_standing_coin.png" />
+
+    <!-- Copy to ImageResources (for overlay HTML/JS) -->
+    <Content Include="Resources\fame.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\fame.png</Link>
+    </Content>
+    <Content Include="Resources\silver.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\silver.png</Link>
+    </Content>
+    <Content Include="Resources\might.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\might.png</Link>
+    </Content>
+    <Content Include="Resources\gold.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\gold.png</Link>
+    </Content>
+    <Content Include="Resources\favor.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\favor.png</Link>
+    </Content>
+    <Content Include="Resources\respec.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\respec.png</Link>
+    </Content>
+    <Content Include="Resources\factioncoin_lymhurst.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\factioncoin_lymhurst.png</Link>
+    </Content>
+    <Content Include="Resources\factioncoin_thetford.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\factioncoin_thetford.png</Link>
+    </Content>
+    <Content Include="Resources\factioncoin_martlock.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\factioncoin_martlock.png</Link>
+    </Content>
+    <Content Include="Resources\factioncoin_bridgewatch.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\factioncoin_bridgewatch.png</Link>
+    </Content>
+    <Content Include="Resources\factioncoin_fortsterling.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\factioncoin_fortsterling.png</Link>
+    </Content>
+    <Content Include="Resources\factioncoin_caerleon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\factioncoin_caerleon.png</Link>
+    </Content>
+    <Content Include="Assets\brecilien_standing_coin.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\brecilien_standing_coin.png</Link>
+    </Content>
+    <Content Include="Resources\factioncoin_generic.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ImageResources\factioncoin_generic.png</Link>
+    </Content>
+    <!-- Automatically copy brecilien_standing_coin.png from Assets to Resources before build -->
+    <Target Name="CopyBrecilienStandingCoin" BeforeTargets="PrepareResourceNames">
+      <Copy
+        SourceFiles="Assets\brecilien_standing_coin.png"
+        DestinationFiles="Resources\brecilien_standing_coin.png"
+        SkipUnchangedFiles="true" />
+    </Target>
+  </ItemGroup>
+
+    <!-- Ensure overlay HTML files are copied to output directory -->
+  <ItemGroup>
+    <Content Include="Network\Overlay\overlay.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\dashboard.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\damage.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Network\Overlay\gathering.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+      <Content Include="Network\Overlay\overlay-common.js">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <None Update="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -642,6 +772,7 @@
     <PackageReference Include="BinaryFormat.EthernetFrame" Version="0.1.5" />
     <PackageReference Include="BinaryFormat.IPv4" Version="0.1.5" />
     <PackageReference Include="BinaryFormat.Udp" Version="0.1.5" />
+    <PackageReference Include="EmbedIO" Version="3.5.2" />
     <PackageReference Include="Libpcap" Version="0.1.5" />
     <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc5.4" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3405.78" />
@@ -799,6 +930,10 @@
     <ProjectReference Include="..\StatisticsAnalysisTool.Network\StatisticsAnalysisTool.Network.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Page Update="Styles\ConsoleStyles.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Styles\DashboardStyles.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>
@@ -917,6 +1052,10 @@
     <Page Update="Views\EventValidationWindow.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
     </Page>
+    <Page Update="Views\ConsoleWindow.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Views\DashboardWindow.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
     </Page>
@@ -926,5 +1065,10 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\brecilien_standing_coin.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

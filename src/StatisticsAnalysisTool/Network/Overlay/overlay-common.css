@@ -1,0 +1,165 @@
+/* Shared overlay CSS for dashboard and damage overlays */
+/*
+Overlay CSS variables (recommended):
+--overlay-bg        : background used for preview (OBS should override to transparent)
+--overlay-surface   : surface color for cards / panels
+--text-primary      : primary text color
+--text-on-surface   : text color to use on top of surface
+--muted             : muted / secondary text color
+--accent-blue       : primary accent color
+
+Optional per-overlay values you can set from JS:
+--icon-size         : px value used for icons (e.g. 48px)
+--title-font-size   : px value for stat titles
+--total-font-size   : px value for main stat values
+--perhour-font-size : px value for per-hour / subtext
+
+Recommended selectors to toggle from JS:
+- Add/remove `.no-icon` on '#dashboard-metrics-row' to hide icons
+- Add/remove `.hidden` to hide elements
+- Add `.faded` to visually dim elements (opacity)
+*/
+:root {
+    --overlay-bg: transparent;
+    --overlay-surface: #26292b;
+    --text-primary: #b0c4d4;
+    --text-on-surface: #ffffff;
+    --muted: #9fb2c6;
+    --accent-blue: #2c9bd6;
+    /* Background used behind icons; tuned for dark theme by default. Light theme will override to transparent. */
+    --icon-surface: rgba(255, 255, 255, 0.03);
+}
+
+body {
+    background: none;
+    color: var(--text-on-surface);
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.dashboard-overlay-row,
+.damage-list {
+    display: flex;
+    gap: 12px;
+    padding: 8px;
+    align-items: flex-end;
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+
+.dashboard-stat,
+.damage-item {
+    min-width: 90px;
+    text-align: center;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.dashboard-stat-title,
+.damage-name {
+    font-size: 1rem;
+    color: var(--muted);
+    font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 110px;
+    margin: 0 auto 6px auto;
+    display: block;
+}
+
+.dashboard-stat-icon,
+.damage-icon {
+    width: var(--icon-size, 48px);
+    height: var(--icon-size, 48px);
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 6px auto;
+    border-radius: 6px;
+    /* Use a CSS variable so the host page can choose an appropriate icon surface per theme */
+    background: var(--icon-surface, rgba(255, 255, 255, 0.03));
+}
+
+/* Non-invasive hint to improve perceived sharpness when raster icons are upscaled in certain preview contexts.
+   This is optional and conservative — it may make some scaled icons look crisper in the overlay preview.
+   If it causes undesired artifacts, we can remove it easily. */
+.damage-icon {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+.dashboard-stat-value,
+.damage-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-on-surface);
+}
+
+.dashboard-stat-perhour,
+.damage-sub,
+.damage-hps {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.overlay-update-pulse {
+    animation: overlay-pulse 0.6s ease;
+}
+@keyframes overlay-pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.center {
+    text-align: center;
+    margin-top: 40px;
+    color: var(--muted);
+}
+
+/* Center placeholder layout defaults used by overlays */
+.center {
+    width: 100%;
+    text-align: center;
+    padding: 20px 0;
+}
+
+/* Utility classes for JS-driven state */
+.no-icon .dashboard-stat-icon,
+.no-icon .damage-icon {
+    display: none !important;
+}
+
+.no-title .dashboard-stat-title {
+    display: none !important;
+}
+
+.hidden {
+    display: none !important;
+}
+.faded {
+    opacity: 0.5;
+}
+
+/* Font-size helpers read from CSS variables if set */
+.dashboard-stat-title {
+    font-size: var(--title-font-size, 1rem);
+}
+.dashboard-stat-value {
+    font-size: var(--total-font-size, 1.2rem);
+}
+.dashboard-stat-perhour {
+    font-size: var(--perhour-font-size, 0.85rem);
+}

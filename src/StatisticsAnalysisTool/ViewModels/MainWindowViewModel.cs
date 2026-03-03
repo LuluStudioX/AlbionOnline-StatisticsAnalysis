@@ -43,6 +43,30 @@ namespace StatisticsAnalysisTool.ViewModels;
 
 public class MainWindowViewModel : BaseViewModel
 {
+    // Expose a static instance for legacy callers (some restored code expects MainWindowViewModel.Instance)
+    public static MainWindowViewModel Instance { get; private set; }
+
+    // Trigger overlay update for damage meter payloads
+    public void SyncDamageOverlay()
+    {
+        try
+        {
+            try
+            {
+                var mgr = StatisticsAnalysisTool.Overlay.OverlaySectionManager.Instance;
+                mgr?.UpdateDamage(this.DamageMeterBindings);
+            }
+            catch (Exception inner)
+            {
+                Serilog.Log.Warning(inner, "[MainWindowViewModel] OverlaySectionManager.UpdateDamage failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "[MainWindowViewModel] SyncDamageOverlay failed");
+        }
+    }
+
     private double _allianceInfoWidth;
     private double _currentMapInfoWidth;
     private string _errorBarText;
@@ -117,6 +141,7 @@ public class MainWindowViewModel : BaseViewModel
     private Visibility _tradeMonitoringTabVisibility = Visibility.Visible;
     private Visibility _gatheringTabVisibility = Visibility.Visible;
     private Visibility _partyTabVisibility = Visibility.Visible;
+    private Visibility _streamingOverlayTabVisibility = Visibility.Visible;
     private Visibility _storageHistoryTabVisibility = Visibility.Visible;
     private Visibility _mapHistoryTabVisibility = Visibility.Visible;
     private Visibility _playerInformationTabVisibility = Visibility.Visible;
@@ -134,6 +159,7 @@ public class MainWindowViewModel : BaseViewModel
 
     public MainWindowViewModel()
     {
+        Instance = this;
         UpgradeSettings();
         SetUiElements();
         Translation = new MainWindowTranslation();
@@ -1212,6 +1238,16 @@ public class MainWindowViewModel : BaseViewModel
         set
         {
             _dashboardTabVisibility = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public Visibility StreamingOverlayTabVisibility
+    {
+        get => _streamingOverlayTabVisibility;
+        set
+        {
+            _streamingOverlayTabVisibility = value;
             OnPropertyChanged();
         }
     }

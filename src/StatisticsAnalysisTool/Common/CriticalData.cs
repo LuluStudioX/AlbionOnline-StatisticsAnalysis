@@ -40,7 +40,7 @@ public class CriticalData
             };
 
             await Task.WhenAll(tasks);
-            _ = ServiceLocator.Resolve<SatNotificationManager>().ShowTrackingStatusAsync(LocalizationController.Translation("DATA_SAVED"), 
+            _ = ServiceLocator.Resolve<SatNotificationManager>().ShowTrackingStatusAsync(LocalizationController.Translation("DATA_SAVED"),
                 LocalizationController.Translation("ALL_TOOL_DATA_HAS_BEEN_SAVED"));
         }
         catch (KeyNotFoundException e)

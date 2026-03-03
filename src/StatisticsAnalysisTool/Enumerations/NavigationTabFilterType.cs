@@ -5,6 +5,7 @@ public enum NavigationTabFilterType
     Unknown,
     Dashboard,
     ItemSearch,
+    StreamingOverlay,
     Guild,
     Logging,
     Dungeons,

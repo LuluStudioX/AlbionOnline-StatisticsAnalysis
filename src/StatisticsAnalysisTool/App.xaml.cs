@@ -23,7 +23,7 @@ using StatisticsAnalysisTool.Network;
 
 namespace StatisticsAnalysisTool;
 
-public partial class App
+public partial class App : System.Windows.Application
 {
     private MainWindowViewModel _mainWindowViewModel;
     private TrackingController _trackingController;
@@ -82,11 +82,22 @@ public partial class App
         Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
         RegisterServicesEarly();
-        Current.MainWindow = new MainWindow(_mainWindowViewModel);
         RegisterServicesLate();
 
+        Current.MainWindow = new MainWindow(_mainWindowViewModel);
+        // Ensure the main window is shown in taskbar and activated. Some environments
+        // may create windows off-screen or not focused; calling Show() then Activate
+        // helps bring the app back to user's attention.
+        Current.MainWindow.ShowInTaskbar = true;
         await _mainWindowViewModel.InitMainWindowDataAsync();
         Current.MainWindow.Show();
+        try
+        {
+            Current.MainWindow.Activate();
+            Current.MainWindow.Topmost = true;
+            Current.MainWindow.Topmost = false;
+        }
+        catch { }
 
         Utilities.AnotherAppToStart(SettingsController.CurrentSettings.AnotherAppToStartPath);
     }
@@ -113,6 +124,23 @@ public partial class App
     {
         _mainWindowViewModel = new MainWindowViewModel();
         ServiceLocator.Register<MainWindowViewModel>(_mainWindowViewModel);
+
+        // Register overlay shared options and viewmodel early so UI controls can resolve their DataContext
+        try
+        {
+            // Create a single shared OverlayOptionsObject for the entire app
+            var sharedOverlayOptions = new StatisticsAnalysisTool.Overlay.OverlayOptionsObject();
+            ServiceLocator.Register<StatisticsAnalysisTool.Overlay.OverlayOptionsObject>(sharedOverlayOptions);
+
+            // Initialize and register the StreamingOverlayViewModel so user controls can bind to it
+            var overlayVm = new StreamingOverlayViewModel();
+            ServiceLocator.Register<StreamingOverlayViewModel>(overlayVm);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't prevent the app from starting; overlay features will be disabled if this fails
+            Serilog.Log.Warning(ex, "[App] Failed to register overlay services early");
+        }
 
         var satNotifications = new SatNotificationManager(new NotificationManager(Current.Dispatcher));
         ServiceLocator.Register<SatNotificationManager>(satNotifications);
@@ -170,7 +198,9 @@ public partial class App
         finally
         {
             Log.CloseAndFlush();
-            e.Handled = false;
+            // Mark the exception as handled to avoid shutting down the entire application
+            // due to a single UI-thread error (prevents overlay start crash on some environments).
+            e.Handled = true;
         }
     }
 

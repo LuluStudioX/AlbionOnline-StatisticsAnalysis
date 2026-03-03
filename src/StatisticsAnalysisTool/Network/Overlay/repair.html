@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Repair Costs Overlay</title>
+        <link rel="stylesheet" href="/Network/Overlay/overlay-common.css" />
+        <style>
+            body {
+                background: transparent;
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 8px;
+                /* Use overlay variable if present; fallback to a dark color for readability */
+                color: var(--text-on-surface, #111);
+            }
+            .repair-row {
+                display: flex;
+                gap: 24px;
+                align-items: center;
+            }
+            .repair-stat {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-width: 160px;
+            .repair-metrics-list {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+                margin-top: 12px;
+                */
+            .repair-metric-row {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 18px;
+                min-height: 32px;
+                color: var(--text-on-surface, #2f4652);
+                font-weight: bold;
+            }
+            .repair-value {
+                font-size: 20px;
+                font-weight: bold;
+                /* Use a color that is readable both in browser preview and in the overlay.
+                   Prefer the overlay's primary text color variable; fallback to a dark color
+                   so values remain visible when the page background is light (browser).
+                */
+                color: var(--text-primary, #111);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="repair-metrics-flex">
+            <div class="repair-icon-col">
+                <img src="repair-icon.svg" alt="Repair Icon" class="repair-icon" />
+            </div>
+            <div class="repair-metrics-list">
+                <div class="repair-metric-row">
+                    <span class="repair-title" id="r-today">Repair costs today</span>
+                    <span class="repair-value" id="r-today-val">-0</span>
+                </div>
+                <div class="repair-metric-row">
+                    <span class="repair-title" id="r-7">Repair costs last 7 days</span>
+                    <span class="repair-value" id="r-7-val">-682.74K</span>
+                </div>
+                <div class="repair-metric-row">
+                    <span class="repair-title" id="r-30">Repair costs last 30 days</span>
+                    <span class="repair-value" id="r-30-val">-9.11M</span>
+                </div>
+            </div>
+        </div>
+
+            function applySettingsObj(s) {
+                try {
+                    if (!s) return;
+                    if (s.titleFontSize)
+                        document
+                            .querySelectorAll(".repair-title")
+                            .repair-metrics-flex {
+                                display: flex;
+                                flex-direction: row;
+                                align-items: stretch;
+                                gap: 24px;
+                                margin-top: 12px;
+                            }
+                            .repair-icon-col {
+                                display: flex;
+                                align-items: center;
+                            }
+                            .repair-icon {
+                                height: 100px;
+                                width: auto;
+                                object-fit: contain;
+                                display: block;
+                            }
+                            .repair-metrics-list {
+                                display: flex;
+                                flex-direction: column;
+                                gap: 16px;
+                                align-items: flex-start;
+                            }
+                            .repair-metric-row {
+                                display: flex;
+                                flex-direction: row;
+                                align-items: center;
+                                gap: 18px;
+                                min-height: 32px;
+                                color: var(--text-on-surface, #2f4652);
+                                font-weight: bold;
+                            }
+                            .repair-value {
+                                font-size: 20px;
+                                font-weight: bold;
+                                color: var(--text-primary, #111);
+                                min-width: 80px;
+                            }
+                    if (typeof data === "string") {
+                        try {
+                            data = JSON.parse(data);
+                        } catch (e) {
+                            // legacy pipe-delimited fallback
+                            if (data.indexOf("|") !== -1) {
+                                var metrics = data
+                                    .split("|")
+                                    .map((s) => s.trim());
+                                if (metrics.length > 0)
+                                    document.getElementById(
+                                        "r-today-val"
+                                    ).textContent = formatNumber(metrics[0]);
+                                if (metrics.length > 1)
+                                    document.getElementById(
+                                        "r-7-val"
+                                    ).textContent = formatNumber(metrics[1]);
+                                if (metrics.length > 2)
+                                    document.getElementById(
+                                        "r-30-val"
+                                    ).textContent = formatNumber(metrics[2]);
+                            }
+                            return;
+                        }
+                    }
+
+                    var metrics = null;
+                    if (Array.isArray(data)) metrics = data;
+                    else if (data.metrics && Array.isArray(data.metrics))
+                        metrics = data.metrics;
+
+                    if (metrics) {
+                        if (metrics.length > 0)
+                            document.getElementById("r-today-val").textContent =
+                                formatNumber(metrics[0]);
+                        if (metrics.length > 1)
+                            document.getElementById("r-7-val").textContent =
+                                formatNumber(metrics[1]);
+                        if (metrics.length > 2)
+                            document.getElementById("r-30-val").textContent =
+                                formatNumber(metrics[2]);
+                    }
+                    // settings may be provided separately
+                    if (data.settings) applySettingsObj(data.settings);
+                } catch (e) {}
+            }
+
+            // Initialize overlay client for 'repair' section
+            try {
+                var client = initOverlayClient("repair", {
+                    onStats: onStats,
+                    onSettings: applySettingsObj,
+                });
+            } catch (e) {
+                // If overlay-common not available, do nothing
+            }
+        </script>
+    </body>
+</html>

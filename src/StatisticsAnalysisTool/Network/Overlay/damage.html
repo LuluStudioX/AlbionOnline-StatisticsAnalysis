@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Damage Overlay</title>
+        <!-- Use shared overlay CSS so damage and dashboard share theme -->
+        <link rel="stylesheet" href="/Network/Overlay/overlay-common.css" />
+        <script src="/Network/Overlay/overlay-common.js"></script>
+    </head>
+    <body>
+        <div id="damage" class="damage-list"></div>
+        <script>
+            // Minimal query param parsing for preview transparency
+            function getQuery() {
+                var q = {};
+                try {
+                    var sp = new URLSearchParams(location.search);
+                    for (var pair of sp.entries()) q[pair[0]] = pair[1];
+                } catch (e) {}
+                return q;
+            }
+            var qp = getQuery();
+
+            function applyInitialBackgroundForPreview(theme) {
+                try {
+                    if (qp.transparent === "1") {
+                        document.body.style.background = "transparent";
+                    } else {
+                        if (theme === "Light" || theme === "White")
+                            document.body.style.background = "#fff";
+                        else
+                            document.body.style.background = "rgba(0,0,0,0.85)";
+                    }
+                } catch (e) {}
+            }
+            function formatK(v) {
+                var n = Number(v);
+                if (!isFinite(n) || isNaN(n)) return "0";
+                var abs = Math.abs(n);
+                if (abs >= 1000000) {
+                    return (abs / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+                }
+                if (abs >= 1000) {
+                    return (abs / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+                }
+                return Math.round(n).toLocaleString();
+            }
+            function render(list) {
+                var cont = document.getElementById("damage");
+                cont.innerHTML = "";
+                if (!Array.isArray(list) || list.length === 0) {
+                    // show placeholder when no damage is available
+                    var p = document.createElement("div");
+                    p.className = "center";
+                    // color handled by shared CSS (.center -> color: var(--muted))
+                    p.textContent = "Waiting for metrics";
+                    cont.appendChild(p);
+                    return;
+                }
+                list.forEach(function (item) {
+                    // If overlay settings request hiding the local player, filter by username if provided
+                    try {
+                        if (
+                            overlaySettings &&
+                            overlaySettings.hideSelf &&
+                            overlaySettings.username
+                        ) {
+                            var uname = String(
+                                overlaySettings.username || ""
+                            ).trim();
+                            var itemName = String(item.name || "").trim();
+                            if (
+                                uname !== "" &&
+                                itemName !== "" &&
+                                uname.toLowerCase() === itemName.toLowerCase()
+                            ) {
+                                // skip rendering this entry
+                                return;
+                            }
+                        }
+                    } catch (e) {}
+                    var d = document.createElement("div");
+                    d.className = "damage-item";
+                    // Name first
+                    var name = document.createElement("div");
+                    name.className = "damage-name";
+                    name.textContent = item.name || "unknown";
+                    d.appendChild(name);
+                    // Image (weapon/player) - graceful fallback if not provided
+                    var showIcons = true;
+                    try {
+                        if (
+                            overlaySettings &&
+                            overlaySettings.damageSettings &&
+                            typeof overlaySettings.damageSettings.showIcons !==
+                                "undefined"
+                        )
+                            showIcons =
+                                !!overlaySettings.damageSettings.showIcons;
+                        else if (
+                            overlaySettings &&
+                            typeof overlaySettings.showIcons !== "undefined"
+                        )
+                            showIcons = !!overlaySettings.showIcons;
+                    } catch (e) {}
+                    if (showIcons) {
+                        var img = document.createElement("img");
+                        img.className = "damage-icon";
+                        var iconPath =
+                            item.Icon ||
+                            item.icon ||
+                            item.image ||
+                            item.iconUrl ||
+                            null;
+                        if (!iconPath) {
+                            var raw = String(item.name || "").toLowerCase();
+                            var safe =
+                                raw
+                                    .replace(/[^a-z0-9_\-]/g, "_")
+                                    .slice(0, 64) || "generic";
+                            iconPath = "/img/" + safe + ".png";
+                        }
+                        img.src = iconPath;
+                        img.alt = item.name || "icon";
+                        // DPR-aware sizing: avoid upscaling which causes blur by limiting displayed size
+                        img.onload = function () {
+                            try {
+                                var naturalW = this.naturalWidth || 0;
+                                var naturalH = this.naturalHeight || 0;
+                                // computed display size (CSS pixels)
+                                var cs = getComputedStyle(this);
+                                var displayW =
+                                    parseFloat(cs.width) ||
+                                    this.width ||
+                                    this.offsetWidth ||
+                                    0;
+                                var displayH =
+                                    parseFloat(cs.height) ||
+                                    this.height ||
+                                    this.offsetHeight ||
+                                    0;
+                                var dpr = window.devicePixelRatio || 1;
+                                // If the browser will upscale the source relative to DPR (causing blur), reduce display size
+                                if (
+                                    naturalW > 0 &&
+                                    displayW / (naturalW * dpr) > 1.05
+                                ) {
+                                    // set display size to naturalW / DPR so one CSS px ~= one device px
+                                    var target = Math.max(
+                                        8,
+                                        Math.round(naturalW / dpr)
+                                    );
+                                    this.style.width = target + "px";
+                                    this.style.height = "auto";
+                                }
+                                // Best-effort: try to remove uniform background from the icon so it blends
+                                // nicely on non-dark themes. This will silently fail if canvas readback is tainted.
+                                try {
+                                    if (
+                                        typeof window.removeImageBackground ===
+                                        "function"
+                                    ) {
+                                        // small tolerance to avoid removing antialiased edges
+                                        window.removeImageBackground(this, 16);
+                                    }
+                                } catch (e) {}
+                            } catch (e) {}
+                        };
+                        img.onerror = function () {
+                            this.style.display = "none";
+                        };
+                        d.appendChild(img);
+                    }
+                    var val = document.createElement("div");
+                    val.className = "damage-value";
+                    var mainDamageText =
+                        item.damageShort || formatK(item.damage || 0);
+                    // Show main damage value only (no PvP split in this mode)
+                    val.textContent = mainDamageText;
+
+                    var sub = document.createElement("div");
+                    sub.className = "damage-sub";
+                    // Format DPS/HPS with K/M notation and show on separate lines
+                    // Ensure zero values are rendered (0 is falsy in JS) by explicitly checking for number/null
+                    var dpsText = item.dpsShort;
+                    if (!dpsText && item.dps !== null && item.dps !== undefined)
+                        dpsText = formatK(item.dps);
+                    var hpsText = item.hpsShort;
+                    if (!hpsText && item.hps !== null && item.hps !== undefined)
+                        hpsText = formatK(item.hps);
+
+                    // PvP-specific DPS/HPS removed; only show total DPS/HPS here
+
+                    var parts = [];
+                    if (dpsText) parts.push(dpsText + "/dps");
+                    if (hpsText) parts.push(hpsText + "/hps");
+                    // Use HTML line breaks so the subtext appears on separate lines in the overlay
+                    sub.innerHTML = parts.join("<br/>");
+                    d.appendChild(val);
+                    d.appendChild(sub);
+                    // (no separate PvP lines appended; inline handled above)
+                    cont.appendChild(d);
+                });
+            }
+            // Show placeholder immediately so webviews are not completely blank
+            document.addEventListener("DOMContentLoaded", function () {
+                var cont = document.getElementById("damage");
+                if (cont && cont.innerHTML.trim() === "") {
+                    var p = document.createElement("div");
+                    p.className = "center";
+                    // color handled by shared CSS (.center -> color: var(--muted))
+                    p.textContent = "Waiting for metrics";
+                    cont.appendChild(p);
+                }
+                // Apply shared theme variables on load so overlay matches dashboard immediately
+                try {
+                    if (typeof applyOverlayTheme === "function")
+                        applyOverlayTheme(
+                            window.overlaySettings?.theme || "Black"
+                        );
+                    try {
+                        applyInitialBackgroundForPreview(
+                            window.overlaySettings?.theme || "Black"
+                        );
+                    } catch (e) {}
+                } catch (e) {}
+            });
+            // Default overlay settings container
+            window.overlaySettings = window.overlaySettings || {
+                autoHideZero: true,
+            };
+            // Track whether we've received real metrics for this overlay
+            window._overlayHasReceivedData =
+                window._overlayHasReceivedData || false;
+
+            function handleSettingsMessage(json) {
+                try {
+                    var s = typeof json === "string" ? JSON.parse(json) : json;
+                    // Apply theme or visual settings immediately if present
+                    if (s.theme) {
+                        try {
+                            if (typeof applyOverlayTheme === "function") {
+                                applyOverlayTheme(s.theme);
+                            }
+                        } catch (e) {}
+                        try {
+                            applyInitialBackgroundForPreview(s.theme);
+                        } catch (e) {}
+                    }
+                    // Merge settings into overlaySettings
+                    Object.assign(overlaySettings, s);
+                    // Only re-render if we've previously received metrics or the settings request showing zeros
+                    var shouldRenderNow =
+                        !!window._overlayHasReceivedData ||
+                        overlaySettings.autoHideZero === false;
+                    if (shouldRenderNow) {
+                        try {
+                            render(window._overlayLatestDamage || []);
+                        } catch (e) {}
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            }
+            // Use shared overlay client for websocket wiring
+            (function () {
+                var s = document.createElement("script");
+                s.src = "/Network/Overlay/overlay-common.js";
+                s.onload = function () {
+                    var client = initOverlayClient("damage", {
+                        onStats: function (data) {
+                            try {
+                                var parsed = Array.isArray(data)
+                                    ? data
+                                    : typeof data === "string"
+                                    ? JSON.parse(data)
+                                    : data;
+                                // Normalize to an array if possible. Some hosts may wrap data.
+                                if (
+                                    !Array.isArray(parsed) &&
+                                    parsed &&
+                                    Array.isArray(parsed.data)
+                                ) {
+                                    parsed = parsed.data;
+                                }
+
+                                // Debounce transient empty or all-zero payloads.
+                                // Maintain a short counter: only clear the UI after
+                                // several consecutive empty/zero updates to avoid flicker.
+                                var last = window._overlayLatestDamage || [];
+                                var isEmpty =
+                                    !Array.isArray(parsed) ||
+                                    parsed.length === 0;
+                                // also treat arrays where all entries are zero/empty as empty
+                                function tryParseNumber(v) {
+                                    if (v === null || v === undefined)
+                                        return NaN;
+                                    // If already a number, return it
+                                    if (typeof v === "number") return v;
+                                    var s = String(v).trim();
+                                    if (s === "") return NaN;
+                                    // Remove common suffixes and separators (K/M) and locale separators
+                                    var multiplier = 1;
+                                    if (/m$/i.test(s)) {
+                                        multiplier = 1000000;
+                                        s = s.replace(/m$/i, "");
+                                    } else if (/k$/i.test(s)) {
+                                        multiplier = 1000;
+                                        s = s.replace(/k$/i, "");
+                                    }
+                                    s = s.replace(/[,_\s]/g, "");
+                                    // Remove trailing /dps or /hps
+                                    s = s.replace(/\/h$|\/dps$|\/hps$/i, "");
+                                    var n = parseFloat(s);
+                                    if (isNaN(n)) return NaN;
+                                    return n * multiplier;
+                                }
+
+                                function parsedHasMeaningful(a) {
+                                    if (!Array.isArray(a) || a.length === 0)
+                                        return false;
+                                    for (var i = 0; i < a.length; i++) {
+                                        var it = a[i] || {};
+                                        // Check numeric fields robustly
+                                        var candidates = [
+                                            it.damage,
+                                            it.dps,
+                                            it.hps,
+                                            it.totalDamage,
+                                            it.totalDps,
+                                        ];
+                                        for (
+                                            var j = 0;
+                                            j < candidates.length;
+                                            j++
+                                        ) {
+                                            var val = tryParseNumber(
+                                                candidates[j]
+                                            );
+                                            if (
+                                                !isNaN(val) &&
+                                                Math.abs(val) > 0
+                                            )
+                                                return true;
+                                        }
+
+                                        // Also consider short/pretty strings like "1.2K" or non-empty short strings
+                                        var shortFields = [
+                                            it.damageShort,
+                                            it.dpsShort,
+                                            it.hpsShort,
+                                            it.totalDamageShort,
+                                        ];
+                                        for (
+                                            var k = 0;
+                                            k < shortFields.length;
+                                            k++
+                                        ) {
+                                            var sf = shortFields[k];
+                                            if (
+                                                sf &&
+                                                String(sf).trim() !== ""
+                                            ) {
+                                                // If it contains digits it's meaningful
+                                                if (/[0-9]/.test(sf))
+                                                    return true;
+                                            }
+                                        }
+                                    }
+                                    return false;
+                                }
+
+                                // Increase debounce threshold to avoid switching overlays too eagerly.
+                                var meaningful = parsedHasMeaningful(parsed);
+                                window._damageEmptyCount =
+                                    window._damageEmptyCount || 0;
+
+                                // If overlay was recently reset to defaults, allow immediate render/clear.
+                                var allowImmediate = !!window._overlayWasReset;
+
+                                if (!meaningful) {
+                                    // not meaningful update: increment counter and ignore until threshold
+                                    window._damageEmptyCount++;
+                                    var threshold = 6; // require more consecutive empty updates before clearing
+                                    if (allowImmediate) threshold = 1;
+                                    if (window._damageEmptyCount < threshold) {
+                                        try {
+                                            console.debug &&
+                                                console.debug(
+                                                    "[Overlay][Damage] Ignoring transient/empty payload, count=",
+                                                    window._damageEmptyCount
+                                                );
+                                        } catch (e) {}
+                                        return;
+                                    }
+                                    // else allow clear/update after repeated empties
+                                } else {
+                                    // meaningful payload: reset counter and clear reset flag
+                                    window._damageEmptyCount = 0;
+                                    window._overlayWasReset = false;
+                                }
+
+                                window._overlayLatestDamage = Array.isArray(
+                                    parsed
+                                )
+                                    ? parsed
+                                    : [];
+                                // mark as received only when we have realistic data
+                                window._overlayHasReceivedData =
+                                    window._overlayHasReceivedData ||
+                                    meaningful;
+                                render(parsed);
+                            } catch (e) {
+                                console.debug("damage overlay: stats parse", e);
+                            }
+                        },
+                        onSettings: function (data) {
+                            handleSettingsMessage(data);
+                        },
+                    });
+                    window._overlayClient_damage = client;
+                };
+                document.head.appendChild(s);
+            })();
+        </script>
+    </body>
+</html>

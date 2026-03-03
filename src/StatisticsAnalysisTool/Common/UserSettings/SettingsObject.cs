@@ -11,6 +11,20 @@ namespace StatisticsAnalysisTool.Common.UserSettings;
 public class SettingsObject
 {
     public string CurrentCultureIetfLanguageTag { get; set; }
+    // Overlay settings persistence
+    public bool OverlayIsEnabled { get; set; } = false;
+    public double OverlayDashboardTitleFontSize { get; set; } = 14;
+    public double OverlayDashboardTotalFontSize { get; set; } = 20;
+    public double OverlayDashboardPerHourFontSize { get; set; } = 12;
+    public bool OverlayDashboardAutoHideZeroValues { get; set; } = false;
+    public double OverlayDashboardFontSize { get; set; } = 14;
+    public double OverlayDashboardIconSize { get; set; } = 32;
+    public double OverlayGatheringFontSize { get; set; } = 14;
+    public double OverlayGatheringIconSize { get; set; } = 32;
+    public double OverlayDamageFontSize { get; set; } = 14;
+    public double OverlayDamageIconSize { get; set; } = 32;
+    // Per-metric overlay settings (persisted as JSON for flexibility)
+    public string OverlayMetricSettingsJson { get; set; } = "";
     public int RefreshRate { get; set; } = 10000;
     public string PacketFilter { get; set; } = "(ip or ip6) and (udp and (port 5055 or port 5056 or port 5058))";
     public PacketProviderKind PacketProvider { get; set; } = PacketProviderKind.Npcap;
@@ -77,6 +91,7 @@ public class SettingsObject
     public bool IsDashboardNaviTabActive { get; set; } = true;
     public bool IsItemSearchNaviTabActive { get; set; } = true;
     public bool IsLoggingNaviTabActive { get; set; } = true;
+    public bool IsStreamingOverlayNaviTabActive { get; set; } = true;
     public bool IsDungeonsNaviTabActive { get; set; } = true;
     public bool IsDamageMeterNaviTabActive { get; set; } = true;
     public bool IsTradeMonitoringNaviTabActive { get; set; } = true;
