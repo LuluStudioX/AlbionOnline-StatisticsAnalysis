@@ -23,11 +23,21 @@ public static class ExtensionMethod
 
     public static void OrderByReference<T>(this ObservableCollection<T> collection, List<T> comparison)
     {
-        for (var i = 0; i < comparison.Count; i++)
+        if (collection == null || comparison == null)
         {
-            if (!comparison.ElementAt(i).Equals(collection.ElementAt(i)))
+            return;
+        }
+
+        var maxCount = Math.Min(collection.Count, comparison.Count);
+        for (var i = 0; i < maxCount; i++)
+        {
+            if (!EqualityComparer<T>.Default.Equals(comparison[i], collection[i]))
             {
-                collection.Move(collection.IndexOf(comparison[i]), i);
+                var index = collection.IndexOf(comparison[i]);
+                if (index >= 0)
+                {
+                    collection.Move(index, i);
+                }
             }
         }
     }
@@ -73,6 +83,11 @@ public static class ExtensionMethod
 
     public static bool HasProperty(this object obj, string propertyName)
     {
+        if (obj == null || string.IsNullOrWhiteSpace(propertyName))
+        {
+            return false;
+        }
+
         return obj.GetType().GetProperty(propertyName) != null;
     }
 
@@ -133,6 +148,11 @@ public static class ExtensionMethod
 
     public static Dictionary<int, T> ToDictionary<T>(this T[] array)
     {
+        if (array == null)
+        {
+            return new Dictionary<int, T>();
+        }
+
         var dict = new Dictionary<int, T>();
         for (int i = 0; i < array.Length; i++)
         {

@@ -231,7 +231,7 @@ public class EntityController
     public async Task AddLocalEntityToPartyAsync()
     {
         var localEntity = GetLocalEntity();
-        if (localEntity != null)
+        if (localEntity?.Value != null)
         {
             localEntity.Value.Value.IsInParty = true;
             await SetPartyMemberUiAsync();

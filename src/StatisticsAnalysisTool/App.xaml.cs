@@ -4,9 +4,11 @@ using Serilog.Events;
 using StatisticsAnalysisTool.Backup;
 using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.Common.UserSettings;
+using StatisticsAnalysisTool.Diagnostics;
 using StatisticsAnalysisTool.Enumerations;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Localization;
+using StatisticsAnalysisTool.Network;
 using StatisticsAnalysisTool.Network.Manager;
 using StatisticsAnalysisTool.Notification;
 using StatisticsAnalysisTool.ViewModels;
@@ -18,8 +20,6 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using StatisticsAnalysisTool.Diagnostics;
-using StatisticsAnalysisTool.Network;
 
 namespace StatisticsAnalysisTool;
 
@@ -33,74 +33,107 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-
-        InitLogger();
-        Log.Information("Tool started with v{Version}", Assembly.GetExecutingAssembly().GetName().Version);
-
-        SystemInfo.LogSystemInfo();
-        DebugConsole.UseEnums(typeof(EventCodes), typeof(OperationCodes));
-
-        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
-        DispatcherUnhandledException += Application_DispatcherUnhandledException;
-
-        await SettingsController.LoadSettingsAsync();
-
-        if (SettingsController.CurrentSettings.IsOpenDebugConsoleWhenStartingTheToolChecked)
-        {
-            DebugConsole.Attach("SAT Debug Console");
-            DebugConsole.Configure(SettingsController.CurrentSettings.DebugConsoleFilter);
-        }
-
-        await AutoUpdateController.AutoUpdateAsync();
-
-        Culture.SetCulture(Culture.GetCultureByIetfLanguageTag(SettingsController.CurrentSettings.CurrentCultureIetfLanguageTag));
-        if (!LocalizationController.Init())
-        {
-            _isEarlyShutdown = true;
-            Current.Shutdown();
-            return;
-        }
-
-        if (SettingsController.CurrentSettings.ServerLocation != ServerLocation.America
-            && SettingsController.CurrentSettings.ServerLocation != ServerLocation.Asia
-            && SettingsController.CurrentSettings.ServerLocation != ServerLocation.Europe)
-        {
-            Server.SetServerLocationWithDialogAsync();
-        }
-
-        if (!await GameData.InitializeMainGameDataFilesAsync(SettingsController.CurrentSettings.ServerType))
-        {
-            _isEarlyShutdown = true;
-            Current.Shutdown();
-            return;
-        }
-
-        await BackupController.DeleteOldestBackupsIfNeededAsync();
-
-        Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
-
-        RegisterServicesEarly();
-        RegisterServicesLate();
-
-        Current.MainWindow = new MainWindow(_mainWindowViewModel);
-        // Ensure the main window is shown in taskbar and activated. Some environments
-        // may create windows off-screen or not focused; calling Show() then Activate
-        // helps bring the app back to user's attention.
-        Current.MainWindow.ShowInTaskbar = true;
-        await _mainWindowViewModel.InitMainWindowDataAsync();
-        Current.MainWindow.Show();
         try
         {
-            Current.MainWindow.Activate();
-            Current.MainWindow.Topmost = true;
-            Current.MainWindow.Topmost = false;
-        }
-        catch { }
+            Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-        Utilities.AnotherAppToStart(SettingsController.CurrentSettings.AnotherAppToStartPath);
+            InitLogger();
+            Log.Information("Tool started with v{Version}", Assembly.GetExecutingAssembly().GetName().Version);
+
+            SystemInfo.LogSystemInfo();
+            DebugConsole.UseEnums(typeof(EventCodes), typeof(OperationCodes));
+
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+            DispatcherUnhandledException += Application_DispatcherUnhandledException;
+
+            await SettingsController.LoadSettingsAsync();
+
+            if (SettingsController.CurrentSettings.IsOpenDebugConsoleWhenStartingTheToolChecked)
+            {
+                DebugConsole.Attach("SAT Debug Console");
+                DebugConsole.Configure(SettingsController.CurrentSettings.DebugConsoleFilter);
+            }
+
+            await AutoUpdateController.AutoUpdateAsync();
+
+            Culture.SetCulture(Culture.GetCultureByIetfLanguageTag(SettingsController.CurrentSettings.CurrentCultureIetfLanguageTag));
+            if (!LocalizationController.Init())
+            {
+                _isEarlyShutdown = true;
+                Current.Shutdown();
+                return;
+            }
+
+            if (SettingsController.CurrentSettings.ServerLocation != ServerLocation.America
+                && SettingsController.CurrentSettings.ServerLocation != ServerLocation.Asia
+                && SettingsController.CurrentSettings.ServerLocation != ServerLocation.Europe)
+            {
+                Server.SetServerLocationWithDialogAsync();
+            }
+
+            if (!await GameData.InitializeMainGameDataFilesAsync(SettingsController.CurrentSettings.ServerType))
+            {
+                _isEarlyShutdown = true;
+                Current.Shutdown();
+                return;
+            }
+
+            ShowNpcapInfoDialogOnFirstStart();
+
+            await BackupController.DeleteOldestBackupsIfNeededAsync();
+
+            Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+            RegisterServicesEarly();
+            Current.MainWindow = new MainWindow(_mainWindowViewModel);
+            RegisterServicesLate();
+
+            await _mainWindowViewModel.InitMainWindowDataAsync();
+            Current.MainWindow.Show();
+
+            Utilities.AnotherAppToStart(SettingsController.CurrentSettings.AnotherAppToStartPath);
+        }
+        catch (Exception ex)
+        {
+            _isEarlyShutdown = true;
+            try
+            {
+                Log.Fatal(ex, "An unexpected fatal error has occurred.");
+                MessageBox.Show("An unexpected error has occurred.",
+                    "Statistics Analysis Tool",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                await Log.CloseAndFlushAsync();
+            }
+
+            Current.Shutdown();
+        }
     }
+
+    private static void ShowNpcapInfoDialogOnFirstStart()
+    {
+        if (!SettingsController.CurrentSettings.IsNpcapInfoDialogShownOnStart)
+        {
+            return;
+        }
+
+        var dialog = new DialogWindow(
+            LocalizationController.Translation("NPCAP_INFO_DIALOG_TITLE"),
+            LocalizationController.Translation("NPCAP_INFO_DIALOG_MESSAGE"),
+            DialogType.Ok,
+            "https://npcap.com/",
+            LocalizationController.Translation("NPCAP_INFO_DIALOG_LINK_TEXT"));
+
+
+        dialog.ShowDialog();
+
+        SettingsController.CurrentSettings.IsNpcapInfoDialogShownOnStart = false;
+    }
+
 
     private static void InitLogger()
     {

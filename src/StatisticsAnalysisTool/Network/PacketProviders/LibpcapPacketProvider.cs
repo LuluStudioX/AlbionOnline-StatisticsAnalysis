@@ -18,11 +18,10 @@ namespace StatisticsAnalysisTool.Network.PacketProviders;
 public class LibpcapPacketProvider : PacketProvider
 {
     private readonly IPhotonReceiver _photonReceiver;
-    private readonly PcapDispatcher _dispatcher;
+    private PcapDispatcher? _dispatcher;
     private CancellationTokenSource? _cts;
     private Thread? _thread;
     private volatile Pcap? _activePcap;
-    private const bool LockToFirstDevice = true;
     private readonly Lock _lockObj = new();
     private readonly Dictionary<Pcap, int> _pcapScores = new();
     private DateTime _lastValidPacketUtc = DateTime.MinValue;
@@ -47,8 +46,18 @@ public class LibpcapPacketProvider : PacketProvider
 
         _activePcap = null;
 
+        _dispatcher?.Dispose();
+        _dispatcher = new PcapDispatcher(Dispatch);
+
         _cts?.Dispose();
         _cts = new CancellationTokenSource();
+
+        var dispatcher = _dispatcher;
+        if (dispatcher is null)
+        {
+            Log.Warning("Npcap: dispatcher unavailable, capture cannot start");
+            return;
+        }
 
         var devices = Pcap.ListDevices();
         if (devices.Count == 0)
@@ -87,14 +96,14 @@ public class LibpcapPacketProvider : PacketProvider
                 Log.Information("Npcap[ID:{Index}]: opening {Name}:{Desc} (Type={Type}, Flags={Flags})",
                     i, device.Name, device.Description, device.Type, device.Flags);
 
-                _dispatcher.OpenDevice(device, pcap =>
+                dispatcher.OpenDevice(device, pcap =>
                 {
                     pcap.NonBlocking = true;
                 });
 
                 if (hasFilter)
                 {
-                    _dispatcher.Filter = filter!;
+                    dispatcher.Filter = filter!;
                     Log.Information("Npcap[ID:{Index}]: filter set => {Filter}", i, filter);
                 }
                 else
@@ -130,17 +139,10 @@ public class LibpcapPacketProvider : PacketProvider
 
     private void Dispatch(Pcap pcap, ref Packet packet)
     {
-        if (LockToFirstDevice)
+        var current = _activePcap;
+        if (current is not null && !ReferenceEquals(current, pcap))
         {
-            var current = _activePcap;
-            if (current is null)
-            {
-                _activePcap = pcap;
-            }
-            else if (!ReferenceEquals(current, pcap))
-            {
-                return;
-            }
+            return;
         }
 
         // L2 (Ethernet)
@@ -299,12 +301,18 @@ public class LibpcapPacketProvider : PacketProvider
     {
         try
         {
+            var dispatcher = _dispatcher;
+            if (dispatcher is null)
+            {
+                return;
+            }
+
             while (_cts is { IsCancellationRequested: false })
             {
                 int dispatched;
                 try
                 {
-                    dispatched = _dispatcher.Dispatch(50);
+                    dispatched = dispatcher.Dispatch(50);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -332,7 +340,7 @@ public class LibpcapPacketProvider : PacketProvider
         try
         {
             _cts?.Cancel();
-            _dispatcher.Dispose();
+            _dispatcher?.Dispose();
             _thread?.Join();
         }
         finally
@@ -341,6 +349,7 @@ public class LibpcapPacketProvider : PacketProvider
             _cts?.Dispose();
             _cts = null;
             _thread = null;
+            _dispatcher = null;
         }
     }
 
