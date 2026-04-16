@@ -22,19 +22,74 @@
                 </Grid>
             </Grid>
             <StackPanel Orientation="Horizontal">
-                <ComboBox ItemsSource="{Binding ItemShopCategories}" SelectedItem="{Binding SelectedItemShopCategory, Mode=TwoWay}" 
-                          SelectedValuePath="Id" DisplayMemberPath="DisplayName" HorizontalAlignment="Left" Margin="10,5,5,5" VerticalAlignment="Top" Width="150" />
-                <ComboBox ItemsSource="{Binding ItemSubCategories1}" SelectedItem="{Binding SelectedItemShopSubCategory1, Mode=TwoWay}" 
-                          SelectedValuePath="Id" DisplayMemberPath="DisplayName" HorizontalAlignment="Left" Margin="5,5" VerticalAlignment="Top" Width="150" />
-                <ComboBox ItemsSource="{Binding ItemSubCategories2}" SelectedItem="{Binding SelectedItemShopSubCategory2, Mode=TwoWay}" 
-                          SelectedValuePath="Id" DisplayMemberPath="DisplayName" HorizontalAlignment="Left" Margin="5,5" VerticalAlignment="Top" Width="150" />
-                <ComboBox ItemsSource="{Binding ItemSubCategories3}" SelectedItem="{Binding SelectedItemShopSubCategory3, Mode=TwoWay}" 
-                          SelectedValuePath="Id" DisplayMemberPath="DisplayName" HorizontalAlignment="Left" Margin="5,5" VerticalAlignment="Top" Width="150" />
-
-                <ComboBox ItemsSource="{Binding ItemTiers}" SelectedValue="{Binding SelectedItemTier}" 
-                          SelectedValuePath="Key" DisplayMemberPath="Value" HorizontalAlignment="Left" Margin="5,5" MinWidth="70" />
-                <ComboBox ItemsSource="{Binding ItemLevels}" SelectedValue="{Binding SelectedItemLevel}" 
-                          SelectedValuePath="Key" DisplayMemberPath="Value" HorizontalAlignment="Left" Margin="5,5" MinWidth="70" />
+                <ComboBox ItemsSource="{Binding ItemShopCategories}"
+                          SelectedItem="{Binding SelectedItemShopCategory, Mode=TwoWay}"
+                          Tag="{Binding ItemShopCategorySummary}"
+                          SelectedValuePath="Id"
+                        DisplayMemberPath="DisplayName"
+                          HorizontalAlignment="Left"
+                        Margin="10,5,5,5"
+                        VerticalAlignment="Top"
+                        Width="140"
+                          ToolTip="Category"/>
+                <ComboBox ItemsSource="{Binding ItemSubCategories1}"
+                          SelectedItem="{Binding SelectedItemShopSubCategory1, Mode=TwoWay}"
+                          Tag="{Binding ItemShopSubCategory1Summary}"
+                          SelectedValuePath="Id"
+                        DisplayMemberPath="DisplayName"
+                          HorizontalAlignment="Left"
+                        Margin="5,5"
+                        VerticalAlignment="Top"
+                        Width="120"
+                          ToolTip="Sub-Category"/>
+                <ComboBox ItemsSource="{Binding ItemSubCategories2}"
+                          SelectedItem="{Binding SelectedItemShopSubCategory2, Mode=TwoWay}"
+                          Tag="{Binding ItemShopSubCategory2Summary}"
+                          SelectedValuePath="Id"
+                        DisplayMemberPath="DisplayName"
+                          HorizontalAlignment="Left"
+                        Margin="5,5"
+                        VerticalAlignment="Top"
+                        Width="120"
+                          ToolTip="Sub-Category 2"/>
+                <ComboBox ItemsSource="{Binding ItemSubCategories3}"
+                          SelectedItem="{Binding SelectedItemShopSubCategory3, Mode=TwoWay}"
+                          Tag="{Binding ItemShopSubCategory3Summary}"
+                          SelectedValuePath="Id"
+                        DisplayMemberPath="DisplayName"
+                          HorizontalAlignment="Left"
+                        Margin="5,5"
+                        VerticalAlignment="Top"
+                        Width="120"
+                          ToolTip="Sub-Category 3"/>
+                <ComboBox ItemsSource="{Binding ItemTierFilterItems}"
+                          Tag="{Binding ItemTierSummary}"
+                          HorizontalAlignment="Left"
+                        Margin="5,5"
+                        Width="60"
+                          ToolTip="Tier">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding DisplayName}"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      Click="FilterCheckBox_Click"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ComboBox ItemsSource="{Binding ItemLevelFilterItems}"
+                          Tag="{Binding ItemLevelSummary}"
+                          HorizontalAlignment="Left"
+                        Margin="5,5"
+                        Width="70"
+                          ToolTip="Enchantment">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding DisplayName}"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      Click="FilterCheckBox_Click"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsItemSearchCheckboxesEnabled}">
                 <CheckBox Content="{Binding Translation.ShowOnlyItemsWithAlertOn, FallbackValue=SHOW__ONLY__ITEMS__WITH__ALERT__ON}" 

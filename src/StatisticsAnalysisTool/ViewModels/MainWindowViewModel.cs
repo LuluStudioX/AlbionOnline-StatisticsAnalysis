@@ -213,6 +213,11 @@ public class MainWindowViewModel : BaseViewModel
         ItemLevels = FrequentlyValues.ItemLevels;
         SelectedItemLevel = ItemLevel.Unknown;
 
+        foreach (var item in ItemTierFilterItems)
+            item.PropertyChanged += (_, _) => { ItemsViewFilter(); ItemsView?.Refresh(); OnPropertyChanged(nameof(ItemTierSummary)); };
+        foreach (var item in ItemLevelFilterItems)
+            item.PropertyChanged += (_, _) => { ItemsViewFilter(); ItemsView?.Refresh(); OnPropertyChanged(nameof(ItemLevelSummary)); };
+
         // Tracking
         UserTrackingBindings.UsernameInformationVisibility = Visibility.Hidden;
         UserTrackingBindings.GuildInformationVisibility = Visibility.Hidden;
@@ -284,6 +289,8 @@ public class MainWindowViewModel : BaseViewModel
         SelectedItemShopSubCategory3 = null;
         SelectedItemLevel = ItemLevel.Unknown;
         SelectedItemTier = ItemTier.Unknown;
+        foreach (var item in ItemTierFilterItems) item.IsSelected = false;
+        foreach (var item in ItemLevelFilterItems) item.IsSelected = false;
     }
 
     #endregion Item list
@@ -525,8 +532,10 @@ public class MainWindowViewModel : BaseViewModel
             bool sub2Match = SelectedItemShopSubCategory2 == null || string.IsNullOrWhiteSpace(SelectedItemShopSubCategory2.Id) || item.FullItemInformation?.ShopSubCategory2 == SelectedItemShopSubCategory2.Id;
             bool sub3Match = SelectedItemShopSubCategory3 == null || string.IsNullOrWhiteSpace(SelectedItemShopSubCategory3.Id) || item.FullItemInformation?.ShopSubCategory3 == SelectedItemShopSubCategory3.Id;
 
-            bool tierMatch = SelectedItemTier == ItemTier.Unknown || (ItemTier) item.Tier == SelectedItemTier;
-            bool levelMatch = SelectedItemLevel == ItemLevel.Unknown || (ItemLevel) item.Level == SelectedItemLevel;
+            var selectedTiers = ItemTierFilterItems.Where(x => x.IsSelected).Select(x => x.Value).ToHashSet();
+            var selectedLevels = ItemLevelFilterItems.Where(x => x.IsSelected).Select(x => x.Value).ToHashSet();
+            bool tierMatch = selectedTiers.Count == 0 || selectedTiers.Contains(item.Tier);
+            bool levelMatch = selectedLevels.Count == 0 || selectedLevels.Contains(item.Level);
 
             if (IsShowOnlyItemsWithAlertOnActive)
             {
@@ -907,6 +916,7 @@ public class MainWindowViewModel : BaseViewModel
             ItemsViewFilter();
             ItemsView?.Refresh();
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ItemShopCategorySummary));
         }
     }
 
@@ -943,6 +953,7 @@ public class MainWindowViewModel : BaseViewModel
                 ItemsViewFilter();
                 ItemsView?.Refresh();
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(ItemShopSubCategory1Summary));
             }
         }
     }
@@ -980,6 +991,7 @@ public class MainWindowViewModel : BaseViewModel
                 ItemsViewFilter();
                 ItemsView?.Refresh();
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(ItemShopSubCategory2Summary));
             }
         }
     }
@@ -1005,9 +1017,38 @@ public class MainWindowViewModel : BaseViewModel
                 ItemsViewFilter();
                 ItemsView?.Refresh();
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(ItemShopSubCategory3Summary));
             }
         }
     }
+
+    public string ItemShopCategorySummary => SelectedItemShopCategory?.DisplayName ?? "Category";
+    public string ItemShopSubCategory1Summary => SelectedItemShopSubCategory1?.DisplayName ?? "Sub-Category";
+    public string ItemShopSubCategory2Summary => SelectedItemShopSubCategory2?.DisplayName ?? "Sub-Category 2";
+    public string ItemShopSubCategory3Summary => SelectedItemShopSubCategory3?.DisplayName ?? "Sub-Category 3";
+
+    public List<TradeFilterItem<int>> ItemTierFilterItems { get; } = new()
+    {
+        new() { Value = 1, DisplayName = "T1" }, new() { Value = 2, DisplayName = "T2" },
+        new() { Value = 3, DisplayName = "T3" }, new() { Value = 4, DisplayName = "T4" },
+        new() { Value = 5, DisplayName = "T5" }, new() { Value = 6, DisplayName = "T6" },
+        new() { Value = 7, DisplayName = "T7" }, new() { Value = 8, DisplayName = "T8" },
+    };
+
+    public List<TradeFilterItem<int>> ItemLevelFilterItems { get; } = new()
+    {
+        new() { Value = 0, DisplayName = ".0" }, new() { Value = 1, DisplayName = ".1" },
+        new() { Value = 2, DisplayName = ".2" }, new() { Value = 3, DisplayName = ".3" },
+        new() { Value = 4, DisplayName = ".4" },
+    };
+
+    public string ItemTierSummary => ItemTierFilterItems.Any(x => x.IsSelected)
+        ? string.Join(", ", ItemTierFilterItems.Where(x => x.IsSelected).Select(x => x.DisplayName))
+        : "Tier";
+
+    public string ItemLevelSummary => ItemLevelFilterItems.Any(x => x.IsSelected)
+        ? string.Join(", ", ItemLevelFilterItems.Where(x => x.IsSelected).Select(x => x.DisplayName))
+        : "Enchantment";
 
     public Dictionary<ItemTier, string> ItemTiers
     {
@@ -1028,6 +1069,7 @@ public class MainWindowViewModel : BaseViewModel
             ItemsViewFilter();
             ItemsView?.Refresh();
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ItemTierSummary));
         }
     }
 
@@ -1060,6 +1102,7 @@ public class MainWindowViewModel : BaseViewModel
             ItemsView?.Refresh();
             SetItemCounterAsync();
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ItemLevelSummary));
         }
     }
 

@@ -1,6 +1,7 @@
 ﻿using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.Localization;
 using StatisticsAnalysisTool.Network.Manager;
+using StatisticsAnalysisTool.Trade;
 using StatisticsAnalysisTool.ViewModels;
 using StatisticsAnalysisTool.Views;
 using System.Linq;
@@ -92,6 +93,27 @@ public partial class TradeMonitoringControl
     }
 
     private async void DatePicker_OnSelectedDateChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var vm = (MainWindowViewModel) DataContext;
+        await vm.TradeMonitoringBindings.UpdateFilteredTradesAsync();
+    }
+
+    private async void TradeCategory_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var vm = (MainWindowViewModel) DataContext;
+        await vm.TradeMonitoringBindings.UpdateFilteredTradesAsync();
+    }
+
+    private async void FilterCheckBox_Click(object sender, RoutedEventArgs e)
+    {
+        // Prevent the ComboBoxItem from receiving this click (which would close the dropdown)
+        e.Handled = true;
+
+        var vm = (MainWindowViewModel) DataContext;
+        await vm.TradeMonitoringBindings.UpdateFilteredTradesAsync();
+    }
+
+    private async void TradeFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         var vm = (MainWindowViewModel) DataContext;
         await vm.TradeMonitoringBindings.UpdateFilteredTradesAsync();

@@ -6,6 +6,7 @@
 
     <system:Double x:Key="BaseFontSize">12</system:Double>
     <converters:ValidationErrorConverter x:Key="ValidationErrorConverter" />
+    <converters:StringNotNullOrEmptyConverter x:Key="StringNotNullOrEmptyConverter"/>
 
     <Style x:Key="WindowChrome" TargetType="{x:Type Window}">
         <Setter Property="WindowChrome.WindowChrome">
@@ -35,6 +36,8 @@
         <Setter Property="MinWidth" Value="20" />
         <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}" />
     </Style>
+
+
 
     <Style x:Key="ButtonFocusVisual">
         <Setter Property="Control.Template">
@@ -519,7 +522,7 @@
     </Style>
 
     <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="{x:Type ToggleButton}">
-        <Grid>
+        <Grid ToolTip="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=ToolTip}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition Width="20" />
@@ -583,6 +586,7 @@
                             Name="ToggleButton" 
                             Template="{StaticResource ComboBoxToggleButton}" 
                             Focusable="false"
+                            ToolTip="{TemplateBinding ToolTip}"
                             IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}"
                             ClickMode="Press"/>
                             <ContentPresenter Name="ContentSite" IsHitTestVisible="False"  Content="{TemplateBinding SelectionBoxItem}"
@@ -590,7 +594,18 @@
                             ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                             Margin="3,3,23,3"
                             VerticalAlignment="Center"
-                            HorizontalAlignment="Left" />
+                                          HorizontalAlignment="Left"
+                                          Visibility="Visible"/>
+                        <TextBlock x:Name="TagDisplay"
+                                   Text="{TemplateBinding Tag}"
+                                   Foreground="{StaticResource SolidColorBrush.Text.5}"
+                                   IsHitTestVisible="False"
+                                   Margin="3,3,23,3"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Left"
+                                   Visibility="Collapsed"
+                                   TextTrimming="CharacterEllipsis"
+                                   FontSize="12"/>
                         <TextBox x:Name="PART_EditableTextBox"
                             Style="{x:Null}" 
                             Template="{StaticResource ComboBoxTextBox}" 
@@ -639,10 +654,31 @@
                             <Setter TargetName="DropDownBorder" Property="CornerRadius" Value="0"/>
                             <Setter TargetName="DropDownBorder" Property="Margin" Value="0,2,0,0"/>
                         </Trigger>
+                        <Trigger Property="Tag"
+                                 Value="{x:Null}">
+                            <Setter TargetName="ContentSite"
+                                    Property="Visibility"
+                                    Value="Visible"/>
+                            <Setter TargetName="TagDisplay"
+                                    Property="Visibility"
+                                    Value="Collapsed"/>
+                        </Trigger>
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                                     Value="True">
+                            <Setter TargetName="ContentSite"
+                                    Property="Visibility"
+                                    Value="Collapsed"/>
+                            <Setter TargetName="TagDisplay"
+                                    Property="Visibility"
+                                    Value="Visible"/>
+                        </DataTrigger>
                         <Trigger Property="IsEditable"  Value="true">
                             <Setter Property="IsTabStop" Value="false"/>
                             <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden"/>
+                            <Setter TargetName="TagDisplay"
+                                    Property="Visibility"
+                                    Value="Hidden"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
