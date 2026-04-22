@@ -1,17 +1,24 @@
+using Serilog;
 using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.Enumerations;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Network.Manager;
+using StatisticsAnalysisTool.Properties;
 using StatisticsAnalysisTool.ViewModels;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace StatisticsAnalysisTool.Cluster;
 
 public sealed class ClusterController
 {
-    private const int MaxEnteredCluster = 500;
+    private const int MaxEnteredCluster = 1000;
 
     private readonly TrackingController _trackingController;
     private readonly MainWindowViewModel _mainWindowViewModel;
@@ -50,9 +57,10 @@ public sealed class ClusterController
         CurrentCluster.SetClusterInfo(mapType, mapGuid, clusterIndex, instanceName, worldMapDataType, dungeonInformation, mainClusterIndex, mistsDungeonTier);
     }
 
-    public void SetJoinClusterInformation(string index, string mainClusterIndex, Guid? mapGuid)
+    public void SetJoinClusterInformation(string index, string mainClusterIndex, Guid? mapGuid, MapType mapType)
     {
-        CurrentCluster.SetJoinClusterInfo(index, mainClusterIndex, mapGuid);
+        CurrentCluster.SetJoinClusterInfo(index, mainClusterIndex, mapGuid, mapType);
+        CurrentCluster.Entered = DateTime.UtcNow;
         CurrentCluster.ClusterInfoFullyAvailable = true;
 
         if (_trackingController.IsTrackingAllowedByMainCharacter())
@@ -108,10 +116,39 @@ public sealed class ClusterController
 
     private void RemovesClusterIfMoreThanLimit()
     {
-        if (_mainWindowViewModel?.EnteredCluster?.Count > MaxEnteredCluster)
+        while (_mainWindowViewModel?.EnteredCluster?.Count > MaxEnteredCluster)
         {
             _mainWindowViewModel?.EnteredCluster?.RemoveAt(_mainWindowViewModel.EnteredCluster.Count - 1);
         }
+    }
+
+    public void UpdateCurrentMapHistoryRandomDungeonInformation(Tier randomDungeonTier, int randomDungeonLevel)
+    {
+        if (CurrentCluster.MapType != MapType.RandomDungeon)
+        {
+            return;
+        }
+
+        CurrentCluster.SetRandomDungeonTrackingInfo(randomDungeonTier, randomDungeonLevel);
+
+        if (Application.Current.Dispatcher.CheckAccess())
+        {
+            UpdateCurrentMapHistoryRandomDungeonInformationOnUiThread(randomDungeonTier, randomDungeonLevel);
+            return;
+        }
+
+        _ = Application.Current.Dispatcher.InvokeAsync(() => UpdateCurrentMapHistoryRandomDungeonInformationOnUiThread(randomDungeonTier, randomDungeonLevel));
+    }
+
+    private void UpdateCurrentMapHistoryRandomDungeonInformationOnUiThread(Tier randomDungeonTier, int randomDungeonLevel)
+    {
+        if (_mainWindowViewModel?.EnteredCluster is null)
+        {
+            return;
+        }
+
+        var currentHistoryEntry = _mainWindowViewModel.EnteredCluster.FirstOrDefault(x => x.Guid == CurrentCluster.Guid && x.MapType == MapType.RandomDungeon);
+        currentHistoryEntry?.SetRandomDungeonTrackingInfo(randomDungeonTier, randomDungeonLevel);
     }
 
     #endregion
@@ -132,6 +169,61 @@ public sealed class ClusterController
     private static void SaveUserData(ClusterInfo currentCluster)
     {
         RateLimitedAction.Run(CriticalData.Save);
+    }
+
+    #endregion
+
+    #region Save / Load data
+
+    public async Task LoadMapHistoryFromFileAsync()
+    {
+        var clusterInfoDtos = await FileController.LoadAsync<List<ClusterInfoDto>>(GetMapHistoryFilePath()) ?? [];
+        var trimmedClusterInfoDtos = clusterInfoDtos
+            .Take(MaxEnteredCluster)
+            .ToList();
+        var enteredClusters = trimmedClusterInfoDtos
+            .Select(ClusterInfoMapping.Mapping)
+            .ToList();
+
+        await Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            _mainWindowViewModel.EnteredCluster = new ObservableCollection<ClusterInfo>(enteredClusters);
+        });
+
+        if (clusterInfoDtos.Count > MaxEnteredCluster)
+        {
+            await FileController.SaveAsync(trimmedClusterInfoDtos, GetMapHistoryFilePath());
+            Log.Information("Map history trimmed to {MaxEnteredCluster} entries while loading", MaxEnteredCluster);
+        }
+    }
+
+    public async Task SaveInFileAsync()
+    {
+        DirectoryController.CreateDirectoryWhenNotExists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Settings.Default.UserDataDirectoryName));
+
+        var clusterHistoryToSave = _mainWindowViewModel.EnteredCluster
+            .Take(MaxEnteredCluster)
+            .Select(ClusterInfoMapping.Mapping)
+            .ToList();
+
+        await FileController.SaveAsync(clusterHistoryToSave, GetMapHistoryFilePath());
+        Log.Information("Map history saved");
+    }
+
+    public async Task ClearMapHistoryAsync()
+    {
+        await Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            _mainWindowViewModel.EnteredCluster.Clear();
+        });
+
+        await SaveInFileAsync();
+        Log.Information("Map history cleared");
+    }
+
+    private static string GetMapHistoryFilePath()
+    {
+        return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Settings.Default.UserDataDirectoryName, Settings.Default.MapHistoryFileName);
     }
 
     #endregion

@@ -47,6 +47,7 @@ public class MainWindowViewModel : BaseViewModel
     private double _allianceInfoWidth;
     private double _currentMapInfoWidth;
     private string _errorBarText;
+    private Exception _errorBarException;
     private Visibility _errorBarVisibility = Visibility.Collapsed;
     private string _warningBarText;
     private Visibility _warningBarVisibility = Visibility.Collapsed;
@@ -54,6 +55,7 @@ public class MainWindowViewModel : BaseViewModel
     private Visibility _informationBarVisibility = Visibility.Collapsed;
     private double _guildInfoWidth;
     private Visibility _isDamageMeterPopupVisible = Visibility.Hidden;
+    private Visibility _isItemSearchPopupVisible = Visibility.Hidden;
     private bool _isShowOnlyItemsWithAlertOnActive;
     private bool _isTrackingActive;
     private bool _isTrackingResetByMapChangeActive;
@@ -297,9 +299,10 @@ public class MainWindowViewModel : BaseViewModel
 
     #region Error bar
 
-    public void SetErrorBar(Visibility visibility, string errorMessage)
+    public void SetErrorBar(Visibility visibility, string errorMessage, Exception exception = null)
     {
         ErrorBarText = errorMessage;
+        ErrorBarException = exception;
         ErrorBarVisibility = visibility;
     }
 
@@ -850,6 +853,16 @@ public class MainWindowViewModel : BaseViewModel
 
             ItemsViewFilter();
             ItemsView?.Refresh();
+            OnPropertyChanged();
+        }
+    }
+
+    public Visibility IsItemSearchPopupVisible
+    {
+        get => _isItemSearchPopupVisible;
+        set
+        {
+            _isItemSearchPopupVisible = value;
             OnPropertyChanged();
         }
     }
@@ -1522,6 +1535,16 @@ public class MainWindowViewModel : BaseViewModel
         set
         {
             _errorBarText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public Exception ErrorBarException
+    {
+        get => _errorBarException;
+        set
+        {
+            _errorBarException = value;
             OnPropertyChanged();
         }
     }

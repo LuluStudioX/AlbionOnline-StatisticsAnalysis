@@ -6,7 +6,6 @@
         xmlns:fa5="http://schemas.fontawesome.com/icons/"
         xmlns:userControls="clr-namespace:StatisticsAnalysisTool.UserControls"
         xmlns:viewModels="clr-namespace:StatisticsAnalysisTool.ViewModels"
-        xmlns:vwp="clr-namespace:WpfToolkit.Controls;assembly=VirtualizingWrapPanel"
         xmlns:glob="clr-namespace:System.Globalization;assembly=System.Runtime"
         mc:Ignorable="d"
         d:DesignHeight="650" d:DesignWidth="1000"
@@ -239,13 +238,7 @@
             </TabItem>
             <TabItem Visibility="{Binding MapHistoryTabVisibility, Mode=OneWay}" Header="{Binding Translation.MapHistory, FallbackValue=MAP__HISTORY}">
                 <Grid Style="{StaticResource TabItemGridStyle}">
-                    <vwp:VirtualizingItemsControl ItemsSource="{Binding EnteredCluster, IsAsync=True, Mode=OneWay}" ItemTemplate="{StaticResource ClusterInfoTemplate}"              
-                                                  VirtualizingPanel.CacheLengthUnit="Item"
-                                                  VirtualizingPanel.CacheLength="10,10"
-                                                  VirtualizingPanel.ScrollUnit="Pixel"
-                                                  VirtualizingPanel.VirtualizationMode="Recycling"
-                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                                  ScrollViewer.VerticalScrollBarVisibility="Visible" />
+                    <userControls:MapHistoryControl DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext}" />
                 </Grid>
             </TabItem>
             <TabItem Visibility="{Binding PlayerInformationTabVisibility, Mode=OneWay}" Header="{Binding Translation.PlayerInformation, FallbackValue=PLAYER__INFORMATION}">
@@ -272,7 +265,7 @@
 
         <userControls:FooterControl VerticalAlignment="Bottom" Height="40" />
         <StackPanel Orientation="Vertical" VerticalAlignment="Bottom">
-            <userControls:ErrorBarControl VerticalAlignment="Bottom" Visibility="{Binding ErrorBarVisibility, FallbackValue=Collapsed}" ErrorText="{Binding ErrorBarText}" />
+            <userControls:ErrorBarControl VerticalAlignment="Bottom" Visibility="{Binding ErrorBarVisibility, FallbackValue=Collapsed}" ErrorText="{Binding ErrorBarText}" ErrorException="{Binding ErrorBarException}" />
             <userControls:WarningBarControl VerticalAlignment="Bottom" Visibility="{Binding WarningBarVisibility, FallbackValue=Collapsed}" WarningText="{Binding WarningBarText}" />
             <userControls:InformationBarControl VerticalAlignment="Bottom" Visibility="{Binding InformationBarVisibility, FallbackValue=Collapsed}" InformationText="{Binding InformationBarText}" />
         </StackPanel>
