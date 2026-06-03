@@ -32,7 +32,7 @@ public partial class IslandBindings : BaseViewModel
         LaborerHistorySeries = new ObservableCollection<ISeries>();
         LaborerHistoryXAxes = MockXAxes();
 
-        Preferences = new IslandManagementPreferences();
+        Preferences = SettingsController.CurrentSettings.IslandManagementPreferences ?? new IslandManagementPreferences();
         _showIslandCityColors = SettingsController.CurrentSettings.ShowIslandCityColors;
         _showIslandBiome = SettingsController.CurrentSettings.ShowIslandBiome;
         _showIslandEditButtons = SettingsController.CurrentSettings.ShowIslandEditButtons;

@@ -78,6 +78,8 @@ public partial class IslandMapView : UserControl
                 var city = domainIsland?.City ?? island.CityName ?? string.Empty;
                 var islandType = domainIsland?.IslandType ?? IslandType.Player;
                 var (layout, imagePath) = IslandLayouts.ResolveForIsland(islandType, city);
+                if (string.IsNullOrEmpty(imagePath) && !string.IsNullOrEmpty(island.MapImagePath))
+                    imagePath = island.MapImagePath;
                 _currentLayout = layout;
                 ApplyLayout(layout, imagePath);
             }

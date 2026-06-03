@@ -1546,7 +1546,8 @@
                                 <TextBlock Text="{Binding Translation.IslandManagementMap, FallbackValue=Map}"/>
                             </StackPanel>
                         </TabItem.Header>
-                        <userControls:IslandMapView x:Name="IslandMapViewControl"/>
+                        <userControls:IslandMapView x:Name="IslandMapViewControl"
+                                                   DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                     </TabItem>
 
                     <!-- ==================== Tab 7: Ledger ==================== -->
