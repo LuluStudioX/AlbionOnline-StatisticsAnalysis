@@ -75,9 +75,9 @@ public partial class IslandMapView : UserControl
             if (island != null)
             {
                 var domainIsland = ServiceLocator.Resolve<TrackingController>()?.IslandController?.GetById(island.IslandId);
-                var (layout, imagePath) = IslandLayouts.ResolveForIsland(
-                    domainIsland?.IslandType ?? IslandType.Player,
-                    domainIsland?.City ?? string.Empty);
+                var city = domainIsland?.City ?? island.CityName ?? string.Empty;
+                var islandType = domainIsland?.IslandType ?? IslandType.Player;
+                var (layout, imagePath) = IslandLayouts.ResolveForIsland(islandType, city);
                 _currentLayout = layout;
                 ApplyLayout(layout, imagePath);
             }
