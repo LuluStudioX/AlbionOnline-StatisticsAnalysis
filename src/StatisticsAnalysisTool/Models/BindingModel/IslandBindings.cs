@@ -1722,3 +1722,10 @@ public class OwnerIslandSummaryRow
     public IReadOnlyList<LaborerTypeCount> LaborersByTierType { get; set; } = [];
     public IReadOnlyList<PlotTypeSummaryRow> PlotBreakdown { get; set; } = [];
 }
+
+public sealed class ChartPeriodOption(string label, int? days)
+{
+    public string Label { get; } = label;
+    public int? Days { get; } = days;
+    public override string ToString() => Label;
+}

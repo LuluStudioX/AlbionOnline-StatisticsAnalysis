@@ -860,10 +860,47 @@ public partial class IslandBindings
         }
     }
 
-    // Chart window steps: null = all, positive = last N days
-    // "period" is dynamic — resolved at runtime via SelectedOwnerCurrentPeriodStartDate
-    public static readonly IReadOnlyList<int?> ChartWindowSteps = [1, 3, 7, null /* period */, 14, 30, -1 /* all */];
-    private const int PeriodStepIndex = 3;
+    public static IReadOnlyList<ChartPeriodOption> AvailableChartPeriods { get; } =
+    [
+        new ChartPeriodOption("1d",     1),
+        new ChartPeriodOption("3d",     3),
+        new ChartPeriodOption("7d",     7),
+        new ChartPeriodOption("Period", null),
+        new ChartPeriodOption("14d",    14),
+        new ChartPeriodOption("30d",    30),
+        new ChartPeriodOption("All",    -1),
+        new ChartPeriodOption("Custom", -2),
+    ];
+
+    private ChartPeriodOption _selectedChartPeriod = AvailableChartPeriods[2]; // default 7d
+    public ChartPeriodOption SelectedChartPeriod
+    {
+        get => _selectedChartPeriod;
+        set
+        {
+            if (_selectedChartPeriod == value) return;
+            _selectedChartPeriod = value ?? AvailableChartPeriods[2];
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsCustomChartPeriod));
+            if (_selectedChartPeriod.Days != -2)
+                ChartWindowDays = _selectedChartPeriod.Days;
+        }
+    }
+
+    public bool IsCustomChartPeriod => _selectedChartPeriod?.Days == -2;
+
+    private string _customChartDaysText = string.Empty;
+    public string CustomChartDaysText
+    {
+        get => _customChartDaysText;
+        set
+        {
+            _customChartDaysText = value ?? string.Empty;
+            OnPropertyChanged();
+            if (int.TryParse(_customChartDaysText, out var d) && d > 0)
+                ChartWindowDays = d;
+        }
+    }
 
     public int? ChartWindowDays
     {
@@ -873,24 +910,8 @@ public partial class IslandBindings
             if (_chartWindowDays == value) return;
             _chartWindowDays = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(ChartWindowLabel));
             OnPropertyChanged(nameof(SelectedOwnerFinanceSeries));
             OnPropertyChanged(nameof(SelectedOwnerFinanceXAxes));
-        }
-    }
-
-    public string ChartWindowLabel
-    {
-        get
-        {
-            if (_chartWindowDays == -1) return "All";
-            if (_chartWindowDays == null)
-            {
-                var start = SelectedOwnerCurrentPeriodStartDate;
-                var days = (int)(DateTime.Today - start).TotalDays + 1;
-                return $"Period ({days}d)";
-            }
-            return $"{_chartWindowDays}d";
         }
     }
 
@@ -902,22 +923,6 @@ public partial class IslandBindings
             return Math.Max(1, (int)(DateTime.Today - start).TotalDays + 1);
         }
         return _chartWindowDays.Value;
-    }
-
-    public void ChartWindowStep(int direction)
-    {
-        // Map current value to step index
-        int currentIdx;
-        if (_chartWindowDays == -1) currentIdx = ChartWindowSteps.Count - 1;
-        else if (_chartWindowDays == null) currentIdx = PeriodStepIndex;
-        else
-        {
-            currentIdx = ChartWindowSteps.ToList().IndexOf(_chartWindowDays);
-            if (currentIdx < 0) currentIdx = direction > 0 ? 0 : ChartWindowSteps.Count - 1;
-        }
-
-        var nextIdx = Math.Clamp(currentIdx + direction, 0, ChartWindowSteps.Count - 1);
-        ChartWindowDays = ChartWindowSteps[nextIdx];
     }
 
     private (Dictionary<DateTime, double> earned, Dictionary<DateTime, double> payout, List<DateTime> dates) GetFinanceDateData()
@@ -1446,7 +1451,6 @@ public partial class IslandBindings
         OnPropertyChanged(nameof(SelectedOwnerLedger));
         OnPropertyChanged(nameof(SelectedOwnerHasLedgerEntries));
         ResetFinanceHistoryPage();
-        OnPropertyChanged(nameof(ChartWindowLabel));
         OnPropertyChanged(nameof(SelectedOwnerFinanceSeries));
         OnPropertyChanged(nameof(SelectedOwnerFinanceXAxes));
         OnPropertyChanged(nameof(SelectedOwnerFinanceYAxes));

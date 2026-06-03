@@ -534,72 +534,77 @@
                             <ItemsControl ItemsSource="{Binding IslandBindings.IslandSummaryRows}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type bindingModel:OwnerIslandSummaryRow}">
-                                        <StackPanel Margin="0,0,0,6">
-                                            <!-- Owner header -->
-                                            <Grid Margin="0,0,0,4">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="{Binding OwnerName}"
-                                                           FontSize="11" FontWeight="SemiBold"
-                                                           Foreground="{StaticResource SolidColorBrush.Text.1}"/>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,12,0">
-                                                    <TextBlock Text="{Binding IslandCount}" FontSize="11" FontWeight="Bold"
-                                                               Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"/>
-                                                    <TextBlock Text=" islands" FontSize="11"
-                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding TotalLaborers}" FontSize="11" FontWeight="Bold"
-                                                               Foreground="{StaticResource SolidColorBrush.Accent.Green.3}"/>
-                                                    <TextBlock Text=" laborers" FontSize="11"
-                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <!-- Plot type breakdown -->
-                                            <ItemsControl ItemsSource="{Binding PlotBreakdown}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate DataType="{x:Type bindingModel:PlotTypeSummaryRow}">
-                                                        <StackPanel Margin="8,0,0,4">
-                                                            <!-- Plot type header -->
-                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                                                <TextBlock Text="{Binding DisplayName}" FontSize="10" FontWeight="SemiBold"
-                                                                           Foreground="{StaticResource SolidColorBrush.Text.3}"/>
-                                                                <TextBlock Text=" ×" FontSize="10"
-                                                                           Foreground="{StaticResource SolidColorBrush.Text.4}"/>
-                                                                <TextBlock Text="{Binding TotalCount}" FontSize="10" FontWeight="Bold"
-                                                                           Foreground="{StaticResource SolidColorBrush.Text.2}"/>
-                                                            </StackPanel>
-                                                            <!-- Detail chips -->
-                                                            <ItemsControl ItemsSource="{Binding Details}" Margin="8,0,0,0">
-                                                                <ItemsControl.ItemsPanel>
-                                                                    <ItemsPanelTemplate>
-                                                                        <WrapPanel/>
-                                                                    </ItemsPanelTemplate>
-                                                                </ItemsControl.ItemsPanel>
-                                                                <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate DataType="{x:Type bindingModel:LaborerTypeCount}">
-                                                                        <Border Background="{StaticResource SolidColorBrush.Background.4}"
-                                                                                CornerRadius="3" Padding="5,2" Margin="0,1,4,1">
-                                                                            <StackPanel Orientation="Horizontal">
-                                                                                <TextBlock Text="{Binding Display}" FontSize="10"
-                                                                                           Foreground="{StaticResource SolidColorBrush.Text.2}"/>
-                                                                                <TextBlock Text=" ×" FontSize="10"
-                                                                                           Foreground="{StaticResource SolidColorBrush.Text.4}"/>
-                                                                                <TextBlock Text="{Binding Count}" FontSize="10" FontWeight="SemiBold"
-                                                                                           Foreground="{StaticResource SolidColorBrush.Text.1}"/>
-                                                                            </StackPanel>
-                                                                        </Border>
-                                                                    </DataTemplate>
-                                                                </ItemsControl.ItemTemplate>
-                                                            </ItemsControl>
+                                        <Border Background="{StaticResource SolidColorBrush.Background.2}"
+                                                BorderBrush="{StaticResource SolidColorBrush.Background.4}"
+                                                BorderThickness="1" CornerRadius="3" Padding="8,6" Margin="0,0,0,6">
+                                            <StackPanel>
+                                                <!-- Owner name + stat tiles -->
+                                                <TextBlock Text="{Binding OwnerName}"
+                                                           FontSize="12" FontWeight="Bold"
+                                                           Foreground="{StaticResource SolidColorBrush.Text.1}"
+                                                           Margin="0,0,0,6"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <Border Background="{StaticResource SolidColorBrush.Background.3}"
+                                                            CornerRadius="3" Padding="10,5" Margin="0,0,6,0">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding IslandCount}" FontSize="16" FontWeight="Bold"
+                                                                       Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"
+                                                                       HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Islands" FontSize="9"
+                                                                       Foreground="{StaticResource SolidColorBrush.Text.4}"
+                                                                       HorizontalAlignment="Center"/>
                                                         </StackPanel>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
+                                                    </Border>
+                                                    <Border Background="{StaticResource SolidColorBrush.Background.3}"
+                                                            CornerRadius="3" Padding="10,5">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding TotalLaborers}" FontSize="16" FontWeight="Bold"
+                                                                       Foreground="{StaticResource SolidColorBrush.Accent.Green.3}"
+                                                                       HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Laborers" FontSize="9"
+                                                                       Foreground="{StaticResource SolidColorBrush.Text.4}"
+                                                                       HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                                <!-- Plot type breakdown -->
+                                                <ItemsControl ItemsSource="{Binding PlotBreakdown}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type bindingModel:PlotTypeSummaryRow}">
+                                                            <StackPanel Margin="0,0,0,4">
+                                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                                                    <TextBlock Text="{Binding DisplayName}" FontSize="10" FontWeight="SemiBold"
+                                                                               Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                                    <TextBlock Text=" ×" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                                    <TextBlock Text="{Binding TotalCount}" FontSize="10" FontWeight="Bold"
+                                                                               Foreground="{StaticResource SolidColorBrush.Text.2}"/>
+                                                                </StackPanel>
+                                                                <ItemsControl ItemsSource="{Binding Details}" Margin="8,0,0,0">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate DataType="{x:Type bindingModel:LaborerTypeCount}">
+                                                                            <Border Background="{StaticResource SolidColorBrush.Background.4}"
+                                                                                    CornerRadius="3" Padding="5,2" Margin="0,1,4,1">
+                                                                                <StackPanel Orientation="Horizontal">
+                                                                                    <TextBlock Text="{Binding Display}" FontSize="10"
+                                                                                               Foreground="{StaticResource SolidColorBrush.Text.2}"/>
+                                                                                    <TextBlock Text=" ×" FontSize="10"
+                                                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                                                    <TextBlock Text="{Binding Count}" FontSize="10" FontWeight="SemiBold"
+                                                                                               Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                                                </StackPanel>
+                                                                            </Border>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -620,9 +625,9 @@
                     </Border>
 
                     <!-- Chart timeframe controls -->
-                    <DockPanel Margin="0,0,0,4">
-                        <DockPanel.Style>
-                            <Style TargetType="DockPanel">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
                                 <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowFinanceHistorySection}" Value="False">
@@ -633,126 +638,34 @@
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </DockPanel.Style>
-                        <Button DockPanel.Dock="Right" Content="+" Width="22" Height="18" FontSize="11" Padding="0"
-                                Click="BtnChartWindowNext_Click"
-                                Background="{StaticResource SolidColorBrush.Background.4}"
-                                Foreground="{StaticResource SolidColorBrush.Text.2}"
-                                ToolTip="Wider timeframe"/>
-                        <Button DockPanel.Dock="Right" Content="−" Width="22" Height="18" FontSize="11" Padding="0" Margin="0,0,2,0"
-                                Click="BtnChartWindowPrev_Click"
-                                Background="{StaticResource SolidColorBrush.Background.4}"
-                                Foreground="{StaticResource SolidColorBrush.Text.2}"
-                                ToolTip="Narrower timeframe"/>
-                        <WrapPanel VerticalAlignment="Center">
-                            <Button Content="1d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
-                                    Tag="1" Click="BtnChartPreset_Click">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="1d">
-                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
-                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="3d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
-                                    Tag="3" Click="BtnChartPreset_Click">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="3d">
-                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
-                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="7d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
-                                    Tag="7" Click="BtnChartPreset_Click">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="7d">
-                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
-                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="{Binding IslandBindings.ChartWindowLabel, FallbackValue='Period'}"
-                                    Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
-                                    Tag="period" Click="BtnChartPreset_Click">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowDays}" Value="{x:Null}">
-                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
-                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="14d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
-                                    Tag="14" Click="BtnChartPreset_Click">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="14d">
-                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
-                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="30d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
-                                    Tag="30" Click="BtnChartPreset_Click">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="30d">
-                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
-                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="All" Height="18" Padding="6,0" FontSize="9"
-                                    Tag="all" Click="BtnChartPreset_Click">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="All">
-                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
-                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                        </WrapPanel>
-                    </DockPanel>
+                        </StackPanel.Style>
+                        <TextBlock Text="Period" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{x:Static bindingModel:IslandBindings.AvailableChartPeriods}"
+                                  SelectedItem="{Binding IslandBindings.SelectedChartPeriod, Mode=TwoWay}"
+                                  DisplayMemberPath="Label"
+                                  Height="22" Width="80" FontSize="11"
+                                  Background="{StaticResource SolidColorBrush.Background.1}"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        <StackPanel Orientation="Horizontal" Margin="6,0,0,0" VerticalAlignment="Center">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IslandBindings.IsCustomChartPeriod}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="days" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}"
+                                       VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBox Text="{Binding IslandBindings.CustomChartDaysText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="40" Height="22" FontSize="11" VerticalContentAlignment="Center" Padding="4,0"
+                                     Background="{StaticResource SolidColorBrush.Background.1}"
+                                     Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        </StackPanel>
+                    </StackPanel>
 
                     <!-- Finance chart -->
                     <wpf:CartesianChart x:Name="FinanceChart"
@@ -1063,7 +976,7 @@
                                                 <Setter Property="Icon" Value="Solid_ChevronUp"/>
                                                 <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.4}"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowYieldSummarySection, FallbackValue=True}" Value="False">
+                                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.IsYieldSummarySectionCollapsed, FallbackValue=False}" Value="True">
                                                         <Setter Property="Icon" Value="Solid_ChevronDown"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -1080,7 +993,7 @@
                                     <Style TargetType="StackPanel">
                                         <Setter Property="Visibility" Value="Visible"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowYieldSummarySection, FallbackValue=True}" Value="False">
+                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.IsYieldSummarySectionCollapsed, FallbackValue=False}" Value="True">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </Style.Triggers>

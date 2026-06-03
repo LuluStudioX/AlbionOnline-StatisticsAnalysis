@@ -118,30 +118,6 @@ public partial class OwnerOverviewWindow : Window
         }
     }
 
-    private void BtnChartPreset_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel vm) return;
-        if (sender is not Button { Tag: string tag }) return;
-        vm.IslandBindings.ChartWindowDays = tag switch
-        {
-            "period" => null,
-            "all" => -1,
-            _ when int.TryParse(tag, out var d) => d,
-            _ => -1
-        };
-    }
-
-    private void BtnChartWindowPrev_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel vm) return;
-        vm.IslandBindings.ChartWindowStep(-1);
-    }
-
-    private void BtnChartWindowNext_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel vm) return;
-        vm.IslandBindings.ChartWindowStep(1);
-    }
 
     private void BtnLedgerPrevPage_Click(object sender, RoutedEventArgs e)
     {
@@ -231,7 +207,7 @@ public partial class OwnerOverviewWindow : Window
     private void ToggleYieldSummary_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm) return;
-        vm.IslandBindings.Preferences.ShowYieldSummarySection = !vm.IslandBindings.Preferences.ShowYieldSummarySection;
+        vm.IslandBindings.Preferences.IsYieldSummarySectionCollapsed = !vm.IslandBindings.Preferences.IsYieldSummarySectionCollapsed;
     }
 
     private void BtnYieldViewByItem_Click(object sender, RoutedEventArgs e)
