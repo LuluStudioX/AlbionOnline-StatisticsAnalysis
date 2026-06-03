@@ -8,7 +8,7 @@ public class HarvestFinishedEventHandler : EventPacketHandler<HarvestFinishedEve
 {
     private readonly TrackingController _trackingController;
 
-    public HarvestFinishedEventHandler(TrackingController trackingController) : base((int) EventCodes.HarvestFinished)
+    public HarvestFinishedEventHandler(TrackingController trackingController) : base(54) // game event code 54 per packet sniffer (252:54)
     {
         _trackingController = trackingController;
     }

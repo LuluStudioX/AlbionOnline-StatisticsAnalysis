@@ -9,9 +9,9 @@ namespace StatisticsAnalysisTool.Network.Events;
 
 public class ActionOnBuildingFinishedEvent
 {
-    public long? UserObjectId;
-    public readonly long BuildingObjectId;
-    public readonly ActionOnBuildingType ActionType;
+    public long? UserObjectId { get; private set; }
+    public long BuildingObjectId { get; private set; } = -1;
+    public ActionOnBuildingType ActionType { get; private set; }
 
     public ActionOnBuildingFinishedEvent(Dictionary<byte, object> parameters)
     {

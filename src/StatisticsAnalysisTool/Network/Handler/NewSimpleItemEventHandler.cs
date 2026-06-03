@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace StatisticsAnalysisTool.Network.Handler;
 
-public class NewSimpleItemEventHandler(TrackingController trackingController) : EventPacketHandler<NewSimpleItemEvent>((int) EventCodes.NewSimpleItem)
+public class NewSimpleItemEventHandler(TrackingController trackingController) : EventPacketHandler<NewSimpleItemEvent>(27) // game event code 27 per packet sniffer (252:27)
 {
     protected override async Task OnActionAsync(NewSimpleItemEvent value)
     {
@@ -20,6 +20,7 @@ public class NewSimpleItemEventHandler(TrackingController trackingController) : 
         trackingController.LootController.AddDiscoveredItem(value.Item);
         trackingController.DungeonController.AddDiscoveredItem(value.Item);
         trackingController.GatheringController.AddFishedItem(value.Item);
+        trackingController.IslandController.HandleLaborerYieldItem(value.Item);
         await Task.CompletedTask;
     }
 }

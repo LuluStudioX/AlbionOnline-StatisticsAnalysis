@@ -9,14 +9,14 @@ public class NewLaborerItemEventHandler : EventPacketHandler<NewLaborerItemEvent
 {
     private readonly TrackingController _trackingController;
 
-    public NewLaborerItemEventHandler(TrackingController trackingController) : base((int) EventCodes.NewLaborerItem)
+    public NewLaborerItemEventHandler(TrackingController trackingController) : base(32) // game event code 32 per packet sniffer (252:32)
     {
         _trackingController = trackingController;
     }
 
-    protected override async Task OnActionAsync(NewLaborerItemEvent value)
+    protected override Task OnActionAsync(NewLaborerItemEvent value)
     {
-
+        if (value.Item == null) return Task.CompletedTask;
 
         if (_trackingController.IsTrackingAllowedByMainCharacter())
         {
@@ -26,6 +26,7 @@ public class NewLaborerItemEventHandler : EventPacketHandler<NewLaborerItemEvent
         EstimatedMarketValueController.Add(value.Item.ItemIndex, value.Item.EstimatedMarketValueInternal, value.Item.Quality);
         _trackingController.LootController.AddDiscoveredItem(value.Item);
         _trackingController.DungeonController.AddDiscoveredItem(value.Item);
-        await Task.CompletedTask;
+        _trackingController.IslandController.HandleLaborerYieldItem(value.Item);
+        return Task.CompletedTask;
     }
 }

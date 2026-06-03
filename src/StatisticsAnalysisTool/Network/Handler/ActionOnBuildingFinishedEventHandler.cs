@@ -9,7 +9,7 @@ public class ActionOnBuildingFinishedEventHandler : EventPacketHandler<ActionOnB
 {
     private readonly TrackingController _trackingController;
 
-    public ActionOnBuildingFinishedEventHandler(TrackingController trackingController) : base((int) EventCodes.ActionOnBuildingFinished)
+    public ActionOnBuildingFinishedEventHandler(TrackingController trackingController) : base(60) // game event code 60 per packet sniffer (252:60)
     {
         _trackingController = trackingController;
     }
