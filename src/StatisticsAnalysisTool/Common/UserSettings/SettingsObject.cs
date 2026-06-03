@@ -93,6 +93,15 @@ public class SettingsObject
     public bool IsStorageHistoryNaviTabActive { get; set; } = true;
     public bool IsMapHistoryNaviTabActive { get; set; } = true;
     public bool IsPlayerInformationNaviTabActive { get; set; } = true;
+    public bool IsIslandManagementNaviTabActive { get; set; } = true;
+    public double IslandManagementGridSplitterPosition { get; set; } = 240;
+    public bool ShowIslandCityColors { get; set; } = true;
+    public bool ShowIslandBiome { get; set; } = true;
+    public bool ShowIslandEditButtons { get; set; } = true;
+    public int IslandGroupMode { get; set; } = 0;
+    public int IslandSortMode { get; set; } = 0;
+    public double IslandManagementPlotDetailPanelHeight { get; set; } = 220;
+    public IslandManagementPreferences IslandManagementPreferences { get; set; } = new();
     public bool IsGuildTabActive { get; set; } = true;
     public bool IsNotificationFilterTradeActive { get; set; } = false;
     public bool IsNotificationTrackingStatusActive { get; set; } = false;

@@ -99,6 +99,29 @@ public class SettingsWindowViewModel : BaseViewModel
 
         // Another app to start
         SetIconSourceToAnotherAppToStart();
+
+        InitIslandGroupModes();
+        InitIslandSortModes();
+    }
+
+    private void InitIslandGroupModes()
+    {
+        IslandGroupModes.Clear();
+        IslandGroupModes.Add(new SettingDataInformation { Name = LocalizationController.Translation("ISLAND_GROUP_MODE_NONE"), Value = (int) Enumerations.IslandGroupMode.None });
+        IslandGroupModes.Add(new SettingDataInformation { Name = LocalizationController.Translation("ISLAND_GROUP_MODE_BY_OWNER"), Value = (int) Enumerations.IslandGroupMode.ByOwner });
+        IslandGroupModes.Add(new SettingDataInformation { Name = LocalizationController.Translation("ISLAND_GROUP_MODE_BY_CITY"), Value = (int) Enumerations.IslandGroupMode.ByCity });
+        IslandGroupModeSelection = IslandGroupModes.FirstOrDefault(x => x.Value == SettingsController.CurrentSettings.IslandGroupMode);
+    }
+
+    private void InitIslandSortModes()
+    {
+        IslandSortModes.Clear();
+        IslandSortModes.Add(new SettingDataInformation { Name = LocalizationController.Translation("ISLAND_SORT_MODE_CUSTOM"), Value = (int) Enumerations.IslandSortMode.Custom });
+        IslandSortModes.Add(new SettingDataInformation { Name = LocalizationController.Translation("ISLAND_SORT_MODE_ALPHABETICAL"), Value = (int) Enumerations.IslandSortMode.Alphabetical });
+        IslandSortModes.Add(new SettingDataInformation { Name = LocalizationController.Translation("ISLAND_SORT_MODE_BY_CITY"), Value = (int) Enumerations.IslandSortMode.ByCity });
+        IslandSortModes.Add(new SettingDataInformation { Name = LocalizationController.Translation("ISLAND_SORT_MODE_BY_TIER"), Value = (int) Enumerations.IslandSortMode.ByTier });
+        IslandSortModes.Add(new SettingDataInformation { Name = LocalizationController.Translation("ISLAND_SORT_MODE_BY_OWNER"), Value = (int) Enumerations.IslandSortMode.ByOwner });
+        IslandSortModeSelection = IslandSortModes.FirstOrDefault(x => x.Value == SettingsController.CurrentSettings.IslandSortMode);
     }
 
     public async Task SaveSettingsAsync()
@@ -137,6 +160,10 @@ public class SettingsWindowViewModel : BaseViewModel
 
         SettingsController.CurrentSettings.IsSuggestPreReleaseUpdatesActive = IsSuggestPreReleaseUpdatesActive;
         SettingsController.CurrentSettings.ExactMatchPlayerNamesLineNumber = PlayerSelectionWithSameNameInDb;
+        SettingsController.CurrentSettings.IslandGroupMode = IslandGroupModeSelection.Value;
+        SettingsController.CurrentSettings.IslandSortMode = IslandSortModeSelection.Value;
+        mainWindowViewModel.IslandBindings.GroupMode = (Enumerations.IslandGroupMode) IslandGroupModeSelection.Value;
+        mainWindowViewModel.IslandBindings.SortMode = (Enumerations.IslandSortMode) IslandSortModeSelection.Value;
 
         SetBackupStorageDirPath();
         SetNaviTabVisibilities(mainWindowViewModel);
@@ -192,6 +219,7 @@ public class SettingsWindowViewModel : BaseViewModel
         SetNaviTabVisibilityName(NavigationTabFilterType.StorageHistory, MainWindowTranslation.StorageHistory);
         SetNaviTabVisibilityName(NavigationTabFilterType.MapHistory, MainWindowTranslation.MapHistory);
         SetNaviTabVisibilityName(NavigationTabFilterType.PlayerInformation, MainWindowTranslation.PlayerInformation);
+        SetNaviTabVisibilityName(NavigationTabFilterType.IslandManagement, MainWindowTranslation.IslandManagement);
     }
 
     private void SetNaviTabVisibilityName(NavigationTabFilterType navigationTabFilterType, string name)
@@ -1107,6 +1135,29 @@ public class SettingsWindowViewModel : BaseViewModel
             OnPropertyChanged();
         }
     } = true;
+
+    public SettingDataInformation IslandGroupModeSelection
+    {
+        get;
+        set
+        {
+            field = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public SettingDataInformation IslandSortModeSelection
+    {
+        get;
+        set
+        {
+            field = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ObservableCollection<SettingDataInformation> IslandGroupModes { get; } = [];
+    public ObservableCollection<SettingDataInformation> IslandSortModes { get; } = [];
 
     public BitmapImage AnotherAppToStartExeIcon
     {
