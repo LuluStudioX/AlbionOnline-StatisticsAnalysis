@@ -8,5 +8,6 @@ public enum CityFaction
     FortSterling = 3,
     Bridgewatch = 4,
     Thetford = 5,
-    Caerleon = 6
+    Caerleon = 6,
+    Brecilien = 7
 }

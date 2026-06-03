@@ -141,6 +141,8 @@ public class MainWindowViewModel : BaseViewModel
     private string _toolTaskCurrentTaskName;
     private GuildBindings _guildBindings = new();
     private PartyBindings _partyBindings = new();
+    private IslandBindings _islandBindings = new();
+    private Visibility _islandManagementTabVisibility = Visibility.Visible;
     private bool _isDataLoaded;
     private bool _isCloseButtonActive;
     private Visibility _loadIconVisibility = Visibility.Collapsed;
@@ -773,6 +775,16 @@ public class MainWindowViewModel : BaseViewModel
         set
         {
             _guildBindings = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public IslandBindings IslandBindings
+    {
+        get => _islandBindings;
+        set
+        {
+            _islandBindings = value;
             OnPropertyChanged();
         }
     }
@@ -1609,6 +1621,16 @@ public class MainWindowViewModel : BaseViewModel
         set
         {
             _playerInformationTabVisibility = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public Visibility IslandManagementTabVisibility
+    {
+        get => _islandManagementTabVisibility;
+        set
+        {
+            _islandManagementTabVisibility = value;
             OnPropertyChanged();
         }
     }

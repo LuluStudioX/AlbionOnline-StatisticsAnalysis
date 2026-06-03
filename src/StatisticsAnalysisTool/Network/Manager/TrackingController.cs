@@ -1,6 +1,7 @@
 using Serilog;
 using StatisticsAnalysisTool.Cluster;
 using StatisticsAnalysisTool.Common;
+using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Core;
 using StatisticsAnalysisTool.Crafting;
@@ -64,6 +65,7 @@ public class TrackingController : ITrackingController
     public readonly PartyController PartyController;
     public readonly GuildController GuildController;
     public readonly CraftingController CraftingController;
+    public readonly IslandController IslandController;
     private readonly List<LoggingFilterType> _notificationTypesFilters = [];
 
     public TrackingController(MainWindowViewModel mainWindowViewModel)
@@ -85,6 +87,8 @@ public class TrackingController : ITrackingController
         PartyController = new PartyController(this, mainWindowViewModel);
         GuildController = new GuildController(this, mainWindowViewModel);
         CraftingController = new CraftingController(this, mainWindowViewModel);
+        IslandController = new IslandController(mainWindowViewModel);
+        IslandController.SetTrackingController(this);
         LiveStatsTracker = new LiveStatsTracker(this, mainWindowViewModel);
     }
 
@@ -347,7 +351,8 @@ public class TrackingController : ITrackingController
             CombatController.LoadFromFileAsync(),
             MarketController.LoadFromFileAsync(),
             ClusterController.LoadMapHistoryFromFileAsync(),
-            CraftingController.LoadFromFileAsync()
+            CraftingController.LoadFromFileAsync(),
+            IslandController.LoadFromFileAsync()
         );
     }
 

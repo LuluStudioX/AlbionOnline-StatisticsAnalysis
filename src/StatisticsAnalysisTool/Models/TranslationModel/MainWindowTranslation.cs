@@ -176,6 +176,7 @@ public class MainWindowTranslation
     public static string LootComparatorSlotsColorsDescriptionRed => LocalizationController.Translation("LOOT_COMPARATOR_SLOTS_COLORS_DESCRIPTION_RED");
 
     // Island Management
+    public static string IslandManagement => LocalizationController.Translation("ISLAND_MANAGEMENT");
     public static string IslandManagementSearchIslands => LocalizationController.Translation("ISLAND_MANAGEMENT_SEARCH_ISLANDS");
     public static string IslandManagementFilterCity => LocalizationController.Translation("ISLAND_MANAGEMENT_FILTER_CITY");
     public static string IslandManagementAddIsland => LocalizationController.Translation("ISLAND_MANAGEMENT_ADD_ISLAND");

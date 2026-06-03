@@ -8,6 +8,7 @@ using StatisticsAnalysisTool.Properties;
 using StatisticsAnalysisTool.Trade.Market;
 using StatisticsAnalysisTool.Trade.PlayerTrades;
 using StatisticsAnalysisTool.ViewModels;
+using StatisticsAnalysisTool.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;

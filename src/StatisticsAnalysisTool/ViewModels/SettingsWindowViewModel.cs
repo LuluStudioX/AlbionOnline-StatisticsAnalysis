@@ -277,6 +277,7 @@ public class SettingsWindowViewModel : BaseViewModel
         mainWindowViewModel.MapHistoryTabVisibility = SettingsController.CurrentSettings.IsMapHistoryNaviTabActive.BoolToVisibility();
         mainWindowViewModel.PlayerInformationTabVisibility = SettingsController.CurrentSettings.IsPlayerInformationNaviTabActive.BoolToVisibility();
         mainWindowViewModel.GuildTabVisibility = SettingsController.CurrentSettings.IsGuildTabActive.BoolToVisibility();
+        mainWindowViewModel.IslandManagementTabVisibility = SettingsController.CurrentSettings.IsIslandManagementNaviTabActive.BoolToVisibility();
     }
 
     private void SetPacketFilter()
@@ -611,6 +612,7 @@ public class SettingsWindowViewModel : BaseViewModel
         mainWindowViewModel.MapHistoryTabVisibility = SettingsController.CurrentSettings.IsMapHistoryNaviTabActive.BoolToVisibility();
         mainWindowViewModel.PlayerInformationTabVisibility = SettingsController.CurrentSettings.IsPlayerInformationNaviTabActive.BoolToVisibility();
         mainWindowViewModel.GuildTabVisibility = SettingsController.CurrentSettings.IsGuildTabActive.BoolToVisibility();
+        mainWindowViewModel.IslandManagementTabVisibility = SettingsController.CurrentSettings.IsIslandManagementNaviTabActive.BoolToVisibility();
     }
 
     private void InitNotificationAreas()

@@ -16,5 +16,6 @@ public enum NavigationTabFilterType
     Party,
     StorageHistory,
     MapHistory,
-    PlayerInformation
+    PlayerInformation,
+    IslandManagement
 }
