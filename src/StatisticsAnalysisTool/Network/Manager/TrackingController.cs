@@ -12,6 +12,7 @@ using StatisticsAnalysisTool.Exceptions;
 using StatisticsAnalysisTool.Gathering;
 using StatisticsAnalysisTool.Guild;
 using StatisticsAnalysisTool.Localization;
+using StatisticsAnalysisTool.Network.Events;
 using StatisticsAnalysisTool.Network.PacketProviders;
 using StatisticsAnalysisTool.OpenWorld;
 using StatisticsAnalysisTool.Party;

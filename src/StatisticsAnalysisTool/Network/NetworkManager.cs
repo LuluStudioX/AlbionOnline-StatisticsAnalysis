@@ -53,7 +53,6 @@ public class NetworkManager
         builder.AddEventHandler(new NewLaborerItemEventHandler(trackingController));
         builder.AddEventHandler(new OtherGrabbedLootEventHandler(trackingController));
         builder.AddEventHandler(new InventoryDeleteItemEventHandler(trackingController));
-        //builder.AddEventHandler(new InventoryPutItemEventHandler(trackingController));
         builder.AddEventHandler(new TakeSilverEventHandler(trackingController));
         builder.AddEventHandler(new ActionOnBuildingFinishedEventHandler(trackingController));
         builder.AddEventHandler(new UpdateFameEventHandler(trackingController));
@@ -63,8 +62,6 @@ public class NetworkManager
         builder.AddEventHandler(new DiedEventHandler(trackingController));
         builder.AddEventHandler(new NewLootChestEventHandler(trackingController));
         builder.AddEventHandler(new UpdateLootChestEventHandler(trackingController));
-        //builder.AddEventHandler(new LootChestOpenedEventHandler(trackingController));
-        builder.AddEventHandler(new LeaveEventHandler(trackingController));
         builder.AddEventHandler(new InCombatStateUpdateEventHandler(trackingController));
         builder.AddEventHandler(new NewShrineEventHandler(trackingController));
         builder.AddEventHandler(new HealthUpdateEventHandler(trackingController));
@@ -73,14 +70,12 @@ public class NetworkManager
         builder.AddEventHandler(new PartyJoinedEventHandler(trackingController));
         builder.AddEventHandler(new PartyPlayerJoinedEventHandler(trackingController));
         builder.AddEventHandler(new PartyPlayerLeftEventHandler(trackingController));
-        //builder.AddEventHandler(new PartyChangedOrderEventHandler(trackingController));
         builder.AddEventHandler(new NewCharacterEventHandler(trackingController));
         builder.AddEventHandler(new TreasureChestUsingStartEventHandler(trackingController));
         builder.AddEventHandler(new CharacterEquipmentChangedEventHandler(trackingController));
         builder.AddEventHandler(new NewMobEventHandler(trackingController));
         builder.AddEventHandler(new ActiveSpellEffectsUpdateEventHandler(trackingController));
         builder.AddEventHandler(new UpdateFactionStandingEventHandler(trackingController));
-        //builder.AddEventHandler(new ReceivedSeasonPointsEventHandler(trackingController));
         builder.AddEventHandler(new MightAndFavorReceivedEventHandler(trackingController));
         builder.AddEventHandler(new BankVaultInfoEventHandler(trackingController));
         builder.AddEventHandler(new GuildVaultInfoEventHandler(trackingController));
@@ -131,6 +126,10 @@ public class NetworkManager
         builder.AddResponseHandler(new AuctionBuyLoadoutOfferResponseHandler(trackingController));
         builder.AddResponseHandler(new GetGuildAccountLogsResponseHandler(trackingController));
         builder.AddResponseHandler(new InviteToPlayerTradeResponseHandler(trackingController));
+        builder.AddResponseHandler(new FarmableHarvestResponseHandler(trackingController));
+        builder.AddResponseHandler(new PastureHarvestResponseHandler(trackingController));
+        builder.AddResponseHandler(new PastureProductHarvestResponseHandler(trackingController));
+        builder.AddResponseHandler(new PastureFeedConsumedResponseHandler(trackingController));
 
         return builder.Build();
     }
