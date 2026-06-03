@@ -57,6 +57,9 @@ public class FarmableItem : ItemJsonObject
     [JsonPropertyName("@activefarmcyclelengthseconds")]
     public string ActiveFarmCycleLengthSeconds { get; set; }
 
+    [JsonPropertyName("@growtime")]
+    public string GrowTime { get; set; }
+
     [JsonPropertyName("@activefarmbonus")]
     public string ActiveFarmBonus { get; set; }
 
