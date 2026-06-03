@@ -1,4 +1,4 @@
-{
+﻿{
   "translations": [
     {
       "tuid": "LANGUAGE",
@@ -38691,7 +38691,8 @@
         {
           "lang": "ru-RU",
           "seg": "Добавьте логи сундука"
-        },{
+        },
+        {
           "lang": "zh-CN",
           "seg": "加载箱子日志（文本）"
         }
@@ -46749,6 +46750,1482 @@
         {
           "lang": "zh-TW",
           "seg": "已偵測到位置"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Island Management"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SEARCH_ISLANDS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Search islands..."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_FILTER_CITY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Filter by city"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_ADD_ISLAND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Add Island"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DELETE_ISLAND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Delete Island"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SELECT_AN_ISLAND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Select an island from the list"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_OVERVIEW",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Overview"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PLOTS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Plots"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LIVE_STATUS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Live Status"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LIVE_STATUS_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Data updates when you visit your island in-game"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_TIER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Tier"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_BIOME",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Biome"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_CITY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "City"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_OWNER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Owner"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PREMIUM",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Premium"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PREMIUM_ACTIVE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Active"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PREMIUM_INACTIVE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Inactive"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PLANT_ALL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Plant All"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEGEND_SENT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Sent"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEGEND_LOOT_READY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Loot Ready"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEGEND_ON_JOB",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "On Job"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEGEND_HOME",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Home"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_CHART_SENT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Sent"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_CHART_LOOT_READY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Loot Ready"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_CHART_RANGE_12H",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Last 12 Hours"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_CHART_RANGE_24H",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Last 24 Hours"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_CHART_RANGE_7D",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Last 7 Days"
+        }
+      ]
+    },
+    {
+      "tuid": "SETTINGS_SHOW_ISLAND_CITY_COLORS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Show city icon and name on island cards"
+        }
+      ]
+    },
+    {
+      "tuid": "SETTINGS_SHOW_ISLAND_BIOME",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Show biome on island cards"
+        }
+      ]
+    },
+    {
+      "tuid": "SETTINGS_SHOW_ISLAND_EDIT_BUTTONS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Show Add / Delete buttons in island toolbar"
+        }
+      ]
+    },
+    {
+      "tuid": "SETTINGS_ISLAND_GROUP_MODE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Group islands by"
+        }
+      ]
+    },
+    {
+      "tuid": "SETTINGS_ISLAND_SORT_MODE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Sort islands by"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_GROUP_MODE_NONE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "No grouping"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_GROUP_MODE_BY_OWNER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Owner"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_GROUP_MODE_BY_CITY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "City"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_SORT_MODE_CUSTOM",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Custom (drag to reorder)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_SORT_MODE_ALPHABETICAL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Alphabetical"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_SORT_MODE_BY_CITY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "City"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_SORT_MODE_BY_TIER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Tier"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_SORT_MODE_BY_OWNER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Owner"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LABORERS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Laborers"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Map"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Ledger"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PLOT_COUNT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Plots"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LABORERS_SENT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Laborers Sent"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LOOT_COLLECTED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Loot Collected"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_ADD_PLOT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Add Plot"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_EDIT_PLOT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Edit Plot"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DELETE_PLOT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Delete Plot"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_NOTES",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Notes"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Status:"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_NO_CROP_CONFIGURED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "No crop configured"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_OWNER_OVERVIEW_TOOLTIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Owner Overview"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_RESET_SLOTS_TOOLTIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Reset slot assignments — re-enter the island to remap plots"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_ADD_ISLAND_TOOLTIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Add new island"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_EDIT_ISLAND_TOOLTIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Edit selected island"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_TOOLTIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Island Management Settings"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_CLOSE_SETTINGS_TOOLTIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Close settings"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_DISPLAY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "DISPLAY"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_CITY_ICON_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "City icon & name"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_BIOME_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Biome"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_HIDE_TIER_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Hide tier badge"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_HIDE_TIER_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Hide tier badge on island cards"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_HIDE_PREMIUM_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Hide premium icon"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_HIDE_PREMIUM_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Hide premium star icon on island cards"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_AUTOMATION",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "AUTOMATION"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_AUTO_SELECT_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Auto-select island on map change"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_AUTO_SELECT_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Selects island when you enter its map"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_AUTO_CYCLE_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Auto-start cycle on island activity"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_AUTO_CYCLE_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Begins tracking when laborer activity detected"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_AUTO_PREFILL_PAYOUTS_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Auto-prefill payouts on cycle start"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_AUTO_PREFILL_PAYOUTS_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Adds a finance record when an island transitions from Ready to planted"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_VISIT_DURATION_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Default visit duration (min)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_VISIT_DURATION_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Time to handle one island. Per-island override available in edit dialog."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_VISIBLE_SECTIONS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "VISIBLE SECTIONS"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_NOTES_SECTION",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Notes section"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_SORT_GROUP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "SORT & GROUP"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_GROUP_BY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Group by"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_SORT_BY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Sort by"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_DRAG_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Drag ≡ handles on cards to reorder"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_OWNER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Owner: "
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_BALANCE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "  Balance: "
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_SILVER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": " Silver"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_DATE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Date"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_TYPE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Type"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_ISLANDS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Islands"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_AMOUNT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Amount"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_NOTES",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Notes"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_AMOUNT_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Amount:"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_ISLAND_COUNT_TOOLTIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Island count"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_NOTES_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Notes:"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_LEDGER_ADD_RECORD",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Add Record"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_RENT_BADGE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Rent"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SELECT_AN_ISLAND_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "or click + Add Island to get started"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_UNASSIGNED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Unassigned"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_CONSUMED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Consumed by adjacent plot"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_NO_MAP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "No map available"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_SELECT_ISLAND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Select an island to view its map"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_TOGGLE_TOOLTIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Toggle unassigned plots panel"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_ADD_ISLAND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Add Island"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_EDIT_ISLAND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Edit Island"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_SAVE_CHANGES",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Save Changes"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_ISLAND_NAME",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Island Name"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_OWNER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Owner / Character"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_PREMIUM_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Has premium status"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_TRACKING_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Tracking"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_TRACKING_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Track laborer activity"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_VISIT_DURATION",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Visit Duration (min)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_VISIT_DURATION_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Leave blank to use global default"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_CANCEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Cancel"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_PLOT_TYPE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Plot Type"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_QUANTITY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Quantity"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_LABORER_TYPES",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Laborer Types"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_SLOT_1",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Slot 1"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_SLOT_2",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Slot 2"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_SLOT_3",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Slot 3"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_LABORER_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Selected type applied to all houses. Laborer names auto-detected from network."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_FARMABLE_TYPE_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Type"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_FARMABLE_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Auto-detected from network when visiting island."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_CONFIG_OPTIONAL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Configuration (optional)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DIALOG_CONFIG_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "e.g. Notes or custom config"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PAYMENT_TITLE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Island Payment Detected"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PAYMENT_ASSIGN_TO_ISLAND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Assign to island"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PAYMENT_NOTES_OPTIONAL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Notes (optional)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PAYMENT_SKIP",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Skip"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PAYMENT_RECORD",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Record Payment"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_VALIDATION_NAME_REQUIRED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Island name is required."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_VALIDATION_SELECT_CITY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Please select a city."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_DELETE_CONFIRM",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Delete \"{0}\"? This cannot be undone."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_VALIDATION_SELECT_PLOT_TYPE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Select a plot type."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_VALIDATION_QUANTITY_POSITIVE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Quantity must be a positive number."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_FARMABLE_CROP_TYPE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Crop Type"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_FARMABLE_ANIMAL_TYPE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Animal Type"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_FARMABLE_MOUNT_TYPE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Mount Type"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PAYMENT_OUTGOING_SILVER",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Outgoing silver to {0}"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PAYMENT_IS_ISLAND_PAYMENT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "is this an island payment?"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Yield"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_COLLECTED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Collected"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_CONSUMED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Consumed"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_TOTAL_VALUE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Total Value"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_BY_ITEM",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "By Item"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_BY_ISLAND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "By Island"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_SUMMARY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Yield Summary"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_ITEM",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Item"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_QUANTITY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Quantity"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_AVG_PRICE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Avg. Price"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_COLLECTED_VALUE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Collected value"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_CONSUMED_VALUE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Consumed value"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_CLEAR",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Clear Yield Data"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_NO_DATA",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "No yield data yet. Collect items on this island to start tracking."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS_NOT_PLANTED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Not planted yet"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS_COLLECTION_READY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "✓ Ready for collection!"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS_READY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Ready"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS_SOON",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Soon"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS_FIRST_READY_H_M",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "First ready in {0}h {1}m"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS_FIRST_READY_M",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "First ready in {0}m"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS_FULL_READY_H_M",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": " (full ready in {0}h {1}m)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_STATUS_FULL_READY_M",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": " (full ready in {0}m)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_WEBHOOK_CONFIRM_TITLE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Ready to Notify"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_WEBHOOK_CONFIRM_NOTES_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Daily notes (optional)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_WEBHOOK_CONFIRM_EMV_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Total EMV for today (optional)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_WEBHOOK_CONFIRM_SAVE_AND_SEND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Save & Send"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_WEBHOOK_CONFIRM_SEND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Send"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_WEBHOOK_CONFIRM_DONT_SEND",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Don't Send"
         }
       ]
     }
