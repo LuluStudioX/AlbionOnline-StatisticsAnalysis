@@ -5,6 +5,7 @@ using StatisticsAnalysisTool.Network.Manager;
 using StatisticsAnalysisTool.ViewModels;
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace StatisticsAnalysisTool.Views;
@@ -75,6 +76,14 @@ public partial class MainWindow
     private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _windowChromeController.ToggleMaximizeOnDoubleClick(e);
+    }
+
+    private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.OriginalSource is not TabControl)
+        {
+            return;
+        }
     }
 
     private void CopyPartyToClipboard_PreviewMouseDown(object sender, MouseButtonEventArgs e)
