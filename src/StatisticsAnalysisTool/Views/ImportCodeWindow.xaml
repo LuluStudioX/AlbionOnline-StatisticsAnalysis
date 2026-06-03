@@ -1,0 +1,75 @@
+<Window x:Class="StatisticsAnalysisTool.Views.ImportCodeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:fa5="http://schemas.fontawesome.com/icons/"
+        mc:Ignorable="d"
+        Title="Import SAT Code"
+        Height="200" Width="440"
+        MinHeight="180" MinWidth="380"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource SolidColorBrush.Background.1}"
+        FontSize="{StaticResource BaseFontSize}"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Grid>
+        <Border BorderThickness="1" BorderBrush="{StaticResource SolidColorBrush.Accent.Blue.2}" IsHitTestVisible="False"/>
+
+        <!-- Title bar -->
+        <Grid x:Name="TitleBar" Height="33" VerticalAlignment="Top"
+              Background="{StaticResource SolidColorBrush.Background.3}"
+              MouseDown="TitleBar_MouseDown">
+            <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+            <StackPanel Orientation="Horizontal" Margin="10,0,61,0" VerticalAlignment="Center">
+                <fa5:ImageAwesome Icon="Solid_FileImport"
+                                  Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"
+                                  Width="13" Height="13" Margin="0,0,8,0"/>
+                <TextBlock Text="Import SAT Code"
+                           Foreground="{StaticResource SolidColorBrush.Text.1}"
+                           FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button Style="{StaticResource WindowButtonStyle}" Content="r" Margin="-2,0,0,0" Click="CloseButton_Click"/>
+        </Grid>
+
+        <!-- Content -->
+        <StackPanel Margin="18,43,18,56">
+            <TextBlock Text="Paste the SAT import code below:" Foreground="{StaticResource SolidColorBrush.Text.3}"
+                       FontSize="11" Margin="0,0,0,6"/>
+            <TextBox x:Name="CodeTextBox" Height="28" FontSize="12" FontFamily="Consolas"
+                     Background="{StaticResource SolidColorBrush.Background.2}"
+                     Foreground="{StaticResource SolidColorBrush.Text.1}"
+                     VerticalContentAlignment="Center" Padding="4,0"
+                     TextChanged="CodeTextBox_TextChanged"/>
+            <TextBlock x:Name="HintText" Text="Format: SAT:I{islands}/E{earned}/P{period}/D{date}"
+                       Foreground="{StaticResource SolidColorBrush.Text.4}"
+                       FontSize="10" FontFamily="Consolas" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Action bar -->
+        <Grid Height="46" VerticalAlignment="Bottom"
+              Background="{StaticResource SolidColorBrush.Background.3}">
+            <Border BorderThickness="0,1,0,0" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
+                <Button Height="28" Width="80" Margin="0,0,8,0" Click="CancelButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_Times" Width="10" Height="10" Margin="0,0,5,0"
+                                          Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                        <TextBlock Text="Cancel" Foreground="{StaticResource SolidColorBrush.Text.1}" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ConfirmButton" Height="28" Width="80" IsEnabled="False"
+                        Style="{StaticResource Style.Button.Attention}"
+                        Click="ConfirmButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_Check" Width="10" Height="10" Margin="0,0,5,0"/>
+                        <TextBlock Text="Import" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

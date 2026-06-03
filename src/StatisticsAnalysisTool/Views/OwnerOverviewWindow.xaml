@@ -1,0 +1,1309 @@
+<Window x:Class="StatisticsAnalysisTool.Views.OwnerOverviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:fa5="http://schemas.fontawesome.com/icons/"
+        xmlns:wpf="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+        xmlns:island="clr-namespace:StatisticsAnalysisTool.Island"
+        xmlns:bindingModel="clr-namespace:StatisticsAnalysisTool.Models.BindingModel"
+        xmlns:viewModels="clr-namespace:StatisticsAnalysisTool.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=viewModels:MainWindowViewModel}"
+        Title="Owner Overview"
+        Height="820" Width="640"
+        MinHeight="500" MinWidth="520"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource SolidColorBrush.Background.1}"
+        FontSize="{StaticResource BaseFontSize}"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
+
+    <Grid>
+        <Border BorderThickness="1" BorderBrush="{StaticResource SolidColorBrush.Accent.Blue.2}" IsHitTestVisible="False"/>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="33"/>
+                <RowDefinition>
+                    <RowDefinition.Style>
+                        <Style TargetType="RowDefinition">
+                            <Setter Property="Height" Value="0"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IslandBindings.Preferences.IsOwnerOverviewSettingsOpen, FallbackValue=False}" Value="True">
+                                    <Setter Property="Height" Value="Auto"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </RowDefinition.Style>
+                </RowDefinition>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title bar -->
+            <Grid Grid.Row="0" x:Name="TitleBar"
+                  Background="{StaticResource SolidColorBrush.Background.3}"
+                  MouseDown="TitleBar_MouseDown">
+                <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+                <StackPanel Orientation="Horizontal" Margin="10,0,77,0" VerticalAlignment="Center">
+                    <fa5:ImageAwesome Icon="Solid_Users"
+                                      Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"
+                                      Width="13" Height="13" Margin="0,0,8,0"/>
+                    <TextBlock Text="Owner Overview"
+                               Foreground="{StaticResource SolidColorBrush.Text.1}"
+                               FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button x:Name="OwnerSettingsButton"
+                            Click="OwnerSettingsButton_Click"
+                            Width="33" Height="33" Padding="0"
+                            Background="Transparent" BorderThickness="0"
+                            ToolTip="Owner Overview Settings">
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.IsOwnerOverviewSettingsOpen, FallbackValue=False}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <fa5:ImageAwesome Icon="Solid_SlidersH" Width="11" Height="11">
+                            <fa5:ImageAwesome.Style>
+                                <Style TargetType="fa5:ImageAwesome">
+                                    <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IslandBindings.Preferences.IsOwnerOverviewSettingsOpen, FallbackValue=False}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </fa5:ImageAwesome.Style>
+                        </fa5:ImageAwesome>
+                    </Button>
+                    <Button Click="MaximizeButton_Click"
+                            Width="33" Height="33" Padding="0"
+                            Background="Transparent" BorderThickness="0"
+                            ToolTip="Maximize">
+                        <fa5:ImageAwesome Icon="Regular_WindowMaximize" Width="11" Height="11"
+                                          Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                    </Button>
+                    <Button Click="CloseButton_Click"
+                            Width="33" Height="33" Padding="0"
+                            Background="Transparent" BorderThickness="0"
+                            ToolTip="Close">
+                        <fa5:ImageAwesome Icon="Solid_Times" Width="10" Height="10"
+                                          Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Settings panel (Row 1, collapsible) -->
+            <Border Grid.Row="1" Background="{StaticResource SolidColorBrush.Background.2}"
+                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="0,0,0,1"
+                    Padding="12,8">
+                <StackPanel>
+                    <TextBlock Text="DISPLAY OPTIONS" FontSize="9" FontWeight="SemiBold"
+                               Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,8"/>
+                    <!-- Multiselect -->
+                    <DockPanel Margin="0,0,0,6">
+                        <CheckBox DockPanel.Dock="Left"
+                                  IsChecked="{Binding IslandBindings.Preferences.AllowMultiOwnerSelection, Mode=TwoWay}"
+                                  VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <StackPanel>
+                            <TextBlock Text="Multi-select owners" FontSize="11"
+                                       Foreground="{StaticResource SolidColorBrush.Text.1}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Select multiple owners to aggregate their data" FontSize="9"
+                                       Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <Separator Background="{StaticResource SolidColorBrush.Background.4}" Margin="0,4,0,8"/>
+                    <TextBlock Text="HIDE SECTIONS" FontSize="9" FontWeight="SemiBold"
+                               Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,6"/>
+                    <WrapPanel>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.IslandSummaryVisible, Mode=TwoWay}"
+                                  Content="Islands Summary" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.OwnerProfileVisible, Mode=TwoWay}"
+                                  Content="Owner Profile" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.FinanceSettingsVisible, Mode=TwoWay}"
+                                  Content="Finance Settings" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.FinanceGraphVisible, Mode=TwoWay}"
+                                  Content="Finance Graph" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.FinanceRecordVisible, Mode=TwoWay}"
+                                  Content="Finance Record" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.FinanceHistoryVisible, Mode=TwoWay}"
+                                  Content="Finance History" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.DiscordAlertsVisible, Mode=TwoWay}"
+                                  Content="Discord Alerts" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                    </WrapPanel>
+                    <Separator Background="{StaticResource SolidColorBrush.Background.4}" Margin="0,8,0,8"/>
+                    <TextBlock Text="AUTOMATION &amp; HISTORY" FontSize="9" FontWeight="SemiBold"
+                               Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,6"/>
+                    <WrapPanel>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.AutoNotifyOwnerWhenAllDone, Mode=TwoWay}"
+                                  Content="Auto-notify" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"
+                                  ToolTip="Send Discord webhook when all islands are done"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,4">
+                            <TextBlock Text="History rows" FontSize="11"
+                                       Foreground="{StaticResource SolidColorBrush.Text.1}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox Text="{Binding IslandBindings.Preferences.FinanceHistoryMaxVisible, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                     Width="40" Height="20" FontSize="11" VerticalContentAlignment="Center" Padding="4,0"
+                                     Background="{StaticResource SolidColorBrush.Background.1}"
+                                     Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,4">
+                            <TextBlock Text="Week starts" FontSize="11"
+                                       Foreground="{StaticResource SolidColorBrush.Text.1}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox ItemsSource="{x:Static bindingModel:IslandBindings.WeekStartOptions}"
+                                      SelectedItem="{Binding IslandBindings.Preferences.WeekStartDay, Mode=TwoWay}"
+                                      Height="20" Width="80" FontSize="11"
+                                      Background="{StaticResource SolidColorBrush.Background.1}"
+                                      Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        </StackPanel>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="12,10,12,10">
+
+                    <!-- Owner pills -->
+                    <ListBox x:Name="OwnerListBox"
+                             ItemsSource="{Binding IslandBindings.OwnerOptions}"
+                             BorderThickness="0" Background="Transparent"
+                             Margin="0,0,0,12"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                             SelectionChanged="OwnerList_SelectionChanged">
+                        <ListBox.Style>
+                            <Style TargetType="ListBox">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Setter Property="SelectionMode" Value="Single"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.AllowMultiOwnerSelection}" Value="True">
+                                        <Setter Property="SelectionMode" Value="Multiple"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.Style>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel HorizontalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="OwnerTabBorder" Padding="10,6" Margin="0,0,6,4" CornerRadius="4"
+                                        MinHeight="28"
+                                        Background="{StaticResource SolidColorBrush.Background.3}">
+                                    <TextBlock x:Name="OwnerTabText" Text="{Binding}" FontSize="13" FontWeight="Bold"
+                                               Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                        <Setter TargetName="OwnerTabBorder" Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                        <Setter TargetName="OwnerTabText" Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+
+                    <!-- Owner profile config -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="10,8" Margin="0,0,0,10"
+                            Visibility="{Binding IslandBindings.Preferences.OwnerProfileVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <Button Click="ToggleOwnerProfile_Click" BorderThickness="0" Padding="8,5" Margin="0,0,0,8" HorizontalContentAlignment="Stretch">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{StaticResource Color.Background.2}"/>
+                                </Button.Background>
+                                <DockPanel>
+                                    <fa5:ImageAwesome DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <fa5:ImageAwesome.Style>
+                                            <Style TargetType="fa5:ImageAwesome">
+                                                <Setter Property="Icon" Value="Solid_ChevronUp"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.4}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowOwnerManagementSection, FallbackValue=True}" Value="False">
+                                                        <Setter Property="Icon" Value="Solid_ChevronDown"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </fa5:ImageAwesome.Style>
+                                    </fa5:ImageAwesome>
+                                    <TextBlock Text="OWNER PROFILE" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource SolidColorBrush.Text.3}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Button>
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowOwnerManagementSection, FallbackValue=True}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                    <TextBlock Text="Engagement type" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <ComboBox ItemsSource="{x:Static bindingModel:IslandBindings.EngagementTypeOptions}"
+                                              SelectedItem="{Binding IslandBindings.SelectedOwnerEngagementType, Mode=TwoWay}"
+                                              Height="26" FontSize="11"
+                                              Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                    <TextBlock Text="Payout day" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <ComboBox ItemsSource="{Binding IslandBindings.PayoutDayOptions}"
+                                              SelectedItem="{Binding IslandBindings.SelectedOwnerPayoutDay, Mode=TwoWay}"
+                                              Height="26" FontSize="11"
+                                              Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                            </Grid>
+                            <!-- Manager responsibilities (visible only for PaidManager) -->
+                            <StackPanel Margin="0,0,0,6">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.IsPaidManagerEngagement}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="Manager responsibilities" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                <ComboBox ItemsSource="{Binding IslandBindings.ManagerResponsibilityItems}"
+                                          Height="26" FontSize="11"
+                                          Background="{StaticResource SolidColorBrush.Background.1}"
+                                          IsEditable="False">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Width="18" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="11" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,6">
+                                <TextBlock Text="Webhook URL (Discord)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                <TextBox Text="{Binding IslandBindings.SelectedOwnerWebhookUrl, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                         Height="26" FontSize="11"
+                                         Background="{StaticResource SolidColorBrush.Background.1}"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="Notes" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                <TextBox Text="{Binding IslandBindings.SelectedOwnerNotes, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                         MinHeight="40" MaxHeight="70" TextWrapping="Wrap" AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         FontSize="11"
+                                         Background="{StaticResource SolidColorBrush.Background.1}"/>
+                            </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Stats row -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,4,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerIslandCount}" FontSize="18" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Text.1}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Islands" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="2,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerDoneTodayCount}" FontSize="18" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Accent.Green.3}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Done today" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="4,0,0,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerLeftTodayCount}" FontSize="18" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Accent.Blue.2}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Left today" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Finance cards -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,4,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerTotalCycleEarned, StringFormat={}{0:N0}}" FontSize="16" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Accent.Green.3}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Total Earned" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="2,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerTotalWithdrawn, StringFormat={}{0:N0}}" FontSize="16" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Accent.Blue.2}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Total Paid Out" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="4,0,0,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerBalance, StringFormat={}{0:N0}}" FontSize="16" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Text.1}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Balance" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Payout forecast -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Payout schedule" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerPayoutScheduleText}" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}"/>
+                                <TextBlock FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}" Margin="0,4,0,0">
+                                    <Run Text="Next payout: "/>
+                                    <Run Text="{Binding IslandBindings.SelectedOwnerNextPayoutDate, Mode=OneWay, StringFormat={}{0:ddd dd MMM}}" FontWeight="Bold"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <TextBlock Text="Next payout estimate" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerProjectedAgreementPayout, StringFormat={}{0:N0}}" FontSize="15" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Accent.Green.3}"/>
+                                <TextBlock Text="Recorded this period + estimated remaining days" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}"/>
+                                <TextBlock FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}">
+                                    <Run Text="Period starts: "/>
+                                    <Run Text="{Binding IslandBindings.SelectedOwnerCurrentPeriodStartDate, Mode=OneWay, StringFormat={}{0:dd MMM}}"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <TextBlock Text="Full 7-day value" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerProjectedWeeklyIncome, StringFormat={}{0:N0}}" FontSize="15" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"/>
+                                <TextBlock Text="Theoretical full week at current configured daily rate" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}"/>
+                                <TextBlock FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}">
+                                    <Run Text="Days until payout: "/>
+                                    <Run Text="{Binding IslandBindings.SelectedOwnerDaysUntilPayout, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Unpaid from previous period warning -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,5" Margin="0,0,0,6"
+                            Visibility="{Binding IslandBindings.HasUnpaidPreviousEarned, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠ Unpaid from previous period: " FontSize="10" Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding IslandBindings.SelectedOwnerUnpaidPreviousEarned, StringFormat={}{0:N0}}" FontSize="10" FontWeight="Bold"
+                                       Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Live today estimate + quick-fill -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,5" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock FontSize="11" Foreground="{StaticResource SolidColorBrush.Text.3}">
+                                    <Run Text="Live today: "/>
+                                    <Run Text="{Binding IslandBindings.SelectedOwnerTodayLiveCycledCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                    <Run Text=" islands ≈ "/>
+                                    <Run Text="{Binding IslandBindings.SelectedOwnerTodayLiveEstimate, StringFormat={}{0:N0}, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SolidColorBrush.Accent.Green.3}"/>
+                                    <Run Text=" silver"/>
+                                </TextBlock>
+                                <TextBlock Text="(estimate from island config — not saved until you record it)" FontSize="9"
+                                           Foreground="{StaticResource SolidColorBrush.Text.5}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="Fill from today" Height="26" Padding="8,0"
+                                    Click="BtnQuickFillTodayCycles_Click"
+                                    IsEnabled="{Binding IslandBindings.SelectedOwnerCanQuickFill}"
+                                    Background="{StaticResource SolidColorBrush.Accent.Green.4}"
+                                    ToolTip="Pre-fills the cycle form with today's live count and estimate"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Finance settings -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,10"
+                            Visibility="{Binding IslandBindings.Preferences.FinanceSettingsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <Button Click="ToggleFinanceSettings_Click" BorderThickness="0" Padding="8,5" Margin="0,0,0,6" HorizontalContentAlignment="Stretch">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{StaticResource Color.Background.2}"/>
+                                </Button.Background>
+                                <DockPanel>
+                                    <fa5:ImageAwesome DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <fa5:ImageAwesome.Style>
+                                            <Style TargetType="fa5:ImageAwesome">
+                                                <Setter Property="Icon" Value="Solid_ChevronUp"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.4}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowFinanceSettingsSection, FallbackValue=True}" Value="False">
+                                                        <Setter Property="Icon" Value="Solid_ChevronDown"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </fa5:ImageAwesome.Style>
+                                    </fa5:ImageAwesome>
+                                    <TextBlock Text="FINANCE SETTINGS" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource SolidColorBrush.Text.3}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Button>
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowFinanceSettingsSection, FallbackValue=True}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                    <TextBlock Text="Default pay / island" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <TextBox Text="{Binding IslandBindings.SelectedOwnerDefaultPayPerIsland, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:F0}}"
+                                             Height="26" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                    <TextBlock Text="Opening balance (carry-over)" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <TextBox Text="{Binding IslandBindings.SelectedOwnerOpeningBalance, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:F0}}"
+                                             Height="26" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Islands Summary -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,10"
+                            Visibility="{Binding IslandBindings.Preferences.IslandSummaryVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="ISLANDS SUMMARY" FontSize="10" FontWeight="Bold"
+                                       Foreground="{StaticResource SolidColorBrush.Text.3}" Margin="0,0,0,6"/>
+                            <ItemsControl ItemsSource="{Binding IslandBindings.IslandSummaryRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type bindingModel:OwnerIslandSummaryRow}">
+                                        <StackPanel Margin="0,0,0,6">
+                                            <!-- Owner header -->
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding OwnerName}"
+                                                           FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,12,0">
+                                                    <TextBlock Text="{Binding IslandCount}" FontSize="11" FontWeight="Bold"
+                                                               Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"/>
+                                                    <TextBlock Text=" islands" FontSize="11"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding TotalLaborers}" FontSize="11" FontWeight="Bold"
+                                                               Foreground="{StaticResource SolidColorBrush.Accent.Green.3}"/>
+                                                    <TextBlock Text=" laborers" FontSize="11"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <!-- Plot type breakdown -->
+                                            <ItemsControl ItemsSource="{Binding PlotBreakdown}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type bindingModel:PlotTypeSummaryRow}">
+                                                        <StackPanel Margin="8,0,0,4">
+                                                            <!-- Plot type header -->
+                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                                                <TextBlock Text="{Binding DisplayName}" FontSize="10" FontWeight="SemiBold"
+                                                                           Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                                <TextBlock Text=" ×" FontSize="10"
+                                                                           Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                                <TextBlock Text="{Binding TotalCount}" FontSize="10" FontWeight="Bold"
+                                                                           Foreground="{StaticResource SolidColorBrush.Text.2}"/>
+                                                            </StackPanel>
+                                                            <!-- Detail chips -->
+                                                            <ItemsControl ItemsSource="{Binding Details}" Margin="8,0,0,0">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <WrapPanel/>
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate DataType="{x:Type bindingModel:LaborerTypeCount}">
+                                                                        <Border Background="{StaticResource SolidColorBrush.Background.4}"
+                                                                                CornerRadius="3" Padding="5,2" Margin="0,1,4,1">
+                                                                            <StackPanel Orientation="Horizontal">
+                                                                                <TextBlock Text="{Binding Display}" FontSize="10"
+                                                                                           Foreground="{StaticResource SolidColorBrush.Text.2}"/>
+                                                                                <TextBlock Text=" ×" FontSize="10"
+                                                                                           Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                                                <TextBlock Text="{Binding Count}" FontSize="10" FontWeight="SemiBold"
+                                                                                           Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                                            </StackPanel>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="No islands configured" FontSize="10" FontStyle="Italic"
+                                       Foreground="{StaticResource SolidColorBrush.Text.4}" HorizontalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.IslandSummaryRows.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Chart timeframe controls -->
+                    <DockPanel Margin="0,0,0,4">
+                        <DockPanel.Style>
+                            <Style TargetType="DockPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowFinanceHistorySection}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.FinanceGraphVisible}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DockPanel.Style>
+                        <Button DockPanel.Dock="Right" Content="+" Width="22" Height="18" FontSize="11" Padding="0"
+                                Click="BtnChartWindowNext_Click"
+                                Background="{StaticResource SolidColorBrush.Background.4}"
+                                Foreground="{StaticResource SolidColorBrush.Text.2}"
+                                ToolTip="Wider timeframe"/>
+                        <Button DockPanel.Dock="Right" Content="−" Width="22" Height="18" FontSize="11" Padding="0" Margin="0,0,2,0"
+                                Click="BtnChartWindowPrev_Click"
+                                Background="{StaticResource SolidColorBrush.Background.4}"
+                                Foreground="{StaticResource SolidColorBrush.Text.2}"
+                                ToolTip="Narrower timeframe"/>
+                        <WrapPanel VerticalAlignment="Center">
+                            <Button Content="1d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
+                                    Tag="1" Click="BtnChartPreset_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="1d">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="3d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
+                                    Tag="3" Click="BtnChartPreset_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="3d">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="7d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
+                                    Tag="7" Click="BtnChartPreset_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="7d">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="{Binding IslandBindings.ChartWindowLabel, FallbackValue='Period'}"
+                                    Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
+                                    Tag="period" Click="BtnChartPreset_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowDays}" Value="{x:Null}">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="14d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
+                                    Tag="14" Click="BtnChartPreset_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="14d">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="30d" Height="18" Padding="6,0" FontSize="9" Margin="0,0,2,0"
+                                    Tag="30" Click="BtnChartPreset_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="30d">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="All" Height="18" Padding="6,0" FontSize="9"
+                                    Tag="all" Click="BtnChartPreset_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.ChartWindowLabel}" Value="All">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </WrapPanel>
+                    </DockPanel>
+
+                    <!-- Finance chart -->
+                    <wpf:CartesianChart x:Name="FinanceChart"
+                                        Series="{Binding IslandBindings.SelectedOwnerFinanceSeries}"
+                                        XAxes="{Binding IslandBindings.SelectedOwnerFinanceXAxes}"
+                                        YAxes="{Binding IslandBindings.SelectedOwnerFinanceYAxes}"
+                                        Height="{Binding IslandBindings.SelectedOwnerGraphHeight, Mode=TwoWay}"
+                                        Background="Transparent"
+                                        DrawMarginFrame="{x:Null}"
+                                        TooltipPosition="Center"
+                                        FindingStrategy="ExactMatchTakeClosest"
+                                        LegendPosition="Hidden"
+                                        MinHeight="120" Margin="0,0,0,4">
+                        <wpf:CartesianChart.Style>
+                            <Style TargetType="wpf:CartesianChart">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowFinanceHistorySection}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.FinanceGraphVisible}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </wpf:CartesianChart.Style>
+                    </wpf:CartesianChart>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowFinanceHistorySection}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.FinanceGraphVisible}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="Chart size" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Slider Width="180" Minimum="120" Maximum="500"
+                                Value="{Binding IslandBindings.SelectedOwnerGraphHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="{Binding IslandBindings.SelectedOwnerGraphHeight, StringFormat={}{0:F0}px}" FontSize="9"
+                                   Foreground="{StaticResource SolidColorBrush.Text.5}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <!-- Legend -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                            <Rectangle Width="10" Height="10" Fill="#22C55E" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="Earned" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <Rectangle Width="10" Height="10" Fill="#FFC107" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="Payout" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <Ellipse Width="10" Height="10" Fill="#0EA5E9" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="Balance" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.5}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Record cycle -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
+                            Visibility="{Binding IslandBindings.Preferences.FinanceRecordVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="RECORD CYCLE" FontSize="10" FontWeight="Bold"
+                                       Foreground="{StaticResource SolidColorBrush.Text.3}" Margin="0,0,0,6"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="50"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                    <TextBlock Text="Date" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <DatePicker SelectedDate="{Binding IslandBindings.NewCycleDate, Mode=TwoWay}"
+                                                Height="24" FontSize="11"
+                                                Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,4,0">
+                                    <TextBlock Text="Type" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <ComboBox ItemsSource="{x:Static bindingModel:IslandBindings.CycleRecordTypes}"
+                                              SelectedItem="{Binding IslandBindings.NewCycleType, Mode=TwoWay}"
+                                              Height="24" FontSize="11"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="0,0,4,0"
+                                            Visibility="{Binding IslandBindings.NewCycleShowIslandCount, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="Islands" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <TextBox Text="{Binding IslandBindings.NewCycleIslandCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Margin="0,0,4,0">
+                                    <TextBlock Text="Amount (silver)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <TextBox Text="{Binding IslandBindings.NewCycleAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                    <TextBlock Text="{Binding IslandBindings.NewCycleAmountPreview}"
+                                               FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4" Margin="0,0,4,0">
+                                    <TextBlock Text="Notes" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <TextBox Text="{Binding IslandBindings.NewCycleNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                                <Button Grid.Column="5" Content="Record" Height="24" Padding="8,0" VerticalAlignment="Bottom"
+                                        IsEnabled="{Binding IslandBindings.CanRecordCycle}"
+                                        Click="BtnRecordCycle_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Record withdrawal -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
+                            Visibility="{Binding IslandBindings.Preferences.FinanceRecordVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="RECORD PAYOUT" FontSize="10" FontWeight="Bold"
+                                       Foreground="{StaticResource SolidColorBrush.Text.3}" Margin="0,0,0,6"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                    <TextBlock Text="Date" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <DatePicker SelectedDate="{Binding IslandBindings.NewWithdrawalDate, Mode=TwoWay}"
+                                                Height="24" FontSize="11"
+                                                Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,4,0">
+                                    <TextBlock Text="Paid for week (Mon)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <DatePicker SelectedDate="{Binding IslandBindings.NewWithdrawalPaidForWeekStart, Mode=TwoWay}"
+                                                Height="24" FontSize="11"
+                                                Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="0,0,4,0">
+                                    <TextBlock Text="Amount (silver)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <TextBox Text="{Binding IslandBindings.NewWithdrawalAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                    <TextBlock Text="{Binding IslandBindings.NewWithdrawalAmountPreview}"
+                                               FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Margin="0,0,4,0">
+                                    <TextBlock Text="Notes" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                    <TextBox Text="{Binding IslandBindings.NewWithdrawalNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                </StackPanel>
+                                <Button Grid.Column="4" Content="Record" Height="24" Padding="8,0" VerticalAlignment="Bottom"
+                                        IsEnabled="{Binding IslandBindings.CanRecordWithdrawal}"
+                                        Click="BtnRecordWithdrawal_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Ledger -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
+                            Visibility="{Binding IslandBindings.Preferences.FinanceHistoryVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Click="ToggleFinanceHistory_Click" BorderThickness="0" Padding="8,5" HorizontalContentAlignment="Stretch">
+                                    <Button.Background>
+                                        <SolidColorBrush Color="{StaticResource Color.Background.2}"/>
+                                    </Button.Background>
+                                    <DockPanel>
+                                        <fa5:ImageAwesome DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                            <fa5:ImageAwesome.Style>
+                                                <Style TargetType="fa5:ImageAwesome">
+                                                    <Setter Property="Icon" Value="Solid_ChevronUp"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.4}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowFinanceHistorySection}" Value="False">
+                                                            <Setter Property="Icon" Value="Solid_ChevronDown"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </fa5:ImageAwesome.Style>
+                                        </fa5:ImageAwesome>
+                                        <TextBlock Text="FINANCE HISTORY" FontSize="10" FontWeight="Bold"
+                                                   Foreground="{StaticResource SolidColorBrush.Text.3}" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                </Button>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Stretch" Margin="2,0,0,0">
+                                    <Button x:Name="BtnCopyAllHistory" Content="Copy all" Padding="6,0" FontSize="9"
+                                            Click="BtnCopyAllHistory_Click"
+                                            Background="{StaticResource SolidColorBrush.Accent.Blue.4}"
+                                            Foreground="{StaticResource SolidColorBrush.Text.1}"
+                                            Margin="0,0,2,0"
+                                            ToolTip="Copy full finance history to clipboard"/>
+                                    <Button x:Name="BtnCopyCurrentPeriod" Content="Copy period" Padding="6,0" FontSize="9"
+                                            Click="BtnCopyCurrentPeriod_Click"
+                                            Background="{StaticResource SolidColorBrush.Accent.Blue.4}"
+                                            Foreground="{StaticResource SolidColorBrush.Text.1}"
+                                            ToolTip="Copy current payout period entries to clipboard"/>
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowFinanceHistorySection}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                            <ItemsControl ItemsSource="{Binding IslandBindings.PagedOwnerLedger}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="90"/>
+                                                <ColumnDefinition Width="50"/>
+                                                <ColumnDefinition Width="40"/>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="10"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Type}"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding IslandCount}"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Amount, StringFormat={}{0:N0}}" FontSize="10" FontWeight="SemiBold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Accent.Red.3}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsEarning}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Grid.Column="4" Text="{Binding Notes}" FontSize="10"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.5}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding Notes}"/>
+                                            <Button Grid.Column="5" Content="✎" Width="18" Height="18" FontSize="10" Padding="0" Margin="4,0,0,0"
+                                                    Tag="{Binding}" Click="EditLedgerEntry_Click"
+                                                    Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="No entries yet" FontSize="10" FontStyle="Italic"
+                                       Foreground="{StaticResource SolidColorBrush.Text.4}" HorizontalAlignment="Center" Margin="0,6">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.SelectedOwnerHasLedgerEntries}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <!-- Pagination -->
+                            <Grid Margin="0,4,0,0">
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.SelectedOwnerHasLedgerEntries}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="◀" Width="22" Height="20" FontSize="10" Padding="0"
+                                        IsEnabled="{Binding IslandBindings.FinanceHistoryHasPrev}"
+                                        Click="BtnLedgerPrevPage_Click"/>
+                                <TextBlock Grid.Column="1" Text="{Binding IslandBindings.FinanceHistoryPageLabel}"
+                                           FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Button Grid.Column="2" Content="▶" Width="22" Height="20" FontSize="10" Padding="0"
+                                        IsEnabled="{Binding IslandBindings.FinanceHistoryHasNext}"
+                                        Click="BtnLedgerNextPage_Click"/>
+                            </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Yield Summary -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
+                        <StackPanel>
+                            <Button Click="ToggleYieldSummary_Click" BorderThickness="0" Padding="8,5" Margin="0,0,0,6" HorizontalContentAlignment="Stretch">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{StaticResource Color.Background.2}"/>
+                                </Button.Background>
+                                <DockPanel>
+                                    <fa5:ImageAwesome DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <fa5:ImageAwesome.Style>
+                                            <Style TargetType="fa5:ImageAwesome">
+                                                <Setter Property="Icon" Value="Solid_ChevronUp"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.4}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowYieldSummarySection, FallbackValue=True}" Value="False">
+                                                        <Setter Property="Icon" Value="Solid_ChevronDown"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </fa5:ImageAwesome.Style>
+                                    </fa5:ImageAwesome>
+                                    <TextBlock Text="{Binding Translation.IslandManagementYieldSummary, FallbackValue='YIELD SUMMARY'}" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource SolidColorBrush.Text.3}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Button>
+
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowYieldSummarySection, FallbackValue=True}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+
+                                <!-- Total value summary bar -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="{Binding Translation.IslandManagementYieldCollectedValue, FallbackValue='Collected: '}"
+                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                    <TextBlock Text="{Binding IslandBindings.OwnerTotalYieldValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                               Foreground="{StaticResource SolidColorBrush.Accent.Green.3}" FontSize="11" FontWeight="SemiBold"/>
+                                    <TextBlock Text=" silver  |  " Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11"/>
+                                    <TextBlock Text="{Binding Translation.IslandManagementYieldConsumedValue, FallbackValue='Consumed: '}"
+                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                    <TextBlock Text="{Binding IslandBindings.OwnerTotalConsumedValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                               Foreground="{StaticResource SolidColorBrush.Accent.Red.3}" FontSize="11" FontWeight="SemiBold"/>
+                                    <TextBlock Text=" silver" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11"/>
+                                </StackPanel>
+
+                                <!-- View tabs: By Item / By Island + Clear -->
+                                <DockPanel Margin="0,0,0,6">
+                                    <Button DockPanel.Dock="Right" Height="22" Padding="8,0" FontSize="10"
+                                            Click="BtnClearAllOwnerYield_Click"
+                                            Foreground="{StaticResource SolidColorBrush.Accent.Red.3}">
+                                        <TextBlock Text="{Binding Translation.IslandManagementYieldClear, FallbackValue='Clear Yield Data'}"/>
+                                    </Button>
+                                    <StackPanel Orientation="Horizontal">
+                                    <Button Height="22" Padding="8,0" Margin="0,0,4,0" FontSize="10"
+                                            Click="BtnYieldViewByItem_Click">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.IslandYieldViewMode}" Value="0">
+                                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <TextBlock Text="{Binding Translation.IslandManagementYieldByItem, FallbackValue='By Item'}"/>
+                                    </Button>
+                                    <Button Height="22" Padding="8,0" FontSize="10"
+                                            Click="BtnYieldViewByIsland_Click">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Background.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.3}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.IslandYieldViewMode}" Value="1">
+                                                        <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <TextBlock Text="{Binding Translation.IslandManagementYieldByIsland, FallbackValue='By Island'}"/>
+                                    </Button>
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <!-- By Item view -->
+                                <ItemsControl Margin="0,0,0,4"
+                                              ItemsSource="{Binding IslandBindings.OwnerYieldByItem}"
+                                              ItemTemplate="{StaticResource IslandYieldAggregateRowTemplate}">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IslandBindings.IslandYieldViewMode}" Value="1">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                </ItemsControl>
+
+                                <!-- By Island view -->
+                                <ItemsControl Margin="0,0,0,4"
+                                              ItemsSource="{Binding IslandBindings.OwnerYieldByIsland}"
+                                              ItemTemplate="{StaticResource IslandYieldAggregateRowTemplate}">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IslandBindings.IslandYieldViewMode}" Value="1">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                </ItemsControl>
+
+                                <TextBlock Text="{Binding Translation.IslandManagementYieldNoData, FallbackValue='No yield data yet.'}"
+                                           FontSize="10" FontStyle="Italic"
+                                           Foreground="{StaticResource SolidColorBrush.Text.4}" HorizontalAlignment="Center" Margin="0,4">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IslandBindings.OwnerYieldByItem.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Discord alerts -->
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
+                            Visibility="{Binding IslandBindings.Preferences.DiscordAlertsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <Button Click="ToggleDiscordAlerts_Click" BorderThickness="0" Padding="8,5" Margin="0,0,0,6" HorizontalContentAlignment="Stretch">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{StaticResource Color.Background.2}"/>
+                                </Button.Background>
+                                <DockPanel>
+                                    <fa5:ImageAwesome DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <fa5:ImageAwesome.Style>
+                                            <Style TargetType="fa5:ImageAwesome">
+                                                <Setter Property="Icon" Value="Solid_ChevronUp"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.4}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowDiscordWebhookSection}" Value="False">
+                                                        <Setter Property="Icon" Value="Solid_ChevronDown"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </fa5:ImageAwesome.Style>
+                                    </fa5:ImageAwesome>
+                                    <TextBlock Text="DISCORD ALERTS" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource SolidColorBrush.Text.3}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Button>
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.ShowDiscordWebhookSection}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                            <TextBlock Text="Webhook URL is configured in the owner profile section above." FontSize="9"
+                                       Foreground="{StaticResource SolidColorBrush.Text.5}" Margin="0,0,0,6"/>
+                            <!-- Discord embed preview -->
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" CornerRadius="4"
+                                        Background="{StaticResource SolidColorBrush.Background.4}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="4"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="{StaticResource SolidColorBrush.Accent.Blue.4}"
+                                                CornerRadius="4,0,0,4"/>
+                                        <StackPanel Grid.Column="1" Margin="8,6,8,6">
+                                            <TextBlock Text="PREVIEW" FontSize="8" FontWeight="Bold"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.4}"
+                                                       Margin="0,0,0,4"/>
+                                            <TextBlock Text="{Binding IslandBindings.DiscordEmbedPreview, FallbackValue=''}"
+                                                       FontSize="10" FontFamily="Consolas"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.2}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
+                                    <Button x:Name="BtnSendWebhook" Content="Send" Width="64" Margin="0,0,0,4"
+                                            Click="BtnSendWebhook_Click"
+                                            Background="{StaticResource SolidColorBrush.Accent.Blue.4}"
+                                            Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                    <Button x:Name="BtnCopyMessage" Content="Copy" Width="64" Margin="0,0,0,4"
+                                            Click="BtnCopyMessage_Click"
+                                            Background="{StaticResource SolidColorBrush.Accent.Blue.4}"
+                                            Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                    <Button x:Name="BtnImportCode" Content="Import" Width="64"
+                                            Click="BtnImportCode_Click"
+                                            Background="{StaticResource SolidColorBrush.Accent.Blue.4}"
+                                            Foreground="{StaticResource SolidColorBrush.Text.1}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                <Setter Property="Background" Value="{StaticResource SolidColorBrush.Accent.Blue.4}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.1}"/>
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.IsPaidManagerEngagement}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IslandBindings.SelectedOwnerEngagementType}"
+                                                                 Value="{x:Static island:OwnerEngagementType.Rented}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>

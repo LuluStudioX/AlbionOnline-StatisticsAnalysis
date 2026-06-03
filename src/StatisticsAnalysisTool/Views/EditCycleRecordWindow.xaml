@@ -1,0 +1,122 @@
+<Window x:Class="StatisticsAnalysisTool.Views.EditCycleRecordWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:fa5="http://schemas.fontawesome.com/icons/"
+        mc:Ignorable="d"
+        Title="Edit Cycle Record"
+        Height="240" Width="440"
+        MinHeight="220" MinWidth="380"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource SolidColorBrush.Background.1}"
+        FontSize="{StaticResource BaseFontSize}"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Grid>
+        <Border BorderThickness="1" BorderBrush="{StaticResource SolidColorBrush.Accent.Blue.2}" IsHitTestVisible="False"/>
+
+        <!-- Title bar -->
+        <Grid x:Name="TitleBar" Height="33" VerticalAlignment="Top"
+              Background="{StaticResource SolidColorBrush.Background.3}"
+              MouseDown="TitleBar_MouseDown">
+            <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+            <StackPanel Orientation="Horizontal" Margin="10,0,61,0" VerticalAlignment="Center">
+                <fa5:ImageAwesome Icon="Solid_Edit"
+                                  Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"
+                                  Width="13" Height="13" Margin="0,0,8,0"/>
+                <TextBlock Text="Edit Cycle Record"
+                           Foreground="{StaticResource SolidColorBrush.Text.1}"
+                           FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button Style="{StaticResource WindowButtonStyle}" Content="r" Margin="-2,0,0,0" Click="CloseButton_Click"/>
+        </Grid>
+
+        <!-- Content -->
+        <Grid Margin="18,43,18,56">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Row 1: Date + Island Count + Amount -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Date" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10" Margin="0,0,0,2"/>
+                    <DatePicker x:Name="DatePicker" Height="26" FontSize="11"
+                                Background="{StaticResource SolidColorBrush.Background.2}"
+                                SelectedDateChanged="Field_Changed"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" x:Name="IslandCountLabel">
+                    <TextBlock Text="Islands" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10" Margin="0,0,0,2"/>
+                    <TextBox x:Name="IslandCountBox" Height="26" FontSize="11"
+                             Background="{StaticResource SolidColorBrush.Background.2}"
+                             Foreground="{StaticResource SolidColorBrush.Text.1}"
+                             VerticalContentAlignment="Center" Padding="4,0"
+                             TextChanged="Field_TextChanged"/>
+                </StackPanel>
+                <StackPanel Grid.Column="4">
+                    <TextBlock Text="Amount (silver)" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10" Margin="0,0,0,2"/>
+                    <TextBox x:Name="AmountBox" Height="26" FontSize="11"
+                             Background="{StaticResource SolidColorBrush.Background.2}"
+                             Foreground="{StaticResource SolidColorBrush.Text.1}"
+                             VerticalContentAlignment="Center" Padding="4,0"
+                             TextChanged="Field_TextChanged"/>
+                    <TextBlock x:Name="AmountPreview" FontSize="9"
+                               Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,1,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Row 2: Notes -->
+            <StackPanel Grid.Row="2">
+                <TextBlock Text="Notes" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10" Margin="0,0,0,2"/>
+                <TextBox x:Name="NotesBox" Height="26" FontSize="11"
+                         Background="{StaticResource SolidColorBrush.Background.2}"
+                         Foreground="{StaticResource SolidColorBrush.Text.1}"
+                         VerticalContentAlignment="Center" Padding="4,0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Action bar -->
+        <Grid Height="46" VerticalAlignment="Bottom"
+              Background="{StaticResource SolidColorBrush.Background.3}">
+            <Border BorderThickness="0,1,0,0" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+            <Button Height="28" Width="80" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
+                    Click="DeleteButton_Click">
+                <StackPanel Orientation="Horizontal">
+                    <fa5:ImageAwesome Icon="Solid_TrashAlt" Width="10" Height="10" Margin="0,0,5,0"
+                                      Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"/>
+                    <TextBlock Text="Delete" Foreground="{StaticResource SolidColorBrush.Accent.Red.3}" FontSize="12"/>
+                </StackPanel>
+            </Button>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
+                <Button Height="28" Width="80" Margin="0,0,8,0" Click="CancelButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_Times" Width="10" Height="10" Margin="0,0,5,0"
+                                          Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                        <TextBlock Text="Cancel" Foreground="{StaticResource SolidColorBrush.Text.1}" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ConfirmButton" Height="28" Width="80" IsEnabled="False"
+                        Style="{StaticResource Style.Button.Attention}"
+                        Click="ConfirmButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_Check" Width="10" Height="10" Margin="0,0,5,0"/>
+                        <TextBlock Text="Save" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
