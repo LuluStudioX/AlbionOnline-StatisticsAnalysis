@@ -424,6 +424,38 @@ public class TradeController
         {
             await SaveInFileAfterExceedingLimit(10);
         }
+
+        await TryPromptIslandPaymentAsync(session.PartnerName, trades);
+    }
+
+    private async Task TryPromptIslandPaymentAsync(string partnerName, List<Trade> trades)
+    {
+        var outgoingSilver = trades.FirstOrDefault(t =>
+            t.PlayerTradeContent?.IsSilver == true &&
+            t.PlayerTradeContent.Direction == PlayerTradeDirection.Outgoing);
+
+        if (outgoingSilver == null) return;
+
+        var islandController = _trackingController?.IslandController;
+        if (islandController == null) return;
+
+        var matchingIslands = islandController.GetIslandsByOwner(partnerName);
+        if (matchingIslands.Count == 0) return;
+
+        var silver = (decimal)outgoingSilver.PlayerTradeContent.Silver.IntegerValue;
+
+        await Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            var dialog = new IslandPaymentDialog(partnerName, silver, matchingIslands)
+            {
+                Owner = Application.Current.MainWindow
+            };
+
+            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.SelectedOwnerName))
+            {
+                islandController.RecordPayment(dialog.SelectedOwnerName, dialog.SilverAmount, dialog.Notes, dialog.PaidForWeekStart);
+            }
+        });
     }
 
     private List<Trade> CreatePlayerTrades(PlayerTradeSession session, long baseTicks)
