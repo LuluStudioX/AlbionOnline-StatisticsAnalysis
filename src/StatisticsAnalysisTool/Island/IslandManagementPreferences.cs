@@ -221,18 +221,18 @@ public class IslandManagementPreferences : INotifyPropertyChanged
         set { _defaultVisitDurationMinutes = value; OnPropertyChanged(); }
     }
 
-    private bool _hideTier;
-    public bool HideTier
+    private bool _showTier = true;
+    public bool ShowTier
     {
-        get => _hideTier;
-        set { _hideTier = value; OnPropertyChanged(); }
+        get => _showTier;
+        set { _showTier = value; OnPropertyChanged(); }
     }
 
-    private bool _hidePremium;
-    public bool HidePremium
+    private bool _showPremium = true;
+    public bool ShowPremium
     {
-        get => _hidePremium;
-        set { _hidePremium = value; OnPropertyChanged(); }
+        get => _showPremium;
+        set { _showPremium = value; OnPropertyChanged(); }
     }
 
     private bool _isOwnerSectionCollapsed;

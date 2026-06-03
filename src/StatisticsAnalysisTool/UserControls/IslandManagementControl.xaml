@@ -113,7 +113,7 @@
                                     <Style TargetType="Border">
                                         <Setter Property="Visibility" Value="Visible"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding DataContext.IslandBindings.Preferences.HideTier, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                            <DataTrigger Binding="{Binding DataContext.IslandBindings.Preferences.ShowTier, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -130,7 +130,7 @@
                                     <Style TargetType="fa5:ImageAwesome">
                                         <Setter Property="Visibility" Value="{Binding HasPremium, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Visible}"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding DataContext.IslandBindings.Preferences.HidePremium, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                            <DataTrigger Binding="{Binding DataContext.IslandBindings.Preferences.ShowPremium, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -648,21 +648,21 @@
 
                         <DockPanel Style="{StaticResource Island.Settings.Row}">
                             <CheckBox DockPanel.Dock="Left"
-                                      IsChecked="{Binding IslandBindings.Preferences.HideTier, Mode=TwoWay, FallbackValue=False}"
+                                      IsChecked="{Binding IslandBindings.Preferences.ShowTier, Mode=TwoWay, FallbackValue=True}"
                                       VerticalAlignment="Top" Margin="0,1,8,0"/>
                             <StackPanel>
-                                <TextBlock Text="{Binding Translation.IslandManagementSettingsHideTierLabel, FallbackValue='Hide tier badge'}" Style="{StaticResource Island.Settings.Label}"/>
-                                <TextBlock Text="{Binding Translation.IslandManagementSettingsHideTierDesc, FallbackValue='Hide tier badge on island cards'}" Style="{StaticResource Island.Settings.SubLabel}"/>
+                                <TextBlock Text="{Binding Translation.IslandManagementSettingsShowTierLabel, FallbackValue='Tier badge'}" Style="{StaticResource Island.Settings.Label}"/>
+                                <TextBlock Text="{Binding Translation.IslandManagementSettingsShowTierDesc, FallbackValue='Show tier badge on island cards'}" Style="{StaticResource Island.Settings.SubLabel}"/>
                             </StackPanel>
                         </DockPanel>
 
                         <DockPanel Style="{StaticResource Island.Settings.Row}">
                             <CheckBox DockPanel.Dock="Left"
-                                      IsChecked="{Binding IslandBindings.Preferences.HidePremium, Mode=TwoWay, FallbackValue=False}"
+                                      IsChecked="{Binding IslandBindings.Preferences.ShowPremium, Mode=TwoWay, FallbackValue=True}"
                                       VerticalAlignment="Top" Margin="0,1,8,0"/>
                             <StackPanel>
-                                <TextBlock Text="{Binding Translation.IslandManagementSettingsHidePremiumLabel, FallbackValue='Hide premium icon'}" Style="{StaticResource Island.Settings.Label}"/>
-                                <TextBlock Text="{Binding Translation.IslandManagementSettingsHidePremiumDesc, FallbackValue='Hide premium star icon on island cards'}" Style="{StaticResource Island.Settings.SubLabel}"/>
+                                <TextBlock Text="{Binding Translation.IslandManagementSettingsShowPremiumLabel, FallbackValue='Premium icon'}" Style="{StaticResource Island.Settings.Label}"/>
+                                <TextBlock Text="{Binding Translation.IslandManagementSettingsShowPremiumDesc, FallbackValue='Show premium star icon on island cards'}" Style="{StaticResource Island.Settings.SubLabel}"/>
                             </StackPanel>
                         </DockPanel>
                     </StackPanel>

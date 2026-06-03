@@ -150,6 +150,9 @@
                         <CheckBox IsChecked="{Binding IslandBindings.Preferences.DiscordAlertsVisible, Mode=TwoWay}"
                                   Content="Discord Alerts" Margin="0,0,16,4" FontSize="11"
                                   Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                        <CheckBox IsChecked="{Binding IslandBindings.Preferences.ShowYieldSummarySection, Mode=TwoWay}"
+                                  Content="Yield Summary" Margin="0,0,16,4" FontSize="11"
+                                  Foreground="{StaticResource SolidColorBrush.Text.1}"/>
                     </WrapPanel>
                     <Separator Background="{StaticResource SolidColorBrush.Background.4}" Margin="0,8,0,8"/>
                     <TextBlock Text="AUTOMATION &amp; HISTORY" FontSize="9" FontWeight="SemiBold"
@@ -1057,7 +1060,8 @@
                     </Border>
 
                     <!-- Yield Summary -->
-                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8">
+                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
+                            Visibility="{Binding IslandBindings.Preferences.ShowYieldSummarySection, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel>
                             <Button Click="ToggleYieldSummary_Click" BorderThickness="0" Padding="8,5" Margin="0,0,0,6" HorizontalContentAlignment="Stretch">
                                 <Button.Background>

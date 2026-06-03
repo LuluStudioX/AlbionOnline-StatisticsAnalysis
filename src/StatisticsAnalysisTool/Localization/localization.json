@@ -48228,6 +48228,42 @@
           "seg": "Don't Send"
         }
       ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_SHOW_TIER_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Tier badge"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_SHOW_TIER_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Show tier badge on island cards"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_SHOW_PREMIUM_LABEL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Premium icon"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_SHOW_PREMIUM_DESC",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Show premium star icon on island cards"
+        }
+      ]
     }
   ]
 }

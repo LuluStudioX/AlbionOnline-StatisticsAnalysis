@@ -222,10 +222,10 @@ public class MainWindowTranslation
     public static string IslandManagementSettingsCityIconDesc => LocalizationController.Translation("SETTINGS_SHOW_ISLAND_CITY_COLORS");
     public static string IslandManagementSettingsBiomeLabel => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_BIOME_LABEL");
     public static string IslandManagementSettingsBiomeDesc => LocalizationController.Translation("SETTINGS_SHOW_ISLAND_BIOME");
-    public static string IslandManagementSettingsHideTierLabel => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_HIDE_TIER_LABEL");
-    public static string IslandManagementSettingsHideTierDesc => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_HIDE_TIER_DESC");
-    public static string IslandManagementSettingsHidePremiumLabel => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_HIDE_PREMIUM_LABEL");
-    public static string IslandManagementSettingsHidePremiumDesc => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_HIDE_PREMIUM_DESC");
+    public static string IslandManagementSettingsShowTierLabel => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_SHOW_TIER_LABEL");
+    public static string IslandManagementSettingsShowTierDesc => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_SHOW_TIER_DESC");
+    public static string IslandManagementSettingsShowPremiumLabel => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_SHOW_PREMIUM_LABEL");
+    public static string IslandManagementSettingsShowPremiumDesc => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_SHOW_PREMIUM_DESC");
     public static string IslandManagementSettingsAutomation => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_AUTOMATION");
     public static string IslandManagementSettingsAutoSelectLabel => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_AUTO_SELECT_LABEL");
     public static string IslandManagementSettingsAutoSelectDesc => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_AUTO_SELECT_DESC");
