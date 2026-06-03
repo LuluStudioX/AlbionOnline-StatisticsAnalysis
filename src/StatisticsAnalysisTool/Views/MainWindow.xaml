@@ -191,7 +191,7 @@
         </Grid>-->
 
         <TabControl x:Name="MainTabControl" Style="{DynamicResource TabControlStyle}" SelectionChanged="MainTabControl_SelectionChanged">
-            <TabItem Visibility="{Binding DashboardTabVisibility, Mode=OneWay}" Header="{Binding Translation.Dashboard, FallbackValue=DASHBOARD}">
+            <TabItem Visibility="{Binding DashboardTabVisibility, Mode=OneWay}" Header="{Binding Translation.Dashboard, FallbackValue=DASHBOARD}" Tag="pack://application:,,,/Assets/Navigation/dashboard.png">
                 <Grid Style="{StaticResource TabItemGridStyle}">
                     <userControls:DashboardControl DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext}" />
                 </Grid>
@@ -261,12 +261,12 @@
                     <userControls:PlayerInformationControl />
                 </Grid>
             </TabItem>
-            <TabItem x:Name="IslandManagementTabItem" Visibility="{Binding IslandManagementTabVisibility, Mode=OneWay}" Header="{Binding Translation.IslandManagement, FallbackValue=ISLAND_MANAGEMENT}">
+            <TabItem x:Name="IslandManagementTabItem" Visibility="{Binding IslandManagementTabVisibility, Mode=OneWay}" Header="{Binding Translation.IslandManagement, FallbackValue=ISLAND_MANAGEMENT}" Tag="pack://application:,,,/Assets/Navigation/island.png">
                 <Grid Style="{StaticResource TabItemGridStyle}">
                     <userControls:IslandManagementControl DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext}" />
                 </Grid>
             </TabItem>
-            <TabItem Style="{StaticResource ItemContainerDonationStyle}" Header="{Binding Translation.Donations, FallbackValue=DONATIONS}">
+            <TabItem Style="{StaticResource ItemContainerDonationStyle}" Header="{Binding Translation.Donations, FallbackValue=DONATIONS}" Tag="pack://application:,,,/Assets/Navigation/money.png">
                 <Grid Style="{StaticResource TabItemGridStyle}">
                     <userControls:DonationControl />
                 </Grid>
