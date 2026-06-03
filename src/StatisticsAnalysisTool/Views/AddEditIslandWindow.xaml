@@ -1,0 +1,232 @@
+<Window x:Class="StatisticsAnalysisTool.Views.AddEditIslandWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:fa5="http://schemas.fontawesome.com/icons/"
+        xmlns:translation="clr-namespace:StatisticsAnalysisTool.Models.TranslationModel"
+        mc:Ignorable="d"
+        Title="Island"
+        Height="466" Width="500"
+        MinHeight="426" MinWidth="460"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource SolidColorBrush.Background.1}"
+        FontSize="{StaticResource BaseFontSize}"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Grid>
+        <Border BorderThickness="1" BorderBrush="{StaticResource SolidColorBrush.Accent.Blue.2}" IsHitTestVisible="False"/>
+
+        <!-- Title bar -->
+        <Grid x:Name="TitleBar" Height="33" VerticalAlignment="Top"
+              Background="{StaticResource SolidColorBrush.Background.3}"
+              MouseDown="TitleBar_MouseDown">
+            <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+            <StackPanel Orientation="Horizontal" Margin="10,0,61,0" VerticalAlignment="Center">
+                <fa5:ImageAwesome x:Name="TitleIcon" Icon="Solid_Plus"
+                                  Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"
+                                  Width="13" Height="13" Margin="0,0,8,0"/>
+                <TextBlock x:Name="TitleText" Text="Add Island"
+                           Foreground="{StaticResource SolidColorBrush.Text.1}"
+                           FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button Style="{StaticResource WindowButtonStyle}" Content="r" Margin="-2,0,0,0" Click="CloseButton_Click"/>
+        </Grid>
+
+        <!-- Form content -->
+        <ScrollViewer Margin="0,33,0,50" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="18,16,18,8">
+
+                <!-- Name -->
+                <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogIslandName}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                <TextBox x:Name="NameTextBox" Height="28" FontSize="12" Margin="0,0,0,14"
+                         Background="{StaticResource SolidColorBrush.Background.2}"
+                         Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+
+                <!-- Tier + City row -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogTier}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="TierComboBox" Height="28" FontSize="12"
+                                  Background="{StaticResource SolidColorBrush.Background.2}">
+                            <ComboBoxItem Content="T1"/>
+                            <ComboBoxItem Content="T2"/>
+                            <ComboBoxItem Content="T3"/>
+                            <ComboBoxItem Content="T4"/>
+                            <ComboBoxItem Content="T5" IsSelected="True"/>
+                            <ComboBoxItem Content="T6"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogCity}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CityComboBox" Height="28" FontSize="12"
+                                  Background="{StaticResource SolidColorBrush.Background.2}"
+                                  SelectionChanged="CityComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Bridgewatch"/>
+                            <ComboBoxItem Content="Lymhurst"/>
+                            <ComboBoxItem Content="Martlock"/>
+                            <ComboBoxItem Content="Fort Sterling"/>
+                            <ComboBoxItem Content="Thetford"/>
+                            <ComboBoxItem Content="Caerleon"/>
+                            <ComboBoxItem Content="Brecilien"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Owner + Plot Count row -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogOwner}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                        <TextBox x:Name="OwnerTextBox" Height="28" FontSize="12"
+                                 Background="{StaticResource SolidColorBrush.Background.2}"
+                                 Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogPlotCount}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                        <TextBox x:Name="PlotCountTextBox" Height="28" FontSize="12"
+                                 Background="{StaticResource SolidColorBrush.Background.2}"
+                                 Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Premium + Tracking checkboxes -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0"
+                            Background="{StaticResource SolidColorBrush.Background.2}"
+                            BorderBrush="{StaticResource SolidColorBrush.Background.4}"
+                            BorderThickness="0,0,0,2" Padding="10,8">
+                        <DockPanel>
+                            <CheckBox x:Name="PremiumCheckBox" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <fa5:ImageAwesome Icon="Solid_Star"
+                                                      Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}"
+                                                      Width="10" Height="10" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementPremium}" Foreground="{StaticResource SolidColorBrush.Text.1}" FontSize="12" FontWeight="SemiBold"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogPremiumDesc}" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            Background="{StaticResource SolidColorBrush.Background.2}"
+                            BorderBrush="{StaticResource SolidColorBrush.Background.4}"
+                            BorderThickness="0,0,0,2" Padding="10,8">
+                        <DockPanel>
+                            <CheckBox x:Name="TrackingCheckBox" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <fa5:ImageAwesome Icon="Solid_Eye"
+                                                      Foreground="{StaticResource SolidColorBrush.Accent.Blue.2}"
+                                                      Width="10" Height="10" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogTrackingLabel}" Foreground="{StaticResource SolidColorBrush.Text.1}" FontSize="12" FontWeight="SemiBold"/>
+                                </StackPanel>
+                                <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogTrackingDesc}" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Visit Duration -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogVisitDuration}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                        <TextBox x:Name="VisitDurationTextBox" Height="28" FontSize="12"
+                                 Background="{StaticResource SolidColorBrush.Background.2}"
+                                 Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                        <TextBlock Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10" TextWrapping="Wrap"
+                                   Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogVisitDurationHint}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Notes -->
+                <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogNotes}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                <TextBox x:Name="NotesTextBox" Margin="0,0,0,4"
+                         MinHeight="52" MaxHeight="80"
+                         TextWrapping="Wrap" AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         FontSize="11"
+                         Background="{StaticResource SolidColorBrush.Background.2}"
+                         Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+
+                <!-- Validation error -->
+                <Border x:Name="ValidationErrorPanel"
+                        Background="{StaticResource SolidColorBrush.Accent.Red.7}"
+                        BorderBrush="{StaticResource SolidColorBrush.Accent.Red.3}"
+                        BorderThickness="0,0,0,2" Padding="8,6"
+                        Visibility="Collapsed" Margin="0,8,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_ExclamationTriangle"
+                                          Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"
+                                          Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ValidationErrorText"
+                                   Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"
+                                   FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Action bar -->
+        <Grid Height="46" VerticalAlignment="Bottom"
+              Background="{StaticResource SolidColorBrush.Background.3}">
+            <Border BorderThickness="0,1,0,0" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+            <Button x:Name="DeleteButton" Height="28" Padding="10,0"
+                    HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
+                    Style="{StaticResource Style.Button.Danger}"
+                    Visibility="Collapsed"
+                    Click="DeleteButton_Click">
+                <StackPanel Orientation="Horizontal">
+                    <fa5:ImageAwesome Icon="Solid_TrashAlt" Width="10" Height="10" Margin="0,0,5,0"/>
+                    <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogDelete}" FontSize="12"/>
+                </StackPanel>
+            </Button>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
+                <Button Height="28" Width="80" Margin="0,0,8,0" Click="CancelButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_Times" Width="10" Height="10" Margin="0,0,5,0"
+                                          Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogCancel}" Foreground="{StaticResource SolidColorBrush.Text.1}" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ConfirmButton" Height="28" Width="110"
+                        Style="{StaticResource Style.Button.Attention}"
+                        Click="ConfirmButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome x:Name="ConfirmIcon" Icon="Solid_Plus" Width="10" Height="10" Margin="0,0,5,0"/>
+                        <TextBlock x:Name="ConfirmText" Text="Add Island" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+    </Grid>
+</Window>

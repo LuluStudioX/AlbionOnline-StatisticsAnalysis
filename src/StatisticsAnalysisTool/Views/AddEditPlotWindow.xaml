@@ -1,0 +1,200 @@
+<Window x:Class="StatisticsAnalysisTool.Views.AddEditPlotWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:fa5="http://schemas.fontawesome.com/icons/"
+        xmlns:translation="clr-namespace:StatisticsAnalysisTool.Models.TranslationModel"
+        mc:Ignorable="d"
+        Title="Plot"
+        Height="460" Width="420"
+        MinHeight="400" MinWidth="380"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource SolidColorBrush.Background.1}"
+        FontSize="{StaticResource BaseFontSize}"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Grid>
+        <Border BorderThickness="1" BorderBrush="{StaticResource SolidColorBrush.Accent.Blue.2}" IsHitTestVisible="False"/>
+
+        <!-- Title bar -->
+        <Grid x:Name="TitleBar" Height="33" VerticalAlignment="Top"
+              Background="{StaticResource SolidColorBrush.Background.3}"
+              MouseDown="TitleBar_MouseDown">
+            <Border BorderThickness="0,0,0,1" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+            <StackPanel Orientation="Horizontal" Margin="10,0,61,0" VerticalAlignment="Center">
+                <fa5:ImageAwesome x:Name="TitleIcon" Icon="Solid_Plus"
+                                  Foreground="{StaticResource SolidColorBrush.Accent.Blue.3}"
+                                  Width="13" Height="13" Margin="0,0,8,0"/>
+                <TextBlock x:Name="TitleText" Text="Add Plot"
+                           Foreground="{StaticResource SolidColorBrush.Text.1}"
+                           FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button Style="{StaticResource WindowButtonStyle}" Content="r" Margin="-2,0,0,0" Click="CloseButton_Click"/>
+        </Grid>
+
+        <!-- Form content -->
+        <ScrollViewer Margin="0,33,0,50" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="18,16,18,8">
+
+                <!-- Plot Type + Quantity row -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="100"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogPlotType}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="PlotTypeComboBox" Height="28" FontSize="12"
+                                  Background="{StaticResource SolidColorBrush.Background.2}"
+                                  SelectionChanged="PlotTypeComboBox_SelectionChanged"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogQuantity}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                        <TextBox x:Name="QuantityTextBox" Height="28" FontSize="12" Text="1"
+                                 Background="{StaticResource SolidColorBrush.Background.2}"
+                                 Foreground="{StaticResource SolidColorBrush.Text.1}"
+                                 TextChanged="QuantityTextBox_TextChanged"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Info hint -->
+                <Border x:Name="InfoPanel"
+                        Background="{StaticResource SolidColorBrush.Background.2}"
+                        BorderBrush="{StaticResource SolidColorBrush.Background.4}"
+                        BorderThickness="0,0,0,2" Padding="8,6"
+                        Margin="0,0,0,14">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_InfoCircle"
+                                          Foreground="{StaticResource SolidColorBrush.Text.4}"
+                                          Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="InfoText"
+                                   Foreground="{StaticResource SolidColorBrush.Text.3}"
+                                   FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- House: laborer slot assignment (visible only for House plot type) -->
+                <StackPanel x:Name="LaborerSlotsPanel" Visibility="Collapsed" Margin="0,0,0,14">
+                    <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogLaborerTypes}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" MinWidth="70"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogSlot1}" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ComboBox x:Name="Laborer1ComboBox" Grid.Column="1" Height="26" FontSize="11"
+                                  Background="{StaticResource SolidColorBrush.Background.2}"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" MinWidth="70"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogSlot2}" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ComboBox x:Name="Laborer2ComboBox" Grid.Column="1" Height="26" FontSize="11"
+                                  Background="{StaticResource SolidColorBrush.Background.2}"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" MinWidth="70"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogSlot3}" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ComboBox x:Name="Laborer3ComboBox" Grid.Column="1" Height="26" FontSize="11"
+                                  Background="{StaticResource SolidColorBrush.Background.2}"/>
+                    </Grid>
+                    <TextBlock Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10" Margin="0,6,0,0"
+                               Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogLaborerHint}"/>
+                </StackPanel>
+
+                <!-- Farm / HerbGarden / Pasture / Kennel / Saddler: structured type picker -->
+                <StackPanel x:Name="FarmableConfigPanel" Visibility="Collapsed" Margin="0,0,0,14">
+                    <TextBlock x:Name="FarmableConfigLabel" Text="Type" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="FarmableTypeComboBox" Height="28" FontSize="12"
+                              Background="{StaticResource SolidColorBrush.Background.2}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Image Source="{Binding Icon}" Width="20" Height="20" Margin="0,0,6,0"/>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock x:Name="FarmableConfigHint" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10" Margin="0,4,0,0"
+                               Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogFarmableHint}"/>
+                </StackPanel>
+
+                <!-- Non-configurable plots: raw optional text box -->
+                <StackPanel x:Name="RawConfigPanel" Visibility="Collapsed" Margin="0,0,0,14">
+                    <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogConfigOptional}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                    <TextBox x:Name="ConfigurationTextBox" Margin="0,0,0,4"
+                             MinHeight="52" MaxHeight="80"
+                             TextWrapping="Wrap" AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             FontSize="11"
+                             Background="{StaticResource SolidColorBrush.Background.2}"
+                             Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                    <TextBlock Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="10"
+                               Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogConfigHint}"/>
+                </StackPanel>
+
+                <!-- Notes -->
+                <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogNotes}" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4"/>
+                <TextBox x:Name="NotesTextBox" Margin="0,0,0,4"
+                         MinHeight="40" MaxHeight="60"
+                         TextWrapping="Wrap" AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         FontSize="11"
+                         Background="{StaticResource SolidColorBrush.Background.2}"
+                         Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+
+                <!-- Validation error -->
+                <Border x:Name="ValidationErrorPanel"
+                        Background="{StaticResource SolidColorBrush.Accent.Red.7}"
+                        BorderBrush="{StaticResource SolidColorBrush.Accent.Red.3}"
+                        BorderThickness="0,0,0,2" Padding="8,6"
+                        Visibility="Collapsed" Margin="0,8,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_ExclamationTriangle"
+                                          Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"
+                                          Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ValidationErrorText"
+                                   Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"
+                                   FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Action bar -->
+        <Grid Height="46" VerticalAlignment="Bottom"
+              Background="{StaticResource SolidColorBrush.Background.3}">
+            <Border BorderThickness="0,1,0,0" BorderBrush="{StaticResource SolidColorBrush.Background.4}" IsHitTestVisible="False"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
+                <Button Height="28" Width="80" Margin="0,0,8,0" Click="CancelButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome Icon="Solid_Times" Width="10" Height="10" Margin="0,0,5,0"
+                                          Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                        <TextBlock Text="{x:Static translation:MainWindowTranslation.IslandManagementDialogCancel}" Foreground="{StaticResource SolidColorBrush.Text.1}" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ConfirmButton" Height="28" Width="110"
+                        Style="{StaticResource Style.Button.Attention}"
+                        Click="ConfirmButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <fa5:ImageAwesome x:Name="ConfirmIcon" Icon="Solid_Plus" Width="10" Height="10" Margin="0,0,5,0"/>
+                        <TextBlock x:Name="ConfirmText" Text="Add Plot" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+    </Grid>
+</Window>
