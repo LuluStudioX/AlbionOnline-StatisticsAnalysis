@@ -110,7 +110,7 @@ internal static class ImageController
             return cachedImage;
         }
 
-        var localFilePath = Path.Combine(localDirectory, uniqueName);
+        var localFilePath = Path.Combine(localDirectory, $"{uniqueName}_{pixelWidth}x{pixelHeight}");
         if (File.Exists(localFilePath))
         {
             var localImage = GetImageFromLocal(localFilePath, pixelHeight, pixelWidth, freeze);

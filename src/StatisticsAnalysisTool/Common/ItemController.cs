@@ -423,6 +423,24 @@ public static class ItemController
 
     #endregion Item list
 
+    public static IReadOnlyList<(FarmableItem Farmable, Item IndexedItem)> GetFarmableItemsWithIndex()
+    {
+        var farmables = _itemsJson?.Items?.FarmableItem;
+        if (farmables == null || farmables.Count == 0)
+            return [];
+
+        var result = new List<(FarmableItem, Item)>(farmables.Count);
+        foreach (var farmable in farmables)
+        {
+            if (string.IsNullOrWhiteSpace(farmable?.UniqueName))
+                continue;
+            _itemsByUniqueName.TryGetValue(farmable.UniqueName, out var indexed);
+            result.Add((farmable, indexed));
+        }
+
+        return result;
+    }
+
     #region Item extra information
 
     public static void SetFullItemInfoToItems()
