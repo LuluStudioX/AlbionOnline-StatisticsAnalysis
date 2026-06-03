@@ -9,8 +9,6 @@ public class NewJournalItemEventHandler(TrackingController trackingController) :
 {
     protected override async Task OnActionAsync(NewJournalItemEvent value)
     {
-
-
         if (trackingController.IsTrackingAllowedByMainCharacter())
         {
             trackingController.VaultController.AddDiscoveredItem(value.Item);
@@ -19,6 +17,7 @@ public class NewJournalItemEventHandler(TrackingController trackingController) :
         EstimatedMarketValueController.Add(value.Item.ItemIndex, value.Item.EstimatedMarketValueInternal, value.Item.Quality);
         trackingController.LootController.AddDiscoveredItem(value.Item);
         trackingController.DungeonController.AddDiscoveredItem(value.Item);
+        trackingController.IslandController?.HandleLaborerYieldItem(value.Item);
         await Task.CompletedTask;
     }
 }
