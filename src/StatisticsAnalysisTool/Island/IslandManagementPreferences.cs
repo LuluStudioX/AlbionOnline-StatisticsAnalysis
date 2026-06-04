@@ -151,6 +151,41 @@ public class IslandManagementPreferences : INotifyPropertyChanged
         set { _showYieldSummarySection = value; OnPropertyChanged(); }
     }
 
+    private bool _isYieldSummarySectionCollapsed;
+    public bool IsYieldSummarySectionCollapsed
+    {
+        get => _isYieldSummarySectionCollapsed;
+        set { _isYieldSummarySectionCollapsed = value; OnPropertyChanged(); }
+    }
+
+    private bool _isIslandSummarySectionCollapsed;
+    public bool IsIslandSummarySectionCollapsed
+    {
+        get => _isIslandSummarySectionCollapsed;
+        set { _isIslandSummarySectionCollapsed = value; OnPropertyChanged(); }
+    }
+
+    private bool _isFinanceRecordSectionCollapsed;
+    public bool IsFinanceRecordSectionCollapsed
+    {
+        get => _isFinanceRecordSectionCollapsed;
+        set { _isFinanceRecordSectionCollapsed = value; OnPropertyChanged(); }
+    }
+
+    private bool _isRecordCycleCollapsed;
+    public bool IsRecordCycleCollapsed
+    {
+        get => _isRecordCycleCollapsed;
+        set { _isRecordCycleCollapsed = value; OnPropertyChanged(); }
+    }
+
+    private bool _isRecordPayoutCollapsed;
+    public bool IsRecordPayoutCollapsed
+    {
+        get => _isRecordPayoutCollapsed;
+        set { _isRecordPayoutCollapsed = value; OnPropertyChanged(); }
+    }
+
     private bool _showIslandPayOverride = true;
     public bool ShowIslandPayOverride
     {

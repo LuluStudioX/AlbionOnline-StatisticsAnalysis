@@ -355,18 +355,43 @@ public partial class IslandController
         if (string.IsNullOrEmpty(uniqueName)) return null;
         var upper = uniqueName.ToUpperInvariant();
         if (upper.Contains("LABOURER")) return PlotType.House;
+        if (upper.Contains("PLAYERHOUSE") || upper.Contains("PLAYER_HOUSE")) return PlotType.House;
         if (upper.Contains("FARMHOUSE")) return PlotType.Farm;
         if (upper.Contains("HERBGARDEN") || upper.Contains("_HERB_")) return PlotType.HerbGarden;
         if (upper.Contains("PASTURE")) return PlotType.Pasture;
         if (upper.Contains("KENNEL")) return PlotType.Kennel;
         if (upper.Contains("SADDLER")) return PlotType.Saddler;
+        if (upper.Contains("BUTCHER")) return PlotType.Butcher;
+        if (upper.Contains("SMELTER")) return PlotType.Smelter;
+        if (upper.Contains("TANNER")) return PlotType.Tanner;
+        if (upper.Contains("LUMBERMILL") || upper.Contains("LUMBER_MILL")) return PlotType.Lumbermill;
+        if (upper.Contains("STONEMASON") || upper.Contains("STONE_MASON")) return PlotType.Stonemason;
+        if (upper.Contains("COOK")) return PlotType.Cook;
+        if (upper.Contains("ALCHEMYLAB") || upper.Contains("ALCHEMY_LAB") || upper.Contains("ALCHLAB")) return PlotType.AlchemyLab;
+        if (upper.Contains("HUNTERLODGE") || upper.Contains("HUNTER_LODGE") || upper.Contains("HUNTER")) return PlotType.HunterLodge;
+        if (upper.Contains("WARRIORGUILD") || upper.Contains("WARRIOR_GUILD") || upper.Contains("WARRIOR")) return PlotType.WarriorGuild;
+        if (upper.Contains("MAGETOWER") || upper.Contains("MAGE_TOWER") || upper.Contains("MAGE")) return PlotType.MageTower;
+        if (upper.Contains("WEAVER")) return PlotType.Weaver;
+        if (upper.Contains("TOOLMAKER") || upper.Contains("TOOL_MAKER")) return PlotType.Toolmaker;
+        if (upper.Contains("MILL")) return PlotType.Mill;
+        if (upper.Contains("REPAIRSHOP") || upper.Contains("REPAIR")) return PlotType.RepairStation;
         return null;
     }
 
     public void HandleLaborerObjectInfo(LaborerObjectInfoEvent e)
     {
         if (e.ObjectId < 0) return;
-        if (!_snapshots.TryGetValue(e.ObjectId, out var snapshot)) return;
+        if (!_snapshots.TryGetValue(e.ObjectId, out var snapshot))
+        {
+            // LaborerObjectInfo can arrive before NewBuilding on re-entry (new ObjectId after respawn).
+            // Create a stub snapshot so names and job state are captured immediately.
+            snapshot = _snapshots.GetOrAdd(e.ObjectId, id =>
+            {
+                var s = new LaborerSnapshot(id) { DetectionOrder = Interlocked.Increment(ref _detectionCounter) };
+                lock (_snapshotOrderLock) _snapshotsByOrder.Add(s);
+                return s;
+            });
+        }
         var wasOnJob = snapshot.IsOnJob;
         snapshot.UpdateFromLaborerObjectInfo(e);
 
@@ -883,8 +908,7 @@ public partial class IslandController
             Log.Information("[IslandController] ActionOnBuildingFinished on island: island={Island}, type={ActionType} ({ActionTypeInt})",
                 island.Name, e.ActionType, (int) e.ActionType);
 
-        var prefs = _mainWindowViewModel?.IslandBindings?.Preferences;
-        if (prefs == null || !prefs.AutoStartCycleOnIslandActivity) return;
+        if (island == null) return;
 
         var localUserObjectId = _trackingController?.EntityController?.LocalUserData?.UserObjectId;
         if (!e.UserObjectId.HasValue || !localUserObjectId.HasValue || e.UserObjectId.Value != localUserObjectId.Value)
@@ -893,29 +917,14 @@ public partial class IslandController
         if (e.ActionType == ActionOnBuildingType.Repair) return;
         if (e.ActionType == ActionOnBuildingType.BuyAndCrafting) return;
 
-        if (island == null) return;
-
-        // Evaluate cycleRunning before clearing so the check uses live plot timers,
-        // not the stale island-level LastPlantedAt fallback.
-        var cycleWasRunning = island.NextCollectionReadyAt.HasValue
-            && island.NextCollectionReadyAt.Value > DateTime.UtcNow;
-
-        // Harvest/collect action — clear per-plot timers so plots show "awaiting replant".
+        // Clear per-plot timers on collect/harvest so plots show "awaiting replant".
+        // Cycle restart is NOT triggered here: laborer dispatch is tracked via TryAutoStartIslandTimerFromLaborer
+        // (back-calculates accurate dispatch time); crop replant is detected via HandleFarmableObjectInfo /
+        // HandleFarmBuildingInfo. Triggering CommitIslandPlant here would stamp a wrong "now" timestamp
+        // mid-collection before the user has actually dispatched laborers or replanted crops.
         ClearPlotPlantedAt(island);
         RefreshIslandStatusAsync(island);
         Log.Information("[IslandController] Cleared plot timers after building action: island={Island}, actionType={ActionType}",
-            island.Name, e.ActionType);
-
-        if (cycleWasRunning) return;
-
-        if (IsIslandInRoyalCity(island))
-        {
-            Log.Debug("[IslandController] Skipped auto-start for island in royal city (building): {Island}", island.Name);
-            return;
-        }
-
-        CommitIslandPlant(island);
-        Log.Information("[IslandController] Auto-started island cycle from building activity: island={Island}, actionType={ActionType}",
             island.Name, e.ActionType);
     }
 
@@ -1315,6 +1324,33 @@ public partial class IslandController
             }
         }
 
+        // 5. Partial name + city — handles app name "OrangeZones Lymhurst" vs game instance "OrangeZones".
+        if (!string.IsNullOrWhiteSpace(_sessionWorldMapDataType))
+        {
+            var sessionCity5 = ParseCityFromWorldMapDataType(_sessionWorldMapDataType);
+            if (!string.IsNullOrWhiteSpace(sessionCity5))
+            {
+                var partialMatches = _islands
+                    .Where(i => !string.IsNullOrWhiteSpace(i.Name)
+                             && i.IslandType == IslandType.Player
+                             && string.Equals(i.City, sessionCity5, StringComparison.OrdinalIgnoreCase)
+                             && (i.Name.StartsWith(name, StringComparison.OrdinalIgnoreCase)
+                                 || name.StartsWith(i.Name, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+                if (partialMatches.Count == 1) return partialMatches[0];
+            }
+        }
+
+        // 6. SourceClusterIndex alone — last resort when name is completely mismatched but island
+        //    was previously identified and had SourceClusterIndex backfilled.
+        if (!string.IsNullOrWhiteSpace(_sessionSourceClusterIndex))
+        {
+            var srcOnlyMatches = _islands
+                .Where(i => string.Equals(i.SourceClusterIndex, _sessionSourceClusterIndex, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (srcOnlyMatches.Count == 1) return srcOnlyMatches[0];
+        }
+
         return null;
     }
 
@@ -1338,14 +1374,15 @@ public partial class IslandController
         var slotIndex = layout.WorldToNearestSlot(wx, wy, requireLarge: null);
         if (!slotIndex.HasValue) return;
 
-        // Position-based: find the house plot already assigned to this slot.
-        var target = island.Plots.FirstOrDefault(p =>
-            p.PlotType == PlotType.House && p.MapSlotIndex == slotIndex.Value);
+        // Skip if a house plot already claims this slot.
+        if (island.Plots.Any(p => p.PlotType == PlotType.House && p.MapSlotIndex == slotIndex.Value))
+            return;
 
-        if (target == null) return;
-        if (target.MapSlotIndex == slotIndex.Value) return;
+        var unassigned = island.Plots.FirstOrDefault(p =>
+            p.PlotType == PlotType.House && !p.MapSlotIndex.HasValue);
+        if (unassigned == null) return;
 
-        target.MapSlotIndex = slotIndex.Value;
+        unassigned.MapSlotIndex = slotIndex.Value;
         island.UpdateModificationDate();
         _ = SaveToFileAsync();
         Log.Information("[IslandController] Auto-assigned house map slot {Slot} from laborer world pos ({X},{Y})",
@@ -2377,7 +2414,13 @@ public static class IslandMapping
             TrackingEnabled = isl.TrackingEnabled,
             VisitDurationMinutes = isl.VisitDurationMinutes,
             Plots = new ObservableCollection<IslandPlotEntry>(
-                isl.Plots?.OrderBy(p => p.MapSlotIndex ?? int.MaxValue).Select(p => ToPlotEntry(p, layout)) ?? []
+                isl.Plots?.OrderBy(p =>
+                {
+                    if (!p.MapSlotIndex.HasValue) return int.MaxValue;
+                    var slotDef = layout?.GetSlot(p.MapSlotIndex.Value);
+                    // Small slots always sort by SlotIndex so paired cards stay in fixed order (S1 left, S2 right)
+                    return (slotDef is { IsLarge: false }) ? slotDef.SlotIndex + 10000 : p.MapSlotIndex.Value;
+                }).Select(p => ToPlotEntry(p, layout)) ?? []
             ),
             YieldItems = new ObservableCollection<IslandYieldEntry>(isl.YieldHistory),
             ConsumedItems = new ObservableCollection<IslandConsumedEntry>(isl.ConsumedHistory)

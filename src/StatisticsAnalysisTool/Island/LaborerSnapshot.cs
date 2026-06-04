@@ -117,7 +117,10 @@ public class LaborerSnapshot
 
         if (!string.IsNullOrEmpty(e.FirstName)) FirstName = e.FirstName;
         if (!string.IsNullOrEmpty(e.LastName)) LastName = e.LastName;
-        IsOnJob = e.IsOnJob;
+        // Don't overwrite IsLootReady=true with IsOnJob=true from a stale dispatch ticks param.
+        // LaborerObjectJobInfo is authoritative for loot-ready state.
+        if (!(IsLootReady && e.IsOnJob))
+            IsOnJob = e.IsOnJob;
         ActiveJobId = e.ActiveJobId;
         JobDispatchTime = e.JobDispatchTime;
         SentByCharacter = e.SentByCharacter;
@@ -133,9 +136,8 @@ public class LaborerSnapshot
             SentDetailSnapshot = string.Empty;
         }
 
-        if (e.IsOnJob)
+        if (e.IsOnJob && !IsLootReady)
         {
-            IsLootReady = false;
             if (string.IsNullOrEmpty(SentDetailSnapshot) && JobDispatchTime.HasValue)
                 SentDetailSnapshot = FormatSentElapsed(DateTime.UtcNow, JobDispatchTime.Value);
         }

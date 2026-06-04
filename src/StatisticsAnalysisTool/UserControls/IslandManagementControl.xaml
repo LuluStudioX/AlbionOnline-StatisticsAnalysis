@@ -1135,15 +1135,13 @@
 
                             <!-- Plot cards with faded island map background (PNG + slot overlay) -->
                             <Grid Grid.Row="1" ClipToBounds="True">
-                                <!-- Layer 1: island PNG, uniform-fill, faded -->
-                                <Viewbox Stretch="UniformToFill" IsHitTestVisible="False" Opacity="0.12">
-                                    <Image x:Name="PlotsMapImage"
-                                           Width="1024" Height="1024"
-                                           Stretch="Fill"/>
-                                </Viewbox>
-                                <!-- Layer 2: slot status circles (same 1024×1024 space), faded -->
-                                <Viewbox Stretch="UniformToFill" IsHitTestVisible="False" Opacity="0.35">
-                                    <Canvas x:Name="PlotsMapOverlayCanvas" Width="1024" Height="1024"/>
+                                <!-- Layers 1+2: image and overlay share one Viewbox so they scale identically.
+                                     Stretch="Uniform" → no crop, fits within container preserving aspect ratio. -->
+                                <Viewbox Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Bottom" IsHitTestVisible="False">
+                                    <Grid Width="1024" Height="1024">
+                                        <Image x:Name="PlotsMapImage" Width="1024" Height="1024" Stretch="Fill" Opacity="0.12"/>
+                                        <Canvas x:Name="PlotsMapOverlayCanvas" Width="1024" Height="1024" Opacity="0.35"/>
+                                    </Grid>
                                 </Viewbox>
                                 <!-- Layer 3: plot cards (scrollable) -->
                                 <vwp:VirtualizingItemsControl x:Name="PlotsItemsControl"

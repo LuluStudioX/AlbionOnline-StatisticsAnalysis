@@ -55,6 +55,11 @@ public class NetworkManager
         builder.AddEventHandler(new InventoryDeleteItemEventHandler(trackingController));
         builder.AddEventHandler(new TakeSilverEventHandler(trackingController));
         builder.AddEventHandler(new ActionOnBuildingFinishedEventHandler(trackingController));
+        builder.AddEventHandler(new NewBuildingEventHandler(trackingController));
+        builder.AddEventHandler(new FarmBuildingInfoEventHandler(trackingController));
+        builder.AddEventHandler(new FarmableObjectInfoEventHandler(trackingController));
+        builder.AddEventHandler(new LaborerObjectInfoEventHandler(trackingController));
+        builder.AddEventHandler(new LaborerObjectJobInfoEventHandler(trackingController));
         builder.AddEventHandler(new UpdateFameEventHandler(trackingController));
         builder.AddEventHandler(new UpdateMoneyEventHandler(trackingController));
         builder.AddEventHandler(new UpdateReSpecPointsEventHandler(trackingController));

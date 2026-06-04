@@ -210,6 +210,18 @@ public partial class OwnerOverviewWindow : Window
         vm.IslandBindings.Preferences.IsYieldSummarySectionCollapsed = !vm.IslandBindings.Preferences.IsYieldSummarySectionCollapsed;
     }
 
+    private void ToggleIslandSummary_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        vm.IslandBindings.Preferences.IsIslandSummarySectionCollapsed = !vm.IslandBindings.Preferences.IsIslandSummarySectionCollapsed;
+    }
+
+    private void ToggleFinanceRecord_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        vm.IslandBindings.Preferences.IsFinanceRecordSectionCollapsed = !vm.IslandBindings.Preferences.IsFinanceRecordSectionCollapsed;
+    }
+
     private void BtnYieldViewByItem_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm) return;

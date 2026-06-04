@@ -17,6 +17,19 @@ public sealed class IslandSlotDefinition
     /// When a large-type plot occupies one small slot, the paired slot is treated as consumed.
     /// </summary>
     public int? PairedSmallSlotIndex { get; init; }
+    /// <summary>
+    /// For small slots only: alternate pixel position used when the gating large slot is unoccupied.
+    /// When the large slot at AltConditionLargeSlot has a plot assigned, use X/Y (top position).
+    /// When unoccupied, use AltX/AltY (bottom position).
+    /// </summary>
+    public double? AltX { get; init; }
+    public double? AltY { get; init; }
+    public int? AltConditionLargeSlot { get; init; }
+    /// <summary>
+    /// For large slots only: alternate pixel position used when the given small slot is occupied.
+    /// When the small slot at AltConditionSmallSlot has a plot assigned, use AltX/AltY.
+    /// </summary>
+    public int? AltConditionSmallSlot { get; init; }
 }
 
 public sealed class IslandLayoutDefinition
@@ -31,6 +44,28 @@ public sealed class IslandLayoutDefinition
 
     public IslandSlotDefinition GetSlot(int index) =>
         Slots.FirstOrDefault(s => s.SlotIndex == index);
+
+    /// <summary>
+    /// Returns the effective pixel position for a slot, accounting for dynamic repositioning.
+    /// Small slots with AltConditionLargeSlot: use X/Y when that large slot is occupied, AltX/AltY otherwise.
+    /// </summary>
+    public static (double X, double Y) GetEffectivePosition(IslandSlotDefinition slot, IEnumerable<IslandPlot> plots)
+    {
+        if (slot.AltX.HasValue && slot.AltY.HasValue)
+        {
+            if (slot.AltConditionLargeSlot.HasValue)
+            {
+                var largeOccupied = plots.Any(p => p.MapSlotIndex == slot.AltConditionLargeSlot.Value);
+                return largeOccupied ? (slot.AltX.Value, slot.AltY.Value) : (slot.X, slot.Y);
+            }
+            if (slot.AltConditionSmallSlot.HasValue)
+            {
+                var smallOccupied = plots.Any(p => p.MapSlotIndex == slot.AltConditionSmallSlot.Value);
+                return smallOccupied ? (slot.AltX.Value, slot.AltY.Value) : (slot.X, slot.Y);
+            }
+        }
+        return (slot.X, slot.Y);
+    }
 
     public (int Col, int Row)? GetSlotGridCell(int slotIndex)
     {
@@ -53,15 +88,20 @@ public sealed class IslandLayoutDefinition
     /// For a small slot with a spanning large-type plot, returns the midpoint between this slot
     /// and its paired slot. Falls back to the slot's own coords if no pair is defined.
     /// </summary>
-    public (double X, double Y) GetSpanningSlotCenter(IslandSlotDefinition slot)
+    public (double X, double Y) GetSpanningSlotCenter(IslandSlotDefinition slot, IEnumerable<IslandPlot> plots = null)
     {
+        var plotList = plots as IList<IslandPlot> ?? plots?.ToList() ?? [];
         if (slot.PairedSmallSlotIndex.HasValue)
         {
             var paired = GetSlot(slot.PairedSmallSlotIndex.Value);
             if (paired != null)
-                return ((slot.X + paired.X) / 2.0, (slot.Y + paired.Y) / 2.0);
+            {
+                var (sx, sy) = GetEffectivePosition(slot, plotList);
+                var (px, py) = GetEffectivePosition(paired, plotList);
+                return ((sx + px) / 2.0, (sy + py) / 2.0);
+            }
         }
-        return (slot.X, slot.Y);
+        return GetEffectivePosition(slot, plotList);
     }
 
 public int? WorldToNearestSlot(float wx, float wy, bool? requireLarge = null)
@@ -94,29 +134,29 @@ public static class IslandLayouts
         MapImageResourcePath = "pack://application:,,,/Assets/IslandMaps/ISLAND-PLAYER-STEPPE-0001f_ISL_ST_AUTO_T1_NON.png",
         GridColumns = 6,
         GridRows = 5,
-        WorldTransform = (A: 2.845, B: -0.045, C: -68.0, D: -0.027, E: -2.773, F: 823.0),
+        WorldTransform = (A: 2.8499, B: -0.0081, C: -85.94, D: -0.0195, E: -2.8524, F: 826.97),
         Slots = new List<IslandSlotDefinition>
         {
-            // Large plots — numbered top-left → bottom-right (spatial order)
+            // Large plots — visually calibrated 2026-06-04
             new() { SlotIndex = 1,  X = 356, Y = 609, IsLarge = true,  GridCol = 1, GridRow = 4 },
-            new() { SlotIndex = 2,  X = 329, Y = 552, IsLarge = true,  GridCol = 1, GridRow = 3 },
+            new() { SlotIndex = 2,  X = 325, Y = 552, IsLarge = true,  GridCol = 1, GridRow = 3, AltX = 325, AltY = 525, AltConditionSmallSlot = 17 },
             new() { SlotIndex = 3,  X = 241, Y = 554, IsLarge = true,  GridCol = 0, GridRow = 3 },
-            new() { SlotIndex = 4,  X = 217, Y = 496, IsLarge = true,  GridCol = 0, GridRow = 2 },
-            new() { SlotIndex = 5,  X = 326, Y = 439, IsLarge = true,  GridCol = 1, GridRow = 1 },
-            new() { SlotIndex = 6,  X = 441, Y = 498, IsLarge = true,  GridCol = 3, GridRow = 2 },
-            new() { SlotIndex = 7,  X = 413, Y = 410, IsLarge = true,  GridCol = 2, GridRow = 1 },
-            new() { SlotIndex = 8,  X = 471, Y = 410, IsLarge = true,  GridCol = 3, GridRow = 1 },
-            new() { SlotIndex = 9,  X = 474, Y = 351, IsLarge = true,  GridCol = 2, GridRow = 0 },
-            new() { SlotIndex = 10, X = 528, Y = 351, IsLarge = true,  GridCol = 3, GridRow = 0 },
+            new() { SlotIndex = 4,  X = 213, Y = 498, IsLarge = true,  GridCol = 0, GridRow = 2 },
+            new() { SlotIndex = 5,  X = 324, Y = 439, IsLarge = true,  GridCol = 1, GridRow = 1 },
+            new() { SlotIndex = 6,  X = 440, Y = 498, IsLarge = true,  GridCol = 3, GridRow = 2 },
+            new() { SlotIndex = 7,  X = 411, Y = 410, IsLarge = true,  GridCol = 2, GridRow = 1 },
+            new() { SlotIndex = 8,  X = 469, Y = 410, IsLarge = true,  GridCol = 3, GridRow = 1 },
+            new() { SlotIndex = 9,  X = 470, Y = 351, IsLarge = true,  GridCol = 2, GridRow = 0 },
+            new() { SlotIndex = 10, X = 526, Y = 351, IsLarge = true,  GridCol = 3, GridRow = 0 },
             new() { SlotIndex = 11, X = 554, Y = 466, IsLarge = true,  GridCol = 4, GridRow = 1 },
             new() { SlotIndex = 12, X = 696, Y = 466, IsLarge = true,  GridCol = 5, GridRow = 1 },
             new() { SlotIndex = 13, X = 754, Y = 551, IsLarge = true,  GridCol = 5, GridRow = 3 },
-            new() { SlotIndex = 14, X = 671, Y = 551, IsLarge = true,  GridCol = 4, GridRow = 3 },
+            new() { SlotIndex = 14, X = 669, Y = 551, IsLarge = true,  GridCol = 4, GridRow = 3 },
             new() { SlotIndex = 15, X = 554, Y = 551, IsLarge = true,  GridCol = 3, GridRow = 3 },
             new() { SlotIndex = 16, X = 498, Y = 607, IsLarge = true,  GridCol = 3, GridRow = 4 },
-            // Small plots — S1/S2 (paired: a large-type plot on one consumes the other)
-            new() { SlotIndex = 17, X = 339, Y = 510, IsLarge = false, GridCol = 2, GridRow = 2, PairedSmallSlotIndex = 18 },
-            new() { SlotIndex = 18, X = 312, Y = 510, IsLarge = false, GridCol = 1, GridRow = 2, PairedSmallSlotIndex = 17 },
+            // Small plots — slot 2 occupied → S1/S2 shift to alt (bottom); S1 occupied → slot 2 shifts up
+            new() { SlotIndex = 17, X = 312, Y = 510, IsLarge = false, GridCol = 1, GridRow = 2, PairedSmallSlotIndex = 18, AltX = 311, AltY = 567, AltConditionLargeSlot = 2 },
+            new() { SlotIndex = 18, X = 339, Y = 510, IsLarge = false, GridCol = 2, GridRow = 2, PairedSmallSlotIndex = 17, AltX = 338, AltY = 567, AltConditionLargeSlot = 2 },
         }
     };
 
@@ -154,9 +194,9 @@ public static class IslandLayouts
             new() { SlotIndex = 14, X = 304, Y = 585, IsLarge = true  },
             new() { SlotIndex = 15, X = 531, Y = 622, IsLarge = true  },
             new() { SlotIndex = 16, X = 381, Y = 622, IsLarge = true  },
-            // Small plots — indexed 17..18
-            new() { SlotIndex = 17, X = 630, Y = 416, IsLarge = false },
-            new() { SlotIndex = 18, X = 590, Y = 416, IsLarge = false },
+            // Small plots — slot 10 occupied → S1/S2 shift to alt (below); slot 10 empty → base
+            new() { SlotIndex = 17, X = 590, Y = 416, IsLarge = false, PairedSmallSlotIndex = 18, AltX = 590, AltY = 495, AltConditionLargeSlot = 10 },
+            new() { SlotIndex = 18, X = 630, Y = 416, IsLarge = false, PairedSmallSlotIndex = 17, AltX = 630, AltY = 495, AltConditionLargeSlot = 10 },
         }
     };
 

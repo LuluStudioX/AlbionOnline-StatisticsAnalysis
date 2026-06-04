@@ -529,8 +529,39 @@
                     <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,10"
                             Visibility="{Binding IslandBindings.Preferences.IslandSummaryVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel>
-                            <TextBlock Text="ISLANDS SUMMARY" FontSize="10" FontWeight="Bold"
-                                       Foreground="{StaticResource SolidColorBrush.Text.3}" Margin="0,0,0,6"/>
+                            <Button Click="ToggleIslandSummary_Click" BorderThickness="0" Padding="8,5" Margin="0,0,0,6" HorizontalContentAlignment="Stretch">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{StaticResource Color.Background.2}"/>
+                                </Button.Background>
+                                <DockPanel>
+                                    <fa5:ImageAwesome DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <fa5:ImageAwesome.Style>
+                                            <Style TargetType="fa5:ImageAwesome">
+                                                <Setter Property="Icon" Value="Solid_ChevronUp"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.4}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.IsIslandSummarySectionCollapsed, FallbackValue=False}" Value="True">
+                                                        <Setter Property="Icon" Value="Solid_ChevronDown"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </fa5:ImageAwesome.Style>
+                                    </fa5:ImageAwesome>
+                                    <TextBlock Text="ISLANDS SUMMARY" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource SolidColorBrush.Text.3}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Button>
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.IsIslandSummarySectionCollapsed, FallbackValue=False}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                             <ItemsControl ItemsSource="{Binding IslandBindings.IslandSummaryRows}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type bindingModel:OwnerIslandSummaryRow}">
@@ -621,6 +652,7 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -723,100 +755,135 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Record cycle -->
+                    <!-- Record entries (cycle + payout) -->
                     <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
                             Visibility="{Binding IslandBindings.Preferences.FinanceRecordVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel>
-                            <TextBlock Text="RECORD CYCLE" FontSize="10" FontWeight="Bold"
-                                       Foreground="{StaticResource SolidColorBrush.Text.3}" Margin="0,0,0,6"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="90"/>
-                                    <ColumnDefinition Width="50"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                    <TextBlock Text="Date" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <DatePicker SelectedDate="{Binding IslandBindings.NewCycleDate, Mode=TwoWay}"
-                                                Height="24" FontSize="11"
-                                                Background="{StaticResource SolidColorBrush.Background.1}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="0,0,4,0">
-                                    <TextBlock Text="Type" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <ComboBox ItemsSource="{x:Static bindingModel:IslandBindings.CycleRecordTypes}"
-                                              SelectedItem="{Binding IslandBindings.NewCycleType, Mode=TwoWay}"
-                                              Height="24" FontSize="11"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2" Margin="0,0,4,0"
-                                            Visibility="{Binding IslandBindings.NewCycleShowIslandCount, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <TextBlock Text="Islands" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <TextBox Text="{Binding IslandBindings.NewCycleIslandCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="3" Margin="0,0,4,0">
-                                    <TextBlock Text="Amount (silver)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <TextBox Text="{Binding IslandBindings.NewCycleAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
-                                    <TextBlock Text="{Binding IslandBindings.NewCycleAmountPreview}"
-                                               FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,1,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="4" Margin="0,0,4,0">
-                                    <TextBlock Text="Notes" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <TextBox Text="{Binding IslandBindings.NewCycleNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
-                                </StackPanel>
-                                <Button Grid.Column="5" Content="Record" Height="24" Padding="8,0" VerticalAlignment="Bottom"
-                                        IsEnabled="{Binding IslandBindings.CanRecordCycle}"
-                                        Click="BtnRecordCycle_Click"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
+                            <!-- Section header -->
+                            <Button Click="ToggleFinanceRecord_Click" BorderThickness="0" Padding="8,5" Margin="0,0,0,6" HorizontalContentAlignment="Stretch">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{StaticResource Color.Background.2}"/>
+                                </Button.Background>
+                                <DockPanel>
+                                    <fa5:ImageAwesome DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <fa5:ImageAwesome.Style>
+                                            <Style TargetType="fa5:ImageAwesome">
+                                                <Setter Property="Icon" Value="Solid_ChevronUp"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Text.4}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IslandBindings.Preferences.IsFinanceRecordSectionCollapsed, FallbackValue=False}" Value="True">
+                                                        <Setter Property="Icon" Value="Solid_ChevronDown"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </fa5:ImageAwesome.Style>
+                                    </fa5:ImageAwesome>
+                                    <TextBlock Text="RECORD ENTRIES" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource SolidColorBrush.Text.3}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Button>
 
-                    <!-- Record withdrawal -->
-                    <Border Background="{StaticResource SolidColorBrush.Background.3}" CornerRadius="4" Padding="8,6" Margin="0,0,0,8"
-                            Visibility="{Binding IslandBindings.Preferences.FinanceRecordVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <StackPanel>
-                            <TextBlock Text="RECORD PAYOUT" FontSize="10" FontWeight="Bold"
-                                       Foreground="{StaticResource SolidColorBrush.Text.3}" Margin="0,0,0,6"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                    <TextBlock Text="Date" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <DatePicker SelectedDate="{Binding IslandBindings.NewWithdrawalDate, Mode=TwoWay}"
-                                                Height="24" FontSize="11"
-                                                Background="{StaticResource SolidColorBrush.Background.1}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="0,0,4,0">
-                                    <TextBlock Text="Paid for week (Mon)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <DatePicker SelectedDate="{Binding IslandBindings.NewWithdrawalPaidForWeekStart, Mode=TwoWay}"
-                                                Height="24" FontSize="11"
-                                                Background="{StaticResource SolidColorBrush.Background.1}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2" Margin="0,0,4,0">
-                                    <TextBlock Text="Amount (silver)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <TextBox Text="{Binding IslandBindings.NewWithdrawalAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
-                                    <TextBlock Text="{Binding IslandBindings.NewWithdrawalAmountPreview}"
-                                               FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,1,0,0"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="3" Margin="0,0,4,0">
-                                    <TextBlock Text="Notes" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
-                                    <TextBox Text="{Binding IslandBindings.NewWithdrawalNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
-                                </StackPanel>
-                                <Button Grid.Column="4" Content="Record" Height="24" Padding="8,0" VerticalAlignment="Bottom"
-                                        IsEnabled="{Binding IslandBindings.CanRecordWithdrawal}"
-                                        Click="BtnRecordWithdrawal_Click"/>
-                            </Grid>
+                            <!-- Collapsible body -->
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IslandBindings.Preferences.IsFinanceRecordSectionCollapsed, FallbackValue=False}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+
+                                <!-- Record Cycle sub-section -->
+                                <TextBlock Text="RECORD CYCLE" FontSize="10" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,4"/>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="50"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                        <TextBlock Text="Date" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <DatePicker SelectedDate="{Binding IslandBindings.NewCycleDate, Mode=TwoWay}"
+                                                    Height="24" FontSize="11"
+                                                    Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,4,0">
+                                        <TextBlock Text="Type" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <ComboBox ItemsSource="{x:Static bindingModel:IslandBindings.CycleRecordTypes}"
+                                                  SelectedItem="{Binding IslandBindings.NewCycleType, Mode=TwoWay}"
+                                                  Height="24" FontSize="11"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Margin="0,0,4,0"
+                                                Visibility="{Binding IslandBindings.NewCycleShowIslandCount, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="Islands" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <TextBox Text="{Binding IslandBindings.NewCycleIslandCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="3" Margin="0,0,4,0">
+                                        <TextBlock Text="Amount (silver)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <TextBox Text="{Binding IslandBindings.NewCycleAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                        <TextBlock Text="{Binding IslandBindings.NewCycleAmountPreview}"
+                                                   FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="4" Margin="0,0,4,0">
+                                        <TextBlock Text="Notes" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <TextBox Text="{Binding IslandBindings.NewCycleNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="5" Content="Record" Height="24" Padding="8,0" VerticalAlignment="Bottom"
+                                            IsEnabled="{Binding IslandBindings.CanRecordCycle}"
+                                            Click="BtnRecordCycle_Click"/>
+                                </Grid>
+
+                                <!-- Record Payout sub-section -->
+                                <Border Height="1" Background="{StaticResource SolidColorBrush.Background.4}" Margin="0,0,0,6"/>
+                                <TextBlock Text="RECORD PAYOUT" FontSize="10" FontWeight="Bold"
+                                           Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                        <TextBlock Text="Date" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <DatePicker SelectedDate="{Binding IslandBindings.NewWithdrawalDate, Mode=TwoWay}"
+                                                    Height="24" FontSize="11"
+                                                    Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,4,0">
+                                        <TextBlock Text="Paid for week (Mon)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <DatePicker SelectedDate="{Binding IslandBindings.NewWithdrawalPaidForWeekStart, Mode=TwoWay}"
+                                                    Height="24" FontSize="11"
+                                                    Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Margin="0,0,4,0">
+                                        <TextBlock Text="Amount (silver)" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <TextBox Text="{Binding IslandBindings.NewWithdrawalAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                        <TextBlock Text="{Binding IslandBindings.NewWithdrawalAmountPreview}"
+                                                   FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="3" Margin="0,0,4,0">
+                                        <TextBlock Text="Notes" FontSize="9" Foreground="{StaticResource SolidColorBrush.Text.4}" Margin="0,0,0,2"/>
+                                        <TextBox Text="{Binding IslandBindings.NewWithdrawalNote, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="24" FontSize="11" Background="{StaticResource SolidColorBrush.Background.1}"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="4" Content="Record" Height="24" Padding="8,0" VerticalAlignment="Bottom"
+                                            IsEnabled="{Binding IslandBindings.CanRecordWithdrawal}"
+                                            Click="BtnRecordWithdrawal_Click"/>
+                                </Grid>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

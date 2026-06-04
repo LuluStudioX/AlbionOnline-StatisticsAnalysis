@@ -89,6 +89,16 @@ public sealed class ClusterController(TrackingController trackingController, Mai
         _ = trackingController.TradeController.RemoveTradesByDaysInSettingsAsync();
         _ = trackingController.GatheringController.SetGatheredResourcesClosedAsync();
         trackingController.PartyController.UpdateIsPlayerInspectedToFalse();
+
+        trackingController.IslandController.ClearSession();
+        if (currentCluster.MapType == MapType.Island)
+            trackingController.IslandController.HandleIslandClusterEntry(currentCluster);
+
+        if (currentCluster.MapType == MapType.Island
+            && mainWindowViewModel.IslandBindings.Preferences.AutoSelectIslandByMapChange)
+        {
+            trackingController.IslandController.AutoSelectCurrentIsland();
+        }
     }
 
     public static string ComposingMapInfoString(string index, MapType mapType, string instanceName)
