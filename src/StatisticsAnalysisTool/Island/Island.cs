@@ -51,6 +51,7 @@ public class Island : BaseViewModel
     private DateTime? _lastHandledAt;
     private int _totalLaborersSent;
     private int _totalLootCollected;
+    private bool? _mixedRegionAltActive;
     private readonly object _yieldLock = new();
 
     public Guid Id { get; } = Guid.NewGuid();
@@ -204,6 +205,19 @@ public class Island : BaseViewModel
         set
         {
             _slotLabels = value ?? new Dictionary<int, string>();
+            OnPropertyChanged();
+        }
+    }
+
+    // Mixed-use region (a large slot that physically shares space with the two small S1/S2 slots).
+    // Detected from the house's real position: true = house at the TOP variant (so S1/S2 drop to the
+    // bottom), false = house at the BOTTOM (S1/S2 stay top), null = unknown (fall back to occupancy).
+    public bool? MixedRegionAltActive
+    {
+        get => _mixedRegionAltActive;
+        set
+        {
+            _mixedRegionAltActive = value;
             OnPropertyChanged();
         }
     }

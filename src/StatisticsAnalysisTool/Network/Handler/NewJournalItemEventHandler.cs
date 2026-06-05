@@ -17,7 +17,7 @@ public class NewJournalItemEventHandler(TrackingController trackingController) :
         EstimatedMarketValueController.Add(value.Item.ItemIndex, value.Item.EstimatedMarketValueInternal, value.Item.Quality);
         trackingController.LootController.AddDiscoveredItem(value.Item);
         trackingController.DungeonController.AddDiscoveredItem(value.Item);
-        trackingController.IslandController?.HandleLaborerYieldItem(value.Item);
+        trackingController.IslandController?.HandleLaborerItemDetail(value.Item);
         await Task.CompletedTask;
     }
 }

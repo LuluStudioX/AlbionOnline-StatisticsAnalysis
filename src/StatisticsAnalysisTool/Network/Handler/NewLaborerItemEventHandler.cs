@@ -26,7 +26,7 @@ public class NewLaborerItemEventHandler : EventPacketHandler<NewLaborerItemEvent
         EstimatedMarketValueController.Add(value.Item.ItemIndex, value.Item.EstimatedMarketValueInternal, value.Item.Quality);
         _trackingController.LootController.AddDiscoveredItem(value.Item);
         _trackingController.DungeonController.AddDiscoveredItem(value.Item);
-        _trackingController.IslandController.HandleLaborerYieldItem(value.Item);
+        _trackingController.IslandController.HandleLaborerItemDetail(value.Item);
         return Task.CompletedTask;
     }
 }

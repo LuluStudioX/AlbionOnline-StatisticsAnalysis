@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Collections.Specialized;
 using System.Windows.Data;
 
 namespace StatisticsAnalysisTool.Models.BindingModel;
@@ -77,9 +78,24 @@ public partial class IslandBindings : BaseViewModel
         get => _selectedIsland;
         set
         {
-            if (_selectedIsland != null) _selectedIsland.IsSelected = false;
+            if (_selectedIsland != null)
+            {
+                _selectedIsland.IsSelected = false;
+                _selectedIsland.YieldItems.CollectionChanged -= OnSelectedIslandYieldChanged;
+                _selectedIsland.ConsumedItems.CollectionChanged -= OnSelectedIslandConsumedChanged;
+                _selectedIsland.PropertyChanged -= OnSelectedIslandPropertyChanged;
+            }
             _selectedIsland = value;
-            if (_selectedIsland != null) _selectedIsland.IsSelected = true;
+            if (_selectedIsland != null)
+            {
+                _selectedIsland.IsSelected = true;
+                _selectedIsland.YieldItems.CollectionChanged += OnSelectedIslandYieldChanged;
+                _selectedIsland.ConsumedItems.CollectionChanged += OnSelectedIslandConsumedChanged;
+                // Yield/consumed updates REPLACE these collections (new instance), which silently
+                // drops the CollectionChanged subscription above. Re-attach on replacement so the
+                // pricing Outputs/Inputs rebuild instead of going stale.
+                _selectedIsland.PropertyChanged += OnSelectedIslandPropertyChanged;
+            }
             _liveRowTimestamps.Clear();
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsIslandSelected));
@@ -91,10 +107,48 @@ public partial class IslandBindings : BaseViewModel
             RefreshOwnerProfile();
             if (_selectedIsland != null)
                 GetController()?.OnIslandManuallySelected(_selectedIsland.IslandId);
+            RebuildPricingRows();
         }
     }
 
     public bool IsIslandSelected => SelectedIsland != null;
+
+    public ObservableCollection<IslandYieldPricingRow> SelectedYieldPricingRows { get; } = new();
+    public ObservableCollection<IslandConsumedPricingRow> SelectedConsumedPricingRows { get; } = new();
+
+    private void OnSelectedIslandYieldChanged(object sender, NotifyCollectionChangedEventArgs e) => RebuildPricingRows();
+    private void OnSelectedIslandConsumedChanged(object sender, NotifyCollectionChangedEventArgs e) => RebuildPricingRows();
+
+    private void OnSelectedIslandPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_selectedIsland == null) return;
+        // The yield/consumed collections are replaced wholesale on update; re-attach CollectionChanged
+        // to the new instance and rebuild the pricing rows so Outputs/Inputs stay in sync.
+        if (e.PropertyName == nameof(IslandEntry.YieldItems))
+        {
+            _selectedIsland.YieldItems.CollectionChanged -= OnSelectedIslandYieldChanged;
+            _selectedIsland.YieldItems.CollectionChanged += OnSelectedIslandYieldChanged;
+            RebuildPricingRows();
+        }
+        else if (e.PropertyName == nameof(IslandEntry.ConsumedItems))
+        {
+            _selectedIsland.ConsumedItems.CollectionChanged -= OnSelectedIslandConsumedChanged;
+            _selectedIsland.ConsumedItems.CollectionChanged += OnSelectedIslandConsumedChanged;
+            RebuildPricingRows();
+        }
+    }
+
+    private void RebuildPricingRows()
+    {
+        SelectedYieldPricingRows.Clear();
+        SelectedConsumedPricingRows.Clear();
+        if (_selectedIsland == null) return;
+        var prefs = Preferences;
+        foreach (var entry in _selectedIsland.YieldItems)
+            SelectedYieldPricingRows.Add(new IslandYieldPricingRow(entry, prefs));
+        foreach (var entry in _selectedIsland.ConsumedItems)
+            SelectedConsumedPricingRows.Add(new IslandConsumedPricingRow(entry, prefs));
+    }
 
     private Guid? _pendingPlotId;
 
@@ -193,7 +247,8 @@ public partial class IslandBindings : BaseViewModel
         }
     }
 
-    private GridLength _gridSplitterPosition = new(240);
+    private GridLength _gridSplitterPosition = new(SettingsController.CurrentSettings.IslandManagementGridSplitterPosition > 0
+        ? SettingsController.CurrentSettings.IslandManagementGridSplitterPosition : 240);
     public GridLength GridSplitterPosition
     {
         get => _gridSplitterPosition;
@@ -409,6 +464,17 @@ public partial class IslandBindings : BaseViewModel
                 foreach (var plotEntry in islandEntry.Plots)
                 {
                     if (!domainPlotById.TryGetValue(plotEntry.PlotId, out var domainPlot)) continue;
+
+                    // Keep the card "#N" in sync — slot assignment (e.g. after a Reset + re-visit)
+                    // can land on a status-only refresh, not just a full rebuild.
+                    var newSlotLabel = domainPlot.MapSlotIndex.HasValue
+                        ? IslandLayouts.FormatSlotLabel(domainPlot.MapSlotIndex.Value)
+                        : string.Empty;
+                    if (plotEntry.MapSlotLabel != newSlotLabel)
+                    {
+                        plotEntry.MapSlotIndex = domainPlot.MapSlotIndex;
+                        plotEntry.MapSlotLabel = newSlotLabel;
+                    }
 
                     plotEntry.SlotDots = domainPlot.SlotDots;
                     plotEntry.Laborer1TimeRemaining = domainPlot.Laborer1TimeRemaining;
@@ -1556,6 +1622,12 @@ public class IslandEntry : BaseViewModel
             _yieldItems = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(TotalYieldValue));
+            OnPropertyChanged(nameof(NetProfit));
+            OnPropertyChanged(nameof(IsNetProfitNegative));
+            OnPropertyChanged(nameof(ROIText));
+            OnPropertyChanged(nameof(TotalYieldQuantity));
+            OnPropertyChanged(nameof(UniqueYieldItems));
+            BuildYieldChart();
         }
     }
 
@@ -1568,11 +1640,179 @@ public class IslandEntry : BaseViewModel
             _consumedItems = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(TotalConsumedValue));
+            OnPropertyChanged(nameof(NetProfit));
+            OnPropertyChanged(nameof(IsNetProfitNegative));
+            OnPropertyChanged(nameof(ROIText));
+            OnPropertyChanged(nameof(TotalConsumedQuantity));
+            OnPropertyChanged(nameof(UniqueConsumedItems));
+            BuildYieldChart();
         }
     }
 
     public double TotalYieldValue => _yieldItems.Sum(e => e.TotalAvgEstMarketValue);
     public double TotalConsumedValue => _consumedItems.Sum(e => e.TotalAvgEstMarketValue);
+    public double NetProfit => TotalYieldValue - TotalConsumedValue;
+    public bool IsNetProfitNegative => NetProfit < 0;
+    public string ROIText => TotalConsumedValue > 0
+        ? $"{(TotalYieldValue / TotalConsumedValue - 1) * 100:N0}%"
+        : "N/A";
+    public int TotalYieldQuantity => _yieldItems.Sum(e => e.Quantity);
+    public int TotalConsumedQuantity => _consumedItems.Sum(e => e.Quantity);
+    public int UniqueYieldItems => _yieldItems.Select(e => e.ItemIndex).Distinct().Count();
+    public int UniqueConsumedItems => _consumedItems.Select(e => e.ItemIndex).Distinct().Count();
+
+    private IslandYieldChartMode _selectedChartMode = IslandYieldChartMode.CollectedVsConsumed;
+    public IslandYieldChartMode SelectedChartMode
+    {
+        get => _selectedChartMode;
+        set
+        {
+            _selectedChartMode = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsChartVisible));
+            OnPropertyChanged(nameof(IsROIChartMode));
+            BuildYieldChart();
+        }
+    }
+
+    private bool _isROIModeSilver;
+    public bool IsROIModeSilver
+    {
+        get => _isROIModeSilver;
+        set
+        {
+            _isROIModeSilver = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsROIModePct));
+            BuildYieldChart();
+        }
+    }
+
+    public bool IsROIModePct
+    {
+        get => !_isROIModeSilver;
+        set => IsROIModeSilver = !value;
+    }
+
+    public bool IsChartVisible => _selectedChartMode != IslandYieldChartMode.Summary;
+    public bool IsROIChartMode => _selectedChartMode == IslandYieldChartMode.ROITrend;
+
+    public IReadOnlyList<ChartModeOption> ChartModeOptions { get; } =
+    [
+        new(IslandYieldChartMode.CollectedVsConsumed, "Collected vs Consumed"),
+        new(IslandYieldChartMode.ROITrend, "ROI Trend"),
+        new(IslandYieldChartMode.NetProfit, "Net Profit"),
+        new(IslandYieldChartMode.Summary, "Summary (no chart)"),
+    ];
+
+    public ObservableCollection<ISeries> YieldChartSeries { get; } = new();
+
+    private Axis[] _yieldChartXAxes = [new Axis { Labels = [] }];
+    public Axis[] YieldChartXAxes
+    {
+        get => _yieldChartXAxes;
+        private set { _yieldChartXAxes = value; OnPropertyChanged(); }
+    }
+
+    public ObservableCollection<string> YieldConsumedMismatches { get; } = new();
+    public bool HasYieldMismatch => YieldConsumedMismatches.Count > 0;
+
+    public void SetYieldMismatches(IReadOnlyList<string> mismatches)
+    {
+        YieldConsumedMismatches.Clear();
+        foreach (var m in mismatches)
+            YieldConsumedMismatches.Add(m);
+        OnPropertyChanged(nameof(HasYieldMismatch));
+    }
+
+    public void BuildYieldChart()
+    {
+        if (_selectedChartMode == IslandYieldChartMode.Summary)
+        {
+            YieldChartSeries.Clear();
+            return;
+        }
+
+        var yieldByDay = _yieldItems
+            .GroupBy(e => e.CollectedAt.Date)
+            .ToDictionary(g => g.Key, g => g.Sum(e => e.TotalAvgEstMarketValue));
+        var consumedByDay = _consumedItems
+            .GroupBy(e => e.ConsumedAt.Date)
+            .ToDictionary(g => g.Key, g => g.Sum(e => e.TotalAvgEstMarketValue));
+
+        var allDates = yieldByDay.Keys.Union(consumedByDay.Keys).OrderBy(d => d).ToList();
+
+        if (allDates.Count == 0)
+        {
+            YieldChartSeries.Clear();
+            YieldChartXAxes = [new Axis { Labels = [] }];
+            return;
+        }
+
+        var labels = allDates.Select(d => d.ToString("MMM dd")).ToArray();
+        var yieldValues = allDates.Select(d => yieldByDay.TryGetValue(d, out var v) ? v : 0).ToArray();
+        var consumedValues = allDates.Select(d => consumedByDay.TryGetValue(d, out var v) ? v : 0).ToArray();
+        var netValues = Enumerable.Range(0, allDates.Count).Select(i => yieldValues[i] - consumedValues[i]).ToArray();
+
+        YieldChartSeries.Clear();
+
+        switch (_selectedChartMode)
+        {
+            case IslandYieldChartMode.CollectedVsConsumed:
+                YieldChartSeries.Add(new ColumnSeries<double>
+                {
+                    Name = "Collected",
+                    Values = yieldValues,
+                    Fill = new SolidColorPaint(new SKColor(0x4C, 0xAF, 0x50)),
+                });
+                YieldChartSeries.Add(new ColumnSeries<double>
+                {
+                    Name = "Consumed",
+                    Values = consumedValues,
+                    Fill = new SolidColorPaint(new SKColor(0xF4, 0x43, 0x36)),
+                });
+                break;
+
+            case IslandYieldChartMode.ROITrend:
+                if (_isROIModeSilver)
+                {
+                    YieldChartSeries.Add(new LineSeries<double>
+                    {
+                        Name = "Net Profit",
+                        Values = netValues,
+                        Stroke = new SolidColorPaint(new SKColor(0x21, 0x96, 0xF3)) { StrokeThickness = 2 },
+                        GeometryStroke = new SolidColorPaint(new SKColor(0x21, 0x96, 0xF3)) { StrokeThickness = 2 },
+                        Fill = null,
+                    });
+                }
+                else
+                {
+                    var roiValues = Enumerable.Range(0, allDates.Count)
+                        .Select(i => consumedValues[i] > 0 ? (yieldValues[i] / consumedValues[i] - 1) * 100 : 0)
+                        .ToArray();
+                    YieldChartSeries.Add(new LineSeries<double>
+                    {
+                        Name = "ROI %",
+                        Values = roiValues,
+                        Stroke = new SolidColorPaint(new SKColor(0x9C, 0x27, 0xB0)) { StrokeThickness = 2 },
+                        GeometryStroke = new SolidColorPaint(new SKColor(0x9C, 0x27, 0xB0)) { StrokeThickness = 2 },
+                        Fill = null,
+                    });
+                }
+                break;
+
+            case IslandYieldChartMode.NetProfit:
+                YieldChartSeries.Add(new ColumnSeries<double>
+                {
+                    Name = "Net Profit",
+                    Values = netValues,
+                    Fill = new SolidColorPaint(new SKColor(0x21, 0x96, 0xF3)),
+                });
+                break;
+        }
+
+        YieldChartXAxes = [new Axis { Labels = labels }];
+    }
 }
 
 public class IslandPlotEntry : BaseViewModel
@@ -1639,7 +1879,10 @@ public class IslandPlotEntry : BaseViewModel
     }
 
     public int? MapSlotIndex { get; set; }
-    public string MapSlotLabel { get; set; } = string.Empty;
+    private string _mapSlotLabel = string.Empty;
+    // Notifying: the plot card "#N" binds to this, and slot assignment can happen on a status-only
+    // refresh (not just a full rebuild), so it must raise PropertyChanged to update the card.
+    public string MapSlotLabel { get => _mapSlotLabel; set { _mapSlotLabel = value; OnPropertyChanged(); } }
     public int? SlotHighlightCol { get; set; }
     public int? SlotHighlightRow { get; set; }
     public string SlotStateCode { get; set; } = "empty";
@@ -1728,4 +1971,210 @@ public sealed class ChartPeriodOption(string label, int? days)
     public string Label { get; } = label;
     public int? Days { get; } = days;
     public override string ToString() => Label;
+}
+
+public record ChartModeOption(IslandYieldChartMode Value, string DisplayName);
+
+public class IslandYieldPricingRow : BaseViewModel
+{
+    private readonly IslandManagementPreferences _prefs;
+
+    public IslandYieldEntry Entry { get; }
+
+    public IslandYieldPricingRow(IslandYieldEntry entry, IslandManagementPreferences prefs)
+    {
+        Entry = entry;
+        _prefs = prefs;
+    }
+
+    private bool _isExpanded;
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set { _isExpanded = value; OnPropertyChanged(); }
+    }
+
+    private string OverrideKey => Entry.Item?.UniqueName ?? string.Empty;
+
+    private ItemPriceOverride GetOverride() =>
+        !string.IsNullOrEmpty(OverrideKey) && _prefs.PriceOverrides.TryGetValue(OverrideKey, out var o) ? o : null;
+
+    public string PriceSource
+    {
+        get => GetOverride()?.PriceSource ?? _prefs.GlobalPriceSource;
+        set
+        {
+            if (string.IsNullOrEmpty(OverrideKey)) return;
+            var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
+            _prefs.PriceOverrides[OverrideKey] = current with { PriceSource = value };
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(EffectivePricePerUnit));
+            OnPropertyChanged(nameof(TotalValue));
+            OnPropertyChanged(nameof(PricePerUnitText));
+            OnPropertyChanged(nameof(TotalValueText));
+        }
+    }
+
+    public string City
+    {
+        get => GetOverride()?.City ?? _prefs.GlobalCity;
+        set
+        {
+            if (string.IsNullOrEmpty(OverrideKey)) return;
+            var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
+            _prefs.PriceOverrides[OverrideKey] = current with { City = value };
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(EffectivePricePerUnit));
+            OnPropertyChanged(nameof(TotalValue));
+            OnPropertyChanged(nameof(PricePerUnitText));
+            OnPropertyChanged(nameof(TotalValueText));
+        }
+    }
+
+    public double? ManualPrice
+    {
+        get => GetOverride()?.ManualValue;
+        set
+        {
+            if (string.IsNullOrEmpty(OverrideKey)) return;
+            var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
+            _prefs.PriceOverrides[OverrideKey] = current with { ManualValue = value };
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ManualPriceText));
+            OnPropertyChanged(nameof(EffectivePricePerUnit));
+            OnPropertyChanged(nameof(TotalValue));
+            OnPropertyChanged(nameof(PricePerUnitText));
+            OnPropertyChanged(nameof(TotalValueText));
+        }
+    }
+
+    public string ManualPriceText
+    {
+        get => ManualPrice.HasValue ? ManualPrice.Value.ToString("N0") : string.Empty;
+        set
+        {
+            if (double.TryParse(value?.Replace(",", ""), System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var d) && d > 0)
+                ManualPrice = d;
+            else
+                ManualPrice = null;
+        }
+    }
+
+    public double EffectivePricePerUnit
+    {
+        get
+        {
+            if (ManualPrice is > 0) return ManualPrice.Value;
+            if (PriceSource is "EMV" or null)
+                return Entry.Quantity > 0 ? Entry.TotalAvgEstMarketValue / Entry.Quantity : 0;
+            return 0; // Buy/Sell order prices require market data integration
+        }
+    }
+
+    public double TotalValue => EffectivePricePerUnit * Entry.Quantity;
+    public string PricePerUnitText => EffectivePricePerUnit > 0 ? EffectivePricePerUnit.ToString("N0") : "—";
+    public string TotalValueText => EffectivePricePerUnit > 0 ? TotalValue.ToString("N0") : "—";
+}
+
+public class IslandConsumedPricingRow : BaseViewModel
+{
+    private readonly IslandManagementPreferences _prefs;
+
+    public IslandConsumedEntry Entry { get; }
+
+    public IslandConsumedPricingRow(IslandConsumedEntry entry, IslandManagementPreferences prefs)
+    {
+        Entry = entry;
+        _prefs = prefs;
+    }
+
+    private bool _isExpanded;
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set { _isExpanded = value; OnPropertyChanged(); }
+    }
+
+    private string OverrideKey => Entry.Item?.UniqueName ?? string.Empty;
+
+    private ItemPriceOverride GetOverride() =>
+        !string.IsNullOrEmpty(OverrideKey) && _prefs.PriceOverrides.TryGetValue(OverrideKey, out var o) ? o : null;
+
+    public string PriceSource
+    {
+        get => GetOverride()?.PriceSource ?? _prefs.GlobalPriceSource;
+        set
+        {
+            if (string.IsNullOrEmpty(OverrideKey)) return;
+            var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
+            _prefs.PriceOverrides[OverrideKey] = current with { PriceSource = value };
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(EffectivePricePerUnit));
+            OnPropertyChanged(nameof(TotalValue));
+            OnPropertyChanged(nameof(PricePerUnitText));
+            OnPropertyChanged(nameof(TotalValueText));
+        }
+    }
+
+    public string City
+    {
+        get => GetOverride()?.City ?? _prefs.GlobalCity;
+        set
+        {
+            if (string.IsNullOrEmpty(OverrideKey)) return;
+            var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
+            _prefs.PriceOverrides[OverrideKey] = current with { City = value };
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(EffectivePricePerUnit));
+            OnPropertyChanged(nameof(TotalValue));
+            OnPropertyChanged(nameof(PricePerUnitText));
+            OnPropertyChanged(nameof(TotalValueText));
+        }
+    }
+
+    public double? ManualPrice
+    {
+        get => GetOverride()?.ManualValue;
+        set
+        {
+            if (string.IsNullOrEmpty(OverrideKey)) return;
+            var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
+            _prefs.PriceOverrides[OverrideKey] = current with { ManualValue = value };
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ManualPriceText));
+            OnPropertyChanged(nameof(EffectivePricePerUnit));
+            OnPropertyChanged(nameof(TotalValue));
+            OnPropertyChanged(nameof(PricePerUnitText));
+            OnPropertyChanged(nameof(TotalValueText));
+        }
+    }
+
+    public string ManualPriceText
+    {
+        get => ManualPrice.HasValue ? ManualPrice.Value.ToString("N0") : string.Empty;
+        set
+        {
+            if (double.TryParse(value?.Replace(",", ""), System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var d) && d > 0)
+                ManualPrice = d;
+            else
+                ManualPrice = null;
+        }
+    }
+
+    public double EffectivePricePerUnit
+    {
+        get
+        {
+            if (ManualPrice is > 0) return ManualPrice.Value;
+            if (PriceSource is "EMV" or null)
+                return Entry.Quantity > 0 ? Entry.TotalAvgEstMarketValue / Entry.Quantity : 0;
+            return 0; // Buy/Sell order prices require market data integration
+        }
+    }
+
+    public double TotalValue => EffectivePricePerUnit * Entry.Quantity;
+    public string PricePerUnitText => EffectivePricePerUnit > 0 ? EffectivePricePerUnit.ToString("N0") : "—";
+    public string TotalValueText => EffectivePricePerUnit > 0 ? TotalValue.ToString("N0") : "—";
 }

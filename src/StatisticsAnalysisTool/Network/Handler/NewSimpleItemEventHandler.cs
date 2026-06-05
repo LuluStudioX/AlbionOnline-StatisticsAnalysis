@@ -20,7 +20,8 @@ public class NewSimpleItemEventHandler(TrackingController trackingController) : 
         trackingController.LootController.AddDiscoveredItem(value.Item);
         trackingController.DungeonController.AddDiscoveredItem(value.Item);
         trackingController.GatheringController.AddFishedItem(value.Item);
-        trackingController.IslandController.HandleLaborerYieldItem(value.Item);
+        // Bare NewSimpleItem (ObjectId only) is the island "item collected" marker.
+        trackingController.IslandController.HandleLaborerItemCollected(value.Item.ObjectId);
         await Task.CompletedTask;
     }
 }

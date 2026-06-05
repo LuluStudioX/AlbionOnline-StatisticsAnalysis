@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -297,4 +298,22 @@ public class IslandManagementPreferences : INotifyPropertyChanged
         get => _weekStartDay;
         set { _weekStartDay = value; OnPropertyChanged(); }
     }
+
+    private string _globalPriceSource = "EMV";
+    public string GlobalPriceSource
+    {
+        get => _globalPriceSource;
+        set { _globalPriceSource = value ?? "EMV"; OnPropertyChanged(); }
+    }
+
+    private string _globalCity = "Caerleon";
+    public string GlobalCity
+    {
+        get => _globalCity;
+        set { _globalCity = value ?? "Caerleon"; OnPropertyChanged(); }
+    }
+
+    public Dictionary<string, ItemPriceOverride> PriceOverrides { get; set; } = new();
 }
+
+public record ItemPriceOverride(string PriceSource, string City, double? ManualValue);

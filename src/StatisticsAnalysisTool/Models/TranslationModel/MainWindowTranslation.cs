@@ -324,6 +324,22 @@ public class MainWindowTranslation
     public static string IslandManagementYieldConsumedValue => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_CONSUMED_VALUE");
     public static string IslandManagementYieldNoData => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_NO_DATA");
     public static string IslandManagementYieldClear => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_CLEAR");
+    public static string IslandManagementYieldMetrics => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_METRICS");
+    public static string IslandManagementYieldItemPricing => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_ITEM_PRICING");
+    public static string IslandManagementYieldNetProfit => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_NET_PROFIT");
+    public static string IslandManagementYieldROI => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_ROI");
+    public static string IslandManagementYieldItemsCollected => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_ITEMS_COLLECTED");
+    public static string IslandManagementYieldItemsConsumed => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_ITEMS_CONSUMED");
+    public static string IslandManagementYieldUniqueCollected => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_UNIQUE_COLLECTED");
+    public static string IslandManagementYieldUniqueConsumed => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_UNIQUE_CONSUMED");
+    public static string IslandManagementYieldPriceSource => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_PRICE_SOURCE");
+    public static string IslandManagementYieldCity => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_CITY");
+    public static string IslandManagementYieldOutputs => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_OUTPUTS");
+    public static string IslandManagementYieldInputs => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_INPUTS");
+    public static string IslandManagementYieldManualPrice => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_MANUAL_PRICE");
+    public static string IslandManagementYieldPricePerUnit => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_PRICE_PER_UNIT");
+    public static string IslandManagementYieldTotalValueCol => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_TOTAL_VALUE_COL");
+    public static string IslandManagementYieldMismatch => LocalizationController.Translation("ISLAND_MANAGEMENT_YIELD_MISMATCH");
     // Webhook confirm dialog
     public static string IslandWebhookConfirmTitle => LocalizationController.Translation("ISLAND_WEBHOOK_CONFIRM_TITLE");
     public static string IslandWebhookConfirmNotesLabel => LocalizationController.Translation("ISLAND_WEBHOOK_CONFIRM_NOTES_LABEL");

@@ -48264,6 +48264,150 @@
           "seg": "Show premium star icon on island cards"
         }
       ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_METRICS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Metrics"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_ITEM_PRICING",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Item Pricing"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_NET_PROFIT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Net Profit"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_ROI",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "ROI"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_ITEMS_COLLECTED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Items Collected"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_ITEMS_CONSUMED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Items Consumed"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_UNIQUE_COLLECTED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Unique Collected"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_UNIQUE_CONSUMED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Unique Consumed"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_PRICE_SOURCE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Price source:"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_CITY",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "City:"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_OUTPUTS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Outputs (Collected)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_INPUTS",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Inputs (Consumed)"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_MANUAL_PRICE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Manual:"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_PRICE_PER_UNIT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Price / unit"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_TOTAL_VALUE_COL",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Total Value"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_YIELD_MISMATCH",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "⚠ Unmatched items"
+        }
+      ]
     }
   ]
 }

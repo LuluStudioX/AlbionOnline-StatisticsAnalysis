@@ -315,11 +315,16 @@ public class IslandPlot : BaseViewModel
         _ => "none"
     };
 
-    public bool UpdateLaborerStatuses(IReadOnlyList<LaborerSnapshot> snapshots, DateTime? islandLastPlantedAt = null)
+    /// <param name="slotAssignments">
+    /// Pre-resolved slot -> live snapshot map for this plot, produced once per island by
+    /// <see cref="IslandLaborerResolver"/> so a laborer can never light more than one card.
+    /// Null/empty when the island has no live snapshots (offline path uses stored config state).
+    /// </param>
+    public bool UpdateLaborerStatuses(IReadOnlyList<LaborerSnapshot> snapshots, DateTime? islandLastPlantedAt = null,
+        IReadOnlyDictionary<int, LaborerSnapshot> slotAssignments = null)
     {
         var dict = LaborerConfigHelper.ParseConfiguration(_configuration);
         var configChanged = false;
-        var filteredSnapshots = FilterSnapshotsByPlotGuid(snapshots, dict);
 
         var prev1 = _laborer1Status;
         var prev2 = _laborer2Status;
@@ -328,10 +333,9 @@ public class IslandPlot : BaseViewModel
         var prevT2 = _laborer2TimeRemaining;
         var prevT3 = _laborer3TimeRemaining;
 
-        var usedSnapshots = new HashSet<LaborerSnapshot>(ReferenceEqualityComparer.Instance);
-        _laborer1Status = MatchStatus(1, filteredSnapshots, dict, out var t1, ref configChanged, islandLastPlantedAt, usedSnapshots);
-        _laborer2Status = MatchStatus(2, filteredSnapshots, dict, out var t2, ref configChanged, islandLastPlantedAt, usedSnapshots);
-        _laborer3Status = MatchStatus(3, filteredSnapshots, dict, out var t3, ref configChanged, islandLastPlantedAt, usedSnapshots);
+        _laborer1Status = ResolveSlotStatus(1, snapshots, slotAssignments, dict, out var t1, ref configChanged, islandLastPlantedAt);
+        _laborer2Status = ResolveSlotStatus(2, snapshots, slotAssignments, dict, out var t2, ref configChanged, islandLastPlantedAt);
+        _laborer3Status = ResolveSlotStatus(3, snapshots, slotAssignments, dict, out var t3, ref configChanged, islandLastPlantedAt);
         _laborer1TimeRemaining = t1;
         _laborer2TimeRemaining = t2;
         _laborer3TimeRemaining = t3;
@@ -350,21 +354,6 @@ public class IslandPlot : BaseViewModel
         return configChanged;
     }
 
-    private static IReadOnlyList<LaborerSnapshot> FilterSnapshotsByPlotGuid(
-        IReadOnlyList<LaborerSnapshot> snapshots,
-        Dictionary<string, string> dict)
-    {
-        if (dict.TryGetValue(LaborerConfigHelper.PlotGuidKey, out var pgStr)
-            && Guid.TryParse(pgStr, out var plotGuid)
-            && plotGuid != Guid.Empty)
-        {
-            var scoped = snapshots.Where(s => s.HousePlotGuid == plotGuid).ToList();
-            if (scoped.Count > 0)
-                return scoped;
-        }
-        return snapshots;
-    }
-
     private void NotifyStatusChanged()
     {
         OnPropertyChanged(nameof(AllLaborersSent));
@@ -380,19 +369,27 @@ public class IslandPlot : BaseViewModel
         OnPropertyChanged(nameof(PlotCollectionReady));
     }
 
-    private LaborerLiveStatus MatchStatus(
+    private LaborerLiveStatus ResolveSlotStatus(
         int slot,
         IReadOnlyList<LaborerSnapshot> snapshots,
+        IReadOnlyDictionary<int, LaborerSnapshot> slotAssignments,
         Dictionary<string, string> dict,
         out string timeRemaining,
         ref bool configChanged,
-        DateTime? islandLastPlantedAt = null,
-        HashSet<LaborerSnapshot> usedSnapshots = null)
+        DateTime? islandLastPlantedAt)
     {
         timeRemaining = string.Empty;
-        if (snapshots.Count == 0)
+        if (PlotType != PlotType.House) return LaborerLiveStatus.None;
+
+        // No live snapshots for this island — fall back to stored dispatch/loot-ready state.
+        if (snapshots == null || snapshots.Count == 0)
             return MatchStatusOffline(slot, dict, islandLastPlantedAt, out timeRemaining);
-        return MatchStatusLive(slot, snapshots, dict, out timeRemaining, ref configChanged, usedSnapshots);
+
+        // Live: render only the snapshot the island-wide resolver assigned to this slot.
+        if (slotAssignments != null && slotAssignments.TryGetValue(slot, out var match) && match != null)
+            return RenderLiveStatus(slot, match, dict, out timeRemaining, ref configChanged);
+
+        return LaborerLiveStatus.None;
     }
 
     private LaborerLiveStatus MatchStatusOffline(
@@ -438,64 +435,14 @@ public class IslandPlot : BaseViewModel
         return LaborerLiveStatus.LootReady;
     }
 
-    private LaborerLiveStatus MatchStatusLive(
+    private LaborerLiveStatus RenderLiveStatus(
         int slot,
-        IReadOnlyList<LaborerSnapshot> snapshots,
+        LaborerSnapshot match,
         Dictionary<string, string> dict,
         out string timeRemaining,
-        ref bool configChanged,
-        HashSet<LaborerSnapshot> usedSnapshots = null)
+        ref bool configChanged)
     {
         timeRemaining = string.Empty;
-
-        if (PlotType != PlotType.House) return LaborerLiveStatus.None;
-
-        var laborerName = dict.TryGetValue(LaborerConfigHelper.LaborerNameKey(slot), out var nv)
-            ? LaborerConfigHelper.NormalizeLaborerFullName(nv)
-            : null;
-        var laborerType = dict.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var tv)
-            ? LaborerConfigHelper.NormalizeLaborerType(tv)
-            : null;
-
-        if (string.IsNullOrWhiteSpace(laborerName) && string.IsNullOrWhiteSpace(laborerType))
-            return LaborerLiveStatus.None;
-
-        // Exclude snapshots already claimed by a previous slot to prevent duplicate matches.
-        var available = usedSnapshots != null
-            ? snapshots.Where(s => !usedSnapshots.Contains(s)).ToList()
-            : (IReadOnlyList<LaborerSnapshot>)snapshots;
-
-        LaborerSnapshot match = null;
-
-        if (!string.IsNullOrWhiteSpace(laborerName))
-        {
-            match = available.FirstOrDefault(s =>
-                string.Equals(LaborerConfigHelper.NormalizeLaborerFullName(s.FullName), laborerName, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (match == null && !string.IsNullOrWhiteSpace(laborerType))
-        {
-            var typeMatches = available
-                .Where(s => string.Equals(LaborerConfigHelper.NormalizeLaborerType(s.LaborerType), laborerType, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-            if (typeMatches.Count == 1)
-            {
-                match = typeMatches[0];
-            }
-            else if (typeMatches.Count > 1 && dict.TryGetValue(LaborerConfigHelper.JournalTierKey(slot), out var tierText))
-            {
-                var digits = new string(tierText.Where(char.IsDigit).ToArray());
-                if (int.TryParse(digits, out var tier))
-                {
-                    var tierMatches = typeMatches.Where(s => s.BuildingTier == tier).ToList();
-                    if (tierMatches.Count == 1)
-                        match = tierMatches[0];
-                }
-            }
-        }
-
-        if (match == null) return LaborerLiveStatus.None;
-        usedSnapshots?.Add(match);
 
         if (dict.TryGetValue(LaborerConfigHelper.JournalTierKey(slot), out var storedTierText))
         {

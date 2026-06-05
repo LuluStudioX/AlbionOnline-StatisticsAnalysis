@@ -1410,11 +1410,12 @@
                         </TabItem.Header>
                         <Grid Margin="8">
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="3*"/>
+                                <RowDefinition Height="5"/>
                                 <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <!-- Two-panel layout: Collected | Consumed -->
+                            <!-- Row 0: Icons (Collected | Consumed) -->
                             <Grid Grid.Row="0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -1434,7 +1435,7 @@
                                     </GroupBox.Header>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Translation.IslandManagementYieldNoData, FallbackValue='No data yet — collect items on your island to start tracking.'}"
+                                            <TextBlock Text="{Binding Translation.IslandManagementYieldNoData, FallbackValue='No data yet.'}"
                                                        Foreground="{StaticResource SolidColorBrush.Text.4}"
                                                        FontStyle="Italic" FontSize="11" TextWrapping="Wrap" Margin="4">
                                                 <TextBlock.Style>
@@ -1495,31 +1496,450 @@
                                 </GroupBox>
                             </Grid>
 
-                            <!-- Totals bar -->
-                            <Border Grid.Row="1" Margin="0,6,0,0"
-                                    Background="{StaticResource SolidColorBrush.Background.2}"
-                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}"
-                                    BorderThickness="0,1,0,0" Padding="6,4">
-                                <DockPanel>
-                                    <Button DockPanel.Dock="Right" Height="20" Padding="6,0" FontSize="10"
-                                            Click="BtnClearIslandYield_Click"
-                                            Foreground="{StaticResource SolidColorBrush.Accent.Red.3}">
-                                        <TextBlock Text="{Binding Translation.IslandManagementYieldClear, FallbackValue='Clear Yield Data'}"/>
-                                    </Button>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Translation.IslandManagementYieldCollectedValue, FallbackValue='Collected value: '}"
-                                                   Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
-                                        <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalYieldValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
-                                                   Foreground="{StaticResource SolidColorBrush.Accent.Green.3}" FontSize="11" FontWeight="SemiBold"/>
-                                        <TextBlock Text=" silver  |  " Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11"/>
-                                        <TextBlock Text="{Binding Translation.IslandManagementYieldConsumedValue, FallbackValue='Consumed value: '}"
-                                                   Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
-                                        <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalConsumedValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
-                                                   Foreground="{StaticResource SolidColorBrush.Accent.Red.3}" FontSize="11" FontWeight="SemiBold"/>
-                                        <TextBlock Text=" silver" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11"/>
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
+                            <!-- Row 1: GridSplitter -->
+                            <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" Background="Transparent"
+                                          ResizeBehavior="PreviousAndNext" ResizeDirection="Rows"/>
+
+                            <!-- Row 2: Sub-tabs -->
+                            <TabControl Grid.Row="2" TabStripPlacement="Top" Background="Transparent"
+                                        BorderThickness="0,1,0,0"
+                                        BorderBrush="{StaticResource SolidColorBrush.Background.4}">
+
+                                <!-- Sub-tab: Metrics -->
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <TextBlock Text="{Binding Translation.IslandManagementYieldMetrics, FallbackValue=Metrics}"
+                                                   FontSize="11"/>
+                                    </TabItem.Header>
+                                    <Grid Margin="0,4,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Metric tiles (8 tiles, 4 columns) -->
+                                        <UniformGrid Grid.Row="0" Columns="4" Margin="0,0,0,4">
+                                            <Border Margin="2" Padding="8,6"
+                                                    Background="{StaticResource SolidColorBrush.Background.2}"
+                                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldCollectedValue, FallbackValue='Collected Value'}"
+                                                               FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalYieldValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                                               FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SolidColorBrush.Accent.Green.3}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Margin="2" Padding="8,6"
+                                                    Background="{StaticResource SolidColorBrush.Background.2}"
+                                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldConsumedValue, FallbackValue='Consumed Value'}"
+                                                               FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalConsumedValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                                               FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Margin="2" Padding="8,6"
+                                                    Background="{StaticResource SolidColorBrush.Background.2}"
+                                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldNetProfit, FallbackValue='Net Profit'}"
+                                                               FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.NetProfit, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                                               FontSize="13" FontWeight="SemiBold">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IslandBindings.SelectedIsland.IsNetProfitNegative, FallbackValue=False}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Accent.Red.3}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Margin="2" Padding="8,6"
+                                                    Background="{StaticResource SolidColorBrush.Background.2}"
+                                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldROI, FallbackValue='ROI'}"
+                                                               FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.ROIText, FallbackValue='N/A'}"
+                                                               FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Margin="2" Padding="8,6"
+                                                    Background="{StaticResource SolidColorBrush.Background.2}"
+                                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldItemsCollected, FallbackValue='Items Collected'}"
+                                                               FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalYieldQuantity, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                                               FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Margin="2" Padding="8,6"
+                                                    Background="{StaticResource SolidColorBrush.Background.2}"
+                                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldItemsConsumed, FallbackValue='Items Consumed'}"
+                                                               FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalConsumedQuantity, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                                               FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Margin="2" Padding="8,6"
+                                                    Background="{StaticResource SolidColorBrush.Background.2}"
+                                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldUniqueCollected, FallbackValue='Unique Collected'}"
+                                                               FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.UniqueYieldItems, StringFormat='{}{0}', FallbackValue='0'}"
+                                                               FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Margin="2" Padding="8,6"
+                                                    Background="{StaticResource SolidColorBrush.Background.2}"
+                                                    BorderBrush="{StaticResource SolidColorBrush.Background.4}" BorderThickness="1">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldUniqueConsumed, FallbackValue='Unique Consumed'}"
+                                                               FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.UniqueConsumedItems, StringFormat='{}{0}', FallbackValue='0'}"
+                                                               FontSize="13" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </UniformGrid>
+
+                                        <!-- Chart controls row -->
+                                        <DockPanel Grid.Row="1" Margin="0,0,0,4">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                                        Visibility="{Binding IslandBindings.SelectedIsland.IsROIChartMode,
+                                                                             Converter={StaticResource BooleanToVisibilityConverter},
+                                                                             FallbackValue=Collapsed}">
+                                                <RadioButton Content="%"
+                                                             Margin="0,0,8,0" VerticalAlignment="Center" FontSize="11"
+                                                             IsChecked="{Binding IslandBindings.SelectedIsland.IsROIModePct, Mode=TwoWay}"/>
+                                                <RadioButton Content="Silver"
+                                                             VerticalAlignment="Center" FontSize="11"
+                                                             IsChecked="{Binding IslandBindings.SelectedIsland.IsROIModeSilver, Mode=TwoWay}"/>
+                                            </StackPanel>
+                                            <ComboBox Width="175" FontSize="11"
+                                                      ItemsSource="{Binding IslandBindings.SelectedIsland.ChartModeOptions}"
+                                                      DisplayMemberPath="DisplayName"
+                                                      SelectedValue="{Binding IslandBindings.SelectedIsland.SelectedChartMode, Mode=TwoWay}"
+                                                      SelectedValuePath="Value"/>
+                                        </DockPanel>
+
+                                        <!-- Chart -->
+                                        <wpf:CartesianChart Grid.Row="2"
+                                                            Height="320"
+                                                            Series="{Binding IslandBindings.SelectedIsland.YieldChartSeries}"
+                                                            XAxes="{Binding IslandBindings.SelectedIsland.YieldChartXAxes}"
+                                                            TooltipPosition="Center"
+                                                            FindingStrategy="ExactMatchTakeClosest"
+                                                            LegendPosition="Hidden"
+                                                            Background="Transparent"
+                                                            DrawMarginFrame="{x:Null}"
+                                                            Visibility="{Binding IslandBindings.SelectedIsland.IsChartVisible,
+                                                                                 Converter={StaticResource BooleanToVisibilityConverter},
+                                                                                 FallbackValue=Collapsed}"/>
+
+                                        <!-- Totals + Clear bar -->
+                                        <Border Grid.Row="3" Margin="0,4,0,0"
+                                                Background="{StaticResource SolidColorBrush.Background.2}"
+                                                BorderBrush="{StaticResource SolidColorBrush.Background.4}"
+                                                BorderThickness="0,1,0,0" Padding="6,4">
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Height="20" Padding="6,0" FontSize="10"
+                                                        Click="BtnClearIslandYield_Click"
+                                                        Foreground="{StaticResource SolidColorBrush.Accent.Red.3}">
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldClear, FallbackValue='Clear Yield Data'}"/>
+                                                </Button>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldCollectedValue, FallbackValue='Collected value: '}"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalYieldValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                                               Foreground="{StaticResource SolidColorBrush.Accent.Green.3}" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Text=" silver  |  " Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11"/>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldConsumedValue, FallbackValue='Consumed value: '}"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalConsumedValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
+                                                               Foreground="{StaticResource SolidColorBrush.Accent.Red.3}" FontSize="11" FontWeight="SemiBold"/>
+                                                    <TextBlock Text=" silver" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </Grid>
+                                </TabItem>
+
+                                <!-- Sub-tab: Item Pricing -->
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <TextBlock Text="{Binding Translation.IslandManagementYieldItemPricing, FallbackValue='Item Pricing'}"
+                                                   FontSize="11"/>
+                                    </TabItem.Header>
+                                    <Grid Margin="0,4,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Global price selectors -->
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="{Binding Translation.IslandManagementYieldPriceSource, FallbackValue='Price source:'}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                            <ComboBox Width="115" Margin="0,0,12,0" FontSize="11"
+                                                      ToolTip="Buy/Sell order prices require market data — use manual price override."
+                                                      SelectedValue="{Binding IslandBindings.Preferences.GlobalPriceSource, Mode=TwoWay}"
+                                                      SelectedValuePath="Tag">
+                                                <ComboBoxItem Content="EMV (avg)" Tag="EMV"/>
+                                                <ComboBoxItem Content="Buy Order (N/A)" Tag="Buy"/>
+                                                <ComboBoxItem Content="Sell Order (N/A)" Tag="Sell"/>
+                                            </ComboBox>
+                                            <TextBlock Text="{Binding Translation.IslandManagementYieldCity, FallbackValue='City:'}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                            <ComboBox Width="100" FontSize="11"
+                                                      SelectedValue="{Binding IslandBindings.Preferences.GlobalCity, Mode=TwoWay}"
+                                                      SelectedValuePath="Tag">
+                                                <ComboBoxItem Content="Caerleon" Tag="Caerleon"/>
+                                                <ComboBoxItem Content="Bridgewatch" Tag="Bridgewatch"/>
+                                                <ComboBoxItem Content="Fort Sterling" Tag="FortSterling"/>
+                                                <ComboBoxItem Content="Lymhurst" Tag="Lymhurst"/>
+                                                <ComboBoxItem Content="Martlock" Tag="Martlock"/>
+                                                <ComboBoxItem Content="Thetford" Tag="Thetford"/>
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <!-- Item rows -->
+                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                            <StackPanel>
+                                                <!-- Outputs (Collected) -->
+                                                <TextBlock Text="{Binding Translation.IslandManagementYieldOutputs, FallbackValue='Outputs (Collected)'}"
+                                                           FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource SolidColorBrush.Accent.Green.3}"
+                                                           Margin="0,0,0,2"/>
+                                                <!-- Column headers -->
+                                                <Grid Margin="20,0,0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="36"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                        <ColumnDefinition Width="80"/>
+                                                        <ColumnDefinition Width="90"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="2" Text="Qty" TextAlignment="Right" FontSize="9"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Translation.IslandManagementYieldPricePerUnit, FallbackValue='Price/unit'}"
+                                                               TextAlignment="Right" FontSize="9"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                    <TextBlock Grid.Column="4" Text="{Binding Translation.IslandManagementYieldTotalValueCol, FallbackValue='Total'}"
+                                                               TextAlignment="Right" FontSize="9"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                </Grid>
+                                                <ItemsControl ItemsSource="{Binding IslandBindings.SelectedYieldPricingRows}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type bindingModel:IslandYieldPricingRow}">
+                                                            <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}" Margin="0,1">
+                                                                <Expander.Header>
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="36"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="60"/>
+                                                                            <ColumnDefinition Width="80"/>
+                                                                            <ColumnDefinition Width="90"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Image Grid.Column="0" Width="28" Height="28"
+                                                                               Source="{Binding Entry.Item.Icon, IsAsync=True}"/>
+                                                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="4,0"
+                                                                                   Text="{Binding Entry.Item.LocalizedName, IsAsync=True, FallbackValue=''}"
+                                                                                   Foreground="{StaticResource SolidColorBrush.Text.1}"
+                                                                                   FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" TextAlignment="Right"
+                                                                                   Text="{Binding Entry.Quantity, StringFormat='{}{0:N0}'}"
+                                                                                   Foreground="{StaticResource SolidColorBrush.Text.2}" FontSize="11"/>
+                                                                        <TextBlock Grid.Column="3" VerticalAlignment="Center" TextAlignment="Right"
+                                                                                   Text="{Binding PricePerUnitText}"
+                                                                                   Foreground="{StaticResource SolidColorBrush.Text.2}" FontSize="11"/>
+                                                                        <TextBlock Grid.Column="4" VerticalAlignment="Center" TextAlignment="Right"
+                                                                                   Text="{Binding TotalValueText}" FontWeight="SemiBold"
+                                                                                   Foreground="{StaticResource SolidColorBrush.Accent.Green.3}" FontSize="11"/>
+                                                                    </Grid>
+                                                                </Expander.Header>
+                                                                <StackPanel Margin="4,4,0,8" Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding DataContext.Translation.IslandManagementYieldPriceSource, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='Price source:'}"
+                                                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                                                    <ComboBox Width="115" Margin="0,0,12,0" FontSize="11"
+                                                                              ToolTip="Buy/Sell order prices require market data — use manual price override."
+                                                                              SelectedValue="{Binding PriceSource, Mode=TwoWay}"
+                                                                              SelectedValuePath="Tag">
+                                                                        <ComboBoxItem Content="EMV (avg)" Tag="EMV"/>
+                                                                        <ComboBoxItem Content="Buy Order (N/A)" Tag="Buy"/>
+                                                                        <ComboBoxItem Content="Sell Order (N/A)" Tag="Sell"/>
+                                                                    </ComboBox>
+                                                                    <TextBlock Text="{Binding DataContext.Translation.IslandManagementYieldCity, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='City:'}"
+                                                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                                                    <ComboBox Width="100" Margin="0,0,12,0" FontSize="11"
+                                                                              SelectedValue="{Binding City, Mode=TwoWay}"
+                                                                              SelectedValuePath="Tag">
+                                                                        <ComboBoxItem Content="Caerleon" Tag="Caerleon"/>
+                                                                        <ComboBoxItem Content="Bridgewatch" Tag="Bridgewatch"/>
+                                                                        <ComboBoxItem Content="Fort Sterling" Tag="FortSterling"/>
+                                                                        <ComboBoxItem Content="Lymhurst" Tag="Lymhurst"/>
+                                                                        <ComboBoxItem Content="Martlock" Tag="Martlock"/>
+                                                                        <ComboBoxItem Content="Thetford" Tag="Thetford"/>
+                                                                    </ComboBox>
+                                                                    <TextBlock Text="{Binding DataContext.Translation.IslandManagementYieldManualPrice, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='Manual:'}"
+                                                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                                                    <TextBox Width="80" FontSize="11" VerticalAlignment="Center"
+                                                                             Text="{Binding ManualPriceText, UpdateSourceTrigger=LostFocus}"/>
+                                                                </StackPanel>
+                                                            </Expander>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <!-- Inputs (Consumed) header + mismatch badge -->
+                                                <DockPanel Margin="0,8,0,2">
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                                                Visibility="{Binding IslandBindings.SelectedIsland.HasYieldMismatch,
+                                                                                     Converter={StaticResource BooleanToVisibilityConverter},
+                                                                                     FallbackValue=Collapsed}">
+                                                        <fa5:ImageAwesome Icon="Solid_ExclamationTriangle" Width="9" Height="9"
+                                                                          Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}"
+                                                                          Margin="0,0,3,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Translation.IslandManagementYieldMismatch, FallbackValue='Unmatched items'}"
+                                                                   Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}"
+                                                                   FontSize="10" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldInputs, FallbackValue='Inputs (Consumed)'}"
+                                                               FontSize="11" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"/>
+                                                </DockPanel>
+                                                <!-- Column headers -->
+                                                <Grid Margin="20,0,0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="36"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                        <ColumnDefinition Width="80"/>
+                                                        <ColumnDefinition Width="90"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="2" Text="Qty" TextAlignment="Right" FontSize="9"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Translation.IslandManagementYieldPricePerUnit, FallbackValue='Price/unit'}"
+                                                               TextAlignment="Right" FontSize="9"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                    <TextBlock Grid.Column="4" Text="{Binding Translation.IslandManagementYieldTotalValueCol, FallbackValue='Total'}"
+                                                               TextAlignment="Right" FontSize="9"
+                                                               Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                </Grid>
+                                                <ItemsControl ItemsSource="{Binding IslandBindings.SelectedConsumedPricingRows}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type bindingModel:IslandConsumedPricingRow}">
+                                                            <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}" Margin="0,1">
+                                                                <Expander.Header>
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="36"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="60"/>
+                                                                            <ColumnDefinition Width="80"/>
+                                                                            <ColumnDefinition Width="90"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Image Grid.Column="0" Width="28" Height="28"
+                                                                               Source="{Binding Entry.Item.Icon, IsAsync=True}"/>
+                                                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="4,0"
+                                                                                   Text="{Binding Entry.Item.LocalizedName, IsAsync=True, FallbackValue=''}"
+                                                                                   Foreground="{StaticResource SolidColorBrush.Text.1}"
+                                                                                   FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" TextAlignment="Right"
+                                                                                   Text="{Binding Entry.Quantity, StringFormat='{}{0:N0}'}"
+                                                                                   Foreground="{StaticResource SolidColorBrush.Text.2}" FontSize="11"/>
+                                                                        <TextBlock Grid.Column="3" VerticalAlignment="Center" TextAlignment="Right"
+                                                                                   Text="{Binding PricePerUnitText}"
+                                                                                   Foreground="{StaticResource SolidColorBrush.Text.2}" FontSize="11"/>
+                                                                        <TextBlock Grid.Column="4" VerticalAlignment="Center" TextAlignment="Right"
+                                                                                   Text="{Binding TotalValueText}" FontWeight="SemiBold"
+                                                                                   Foreground="{StaticResource SolidColorBrush.Accent.Red.3}" FontSize="11"/>
+                                                                    </Grid>
+                                                                </Expander.Header>
+                                                                <StackPanel Margin="4,4,0,8" Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding DataContext.Translation.IslandManagementYieldPriceSource, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='Price source:'}"
+                                                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                                                    <ComboBox Width="115" Margin="0,0,12,0" FontSize="11"
+                                                                              ToolTip="Buy/Sell order prices require market data — use manual price override."
+                                                                              SelectedValue="{Binding PriceSource, Mode=TwoWay}"
+                                                                              SelectedValuePath="Tag">
+                                                                        <ComboBoxItem Content="EMV (avg)" Tag="EMV"/>
+                                                                        <ComboBoxItem Content="Buy Order (N/A)" Tag="Buy"/>
+                                                                        <ComboBoxItem Content="Sell Order (N/A)" Tag="Sell"/>
+                                                                    </ComboBox>
+                                                                    <TextBlock Text="{Binding DataContext.Translation.IslandManagementYieldCity, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='City:'}"
+                                                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                                                    <ComboBox Width="100" Margin="0,0,12,0" FontSize="11"
+                                                                              SelectedValue="{Binding City, Mode=TwoWay}"
+                                                                              SelectedValuePath="Tag">
+                                                                        <ComboBoxItem Content="Caerleon" Tag="Caerleon"/>
+                                                                        <ComboBoxItem Content="Bridgewatch" Tag="Bridgewatch"/>
+                                                                        <ComboBoxItem Content="Fort Sterling" Tag="FortSterling"/>
+                                                                        <ComboBoxItem Content="Lymhurst" Tag="Lymhurst"/>
+                                                                        <ComboBoxItem Content="Martlock" Tag="Martlock"/>
+                                                                        <ComboBoxItem Content="Thetford" Tag="Thetford"/>
+                                                                    </ComboBox>
+                                                                    <TextBlock Text="{Binding DataContext.Translation.IslandManagementYieldManualPrice, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue='Manual:'}"
+                                                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
+                                                                    <TextBox Width="80" FontSize="11" VerticalAlignment="Center"
+                                                                             Text="{Binding ManualPriceText, UpdateSourceTrigger=LostFocus}"/>
+                                                                </StackPanel>
+                                                            </Expander>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <!-- Mismatch detail section -->
+                                                <ItemsControl ItemsSource="{Binding IslandBindings.SelectedIsland.YieldConsumedMismatches}"
+                                                              Visibility="{Binding IslandBindings.SelectedIsland.HasYieldMismatch,
+                                                                                   Converter={StaticResource BooleanToVisibilityConverter},
+                                                                                   FallbackValue=Collapsed}"
+                                                              Margin="0,4,0,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                                                <fa5:ImageAwesome Icon="Solid_ExclamationTriangle" Width="9" Height="9"
+                                                                                  Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}"
+                                                                                  Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding}" FontSize="10"
+                                                                           Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}"
+                                                                           TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </TabItem>
+                            </TabControl>
                         </Grid>
                     </TabItem>
 

@@ -198,7 +198,7 @@ public partial class IslandMapView : UserControl
                     StrokeThickness = 1,
                     IsHitTestVisible = false
                 };
-                var (cX, cY) = IslandLayoutDefinition.GetEffectivePosition(slot, plots);
+                var (cX, cY) = IslandLayoutDefinition.GetEffectivePosition(slot, plots, domainIsland?.MixedRegionAltActive);
                 Canvas.SetLeft(consumedEllipse, cX - SlotDiameterSmall / 2);
                 Canvas.SetTop(consumedEllipse, cY - SlotDiameterSmall / 2);
                 overlayCanvas.Children.Add(consumedEllipse);
@@ -208,8 +208,8 @@ public partial class IslandMapView : UserControl
             var isSpanningLarge = !slot.IsLarge && slot.PairedSmallSlotIndex.HasValue && assignedPlot != null && assignedPlot.IsLargePlotType();
             var diameter = (slot.IsLarge || isSpanningLarge) ? SlotDiameterLarge : SlotDiameterSmall;
             var (renderX, renderY) = isSpanningLarge
-                ? _currentLayout.GetSpanningSlotCenter(slot, plots)
-                : IslandLayoutDefinition.GetEffectivePosition(slot, plots);
+                ? _currentLayout.GetSpanningSlotCenter(slot, plots, domainIsland?.MixedRegionAltActive)
+                : IslandLayoutDefinition.GetEffectivePosition(slot, plots, domainIsland?.MixedRegionAltActive);
 
             Brush fill;
             if (assignedPlot == null)
@@ -282,7 +282,7 @@ public partial class IslandMapView : UserControl
                     IsHitTestVisible = false,
                     ToolTip = $"Slot {IslandLayouts.FormatSlotLabel(slot.SlotIndex)}: {LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_CONSUMED")}"
                 };
-                var (cX, cY) = IslandLayoutDefinition.GetEffectivePosition(slot, plots);
+                var (cX, cY) = IslandLayoutDefinition.GetEffectivePosition(slot, plots, domainIsland?.MixedRegionAltActive);
                 Canvas.SetLeft(consumedEllipse, cX - SlotDiameterSmall / 2);
                 Canvas.SetTop(consumedEllipse, cY - SlotDiameterSmall / 2);
                 SlotCanvas.Children.Add(consumedEllipse);
@@ -294,8 +294,8 @@ public partial class IslandMapView : UserControl
             var isSpanningLarge = !slot.IsLarge && slot.PairedSmallSlotIndex.HasValue && assignedPlot != null && assignedPlot.IsLargePlotType();
             var diameter = (slot.IsLarge || isSpanningLarge) ? SlotDiameterLarge : SlotDiameterSmall;
             var (renderX, renderY) = isSpanningLarge
-                ? _currentLayout.GetSpanningSlotCenter(slot, plots)
-                : IslandLayoutDefinition.GetEffectivePosition(slot, plots);
+                ? _currentLayout.GetSpanningSlotCenter(slot, plots, domainIsland?.MixedRegionAltActive)
+                : IslandLayoutDefinition.GetEffectivePosition(slot, plots, domainIsland?.MixedRegionAltActive);
 
             var ellipse = BuildSlotEllipse(slot, assignedPlot, isSpanningLarge);
             ellipse.Tag = slot.SlotIndex;

@@ -49,22 +49,51 @@ public sealed class IslandLayoutDefinition
     /// Returns the effective pixel position for a slot, accounting for dynamic repositioning.
     /// Small slots with AltConditionLargeSlot: use X/Y when that large slot is occupied, AltX/AltY otherwise.
     /// </summary>
-    public static (double X, double Y) GetEffectivePosition(IslandSlotDefinition slot, IEnumerable<IslandPlot> plots)
+    public static (double X, double Y) GetEffectivePosition(IslandSlotDefinition slot, IEnumerable<IslandPlot> plots, bool? mixedAltActive = null)
     {
         if (slot.AltX.HasValue && slot.AltY.HasValue)
         {
+            // mixedAltActive (detected from the house's real position) is authoritative when known.
+            // It means: house sits at the TOP variant, so the small S1/S2 slots drop to the bottom.
+            // Both the small slots and the large house slot share the same alt state.
             if (slot.AltConditionLargeSlot.HasValue)
             {
-                var largeOccupied = plots.Any(p => p.MapSlotIndex == slot.AltConditionLargeSlot.Value);
-                return largeOccupied ? (slot.AltX.Value, slot.AltY.Value) : (slot.X, slot.Y);
+                var useAlt = mixedAltActive ?? plots.Any(p => p.MapSlotIndex == slot.AltConditionLargeSlot.Value);
+                return useAlt ? (slot.AltX.Value, slot.AltY.Value) : (slot.X, slot.Y);
             }
             if (slot.AltConditionSmallSlot.HasValue)
             {
-                var smallOccupied = plots.Any(p => p.MapSlotIndex == slot.AltConditionSmallSlot.Value);
-                return smallOccupied ? (slot.AltX.Value, slot.AltY.Value) : (slot.X, slot.Y);
+                var useAlt = mixedAltActive ?? plots.Any(p => p.MapSlotIndex == slot.AltConditionSmallSlot.Value);
+                return useAlt ? (slot.AltX.Value, slot.AltY.Value) : (slot.X, slot.Y);
             }
         }
         return (slot.X, slot.Y);
+    }
+
+    /// <summary>
+    /// Classifies a house at the given world position within the mixed-use region.
+    /// Returns true when the house sits at the TOP (alt) variant, false at the BOTTOM (base) variant,
+    /// null when the position does not resolve to the mixed-region large slot.
+    /// </summary>
+    public bool? ClassifyMixedRegionHouseAlt(float wx, float wy)
+    {
+        if (WorldTransform is not { } t || Slots is not { Count: > 0 }) return null;
+
+        var mixedLarge = Slots.FirstOrDefault(s =>
+            s.IsLarge && s.AltConditionSmallSlot.HasValue && s.AltX.HasValue && s.AltY.HasValue);
+        if (mixedLarge == null) return null;
+
+        var px = t.A * wx + t.B * wy + t.C;
+        var py = t.D * wx + t.E * wy + t.F;
+
+        // Only classify when this position actually belongs to the mixed-region large slot.
+        var nearestLarge = Slots.Where(s => s.IsLarge)
+            .MinBy(s => Math.Pow(s.X - px, 2) + Math.Pow(s.Y - py, 2));
+        if (nearestLarge == null || nearestLarge.SlotIndex != mixedLarge.SlotIndex) return null;
+
+        var dBase = Math.Pow(mixedLarge.Y - py, 2);
+        var dAlt = Math.Pow(mixedLarge.AltY.Value - py, 2);
+        return dAlt < dBase; // closer to the alt (top) position => alt layout active
     }
 
     public (int Col, int Row)? GetSlotGridCell(int slotIndex)
@@ -88,7 +117,7 @@ public sealed class IslandLayoutDefinition
     /// For a small slot with a spanning large-type plot, returns the midpoint between this slot
     /// and its paired slot. Falls back to the slot's own coords if no pair is defined.
     /// </summary>
-    public (double X, double Y) GetSpanningSlotCenter(IslandSlotDefinition slot, IEnumerable<IslandPlot> plots = null)
+    public (double X, double Y) GetSpanningSlotCenter(IslandSlotDefinition slot, IEnumerable<IslandPlot> plots = null, bool? mixedAltActive = null)
     {
         var plotList = plots as IList<IslandPlot> ?? plots?.ToList() ?? [];
         if (slot.PairedSmallSlotIndex.HasValue)
@@ -96,12 +125,12 @@ public sealed class IslandLayoutDefinition
             var paired = GetSlot(slot.PairedSmallSlotIndex.Value);
             if (paired != null)
             {
-                var (sx, sy) = GetEffectivePosition(slot, plotList);
-                var (px, py) = GetEffectivePosition(paired, plotList);
+                var (sx, sy) = GetEffectivePosition(slot, plotList, mixedAltActive);
+                var (px, py) = GetEffectivePosition(paired, plotList, mixedAltActive);
                 return ((sx + px) / 2.0, (sy + py) / 2.0);
             }
         }
-        return GetEffectivePosition(slot, plotList);
+        return GetEffectivePosition(slot, plotList, mixedAltActive);
     }
 
 public int? WorldToNearestSlot(float wx, float wy, bool? requireLarge = null)
