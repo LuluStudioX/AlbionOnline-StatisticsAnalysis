@@ -2,7 +2,6 @@ using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.Island;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace StatisticsAnalysisTool.Network.Events;
 
@@ -15,7 +14,6 @@ public class FarmableObjectInfoEvent
 {
     public long ObjectId { get; }
     public IReadOnlyDictionary<byte, object> Parameters { get; }
-    public string Signature { get; }
 
     // The planted item's unique name (e.g. "T4_FARMABLE_CROPS_CARROT").
     // Resolved by scanning all string-valued parameters for one containing
@@ -29,7 +27,6 @@ public class FarmableObjectInfoEvent
     {
         Parameters = new Dictionary<byte, object>(parameters ?? []);
         ObjectId = parameters?.TryGetValue(0, out var p0) == true ? p0.ObjectToLong() ?? -1 : -1;
-        Signature = BuildSignature(Parameters);
         FarmableUniqueName = TryExtractFarmableUniqueName(Parameters);
         PlantedAt = TryResolvePlantedAt(Parameters);
     }
@@ -134,31 +131,5 @@ public class FarmableObjectInfoEvent
         }
 
         return string.Empty;
-    }
-
-
-    private static string BuildSignature(IReadOnlyDictionary<byte, object> parameters)
-    {
-        if (parameters == null || parameters.Count == 0)
-            return string.Empty;
-
-        return string.Join("|", parameters.OrderBy(pair => pair.Key).Select(pair => $"{pair.Key}:{FormatValue(pair.Value)}"));
-    }
-
-    private static string FormatValue(object value)
-    {
-        if (value == null)
-            return "null";
-
-        if (value is byte[] bytes)
-            return $"[{string.Join(',', bytes)}]";
-
-        if (value is Array array && value is not char[])
-        {
-            var items = array.Cast<object>().Select(FormatValue);
-            return $"[{string.Join(',', items)}]";
-        }
-
-        return value.ToString() ?? string.Empty;
     }
 }

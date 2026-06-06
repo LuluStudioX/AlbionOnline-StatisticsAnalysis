@@ -163,6 +163,118 @@ public class LaborerSnapshotParseTests
     }
 }
 
+// Replays the real captured packet layouts (objId 383, journal 11906 = T5_JOURNAL_MAGE_FULL) through
+// the live snapshot state machine. Times are relative to now so the assertions stay deterministic;
+// the param SHAPES match the capture (incl. the static Feb food dates in param 6/7, which must be
+// ignored). Proves the runtime behaviour the unit-level event tests do not: latching, no flip-flop,
+// and time-derived loot-ready.
+[TestFixture]
+public class LaborerLiveStateReplayTests
+{
+    private const int MageJournalFull = 11906;
+    private const long FebFoodTicks6 = 639075425971988263L; // 2026-02-24 — static, must be ignored
+    private const long FebFoodTicks7 = 639073553971988263L; // 2026-02-22 — static, must be ignored
+
+    private static StatisticsAnalysisTool.Network.Events.LaborerObjectInfoEvent Info56(long id, DateTime? returnAt)
+    {
+        var p = new Dictionary<byte, object>
+        {
+            { 0, id }, { 1, "David" }, { 2, "Hay" },
+            { 3, 360760000L }, { 4, 6250000L }, { 5, 6250000L },
+            { 6, FebFoodTicks6 }, { 7, FebFoodTicks7 }, { 10, "" }
+        };
+        if (returnAt.HasValue)
+        {
+            p[8] = returnAt.Value.Ticks;   // param 8 = return time (only present while on job)
+            p[9] = new byte[16];
+        }
+        return new StatisticsAnalysisTool.Network.Events.LaborerObjectInfoEvent(p);
+    }
+
+    private static StatisticsAnalysisTool.Network.Events.LaborerObjectJobInfoEvent Job57Active(long id, DateTime jobStart)
+        => new(new Dictionary<byte, object> { { 0, id }, { 1, true }, { 2, MageJournalFull }, { 3, 7200000L }, { 5, jobStart.Ticks } });
+
+    private static StatisticsAnalysisTool.Network.Events.LaborerObjectJobInfoEvent Job57Bare(long id)
+        => new(new Dictionary<byte, object> { { 0, id } });
+
+    [Test]
+    public void AwayLaborer_ReturnInFuture_IsOnJob_NotLootReady()
+    {
+        var snap = new LaborerSnapshot(383L);
+        snap.UpdateFromLaborerObjectInfo(Info56(383L, DateTime.UtcNow.AddHours(20)));
+        snap.UpdateFromJobInfo(Job57Active(383L, DateTime.UtcNow.AddHours(-2)));
+
+        snap.IsOnJob.Should().BeTrue();
+        snap.IsLootReady.Should().BeFalse("return time is in the future — this is the bug that showed away laborers as loot-ready");
+        snap.JournalItemId.Should().Be(MageJournalFull);
+    }
+
+    [Test]
+    public void AwayLaborer_BareAndNoParam8Packets_DoNotClearOnJob()
+    {
+        var snap = new LaborerSnapshot(383L);
+        snap.UpdateFromLaborerObjectInfo(Info56(383L, DateTime.UtcNow.AddHours(20)));
+        snap.UpdateFromJobInfo(Job57Active(383L, DateTime.UtcNow.AddHours(-2)));
+
+        // Both forms are broadcast WHILE the laborer is still out (every capture interleaves them).
+        snap.UpdateFromJobInfo(Job57Bare(383L));
+        snap.UpdateFromLaborerObjectInfo(Info56(383L, null));
+
+        snap.IsOnJob.Should().BeTrue("on-job must latch through bare/no-param8 packets (no flip-flop)");
+        snap.JobDispatchTime.Should().NotBeNull("return time must be retained when a packet omits param 8");
+        snap.IsLootReady.Should().BeFalse();
+    }
+
+    [Test]
+    public void Laborer_ReturnPassed_BecomesLootReadyByTime()
+    {
+        var snap = new LaborerSnapshot(383L);
+        snap.UpdateFromLaborerObjectInfo(Info56(383L, DateTime.UtcNow.AddHours(-1)));
+        snap.UpdateFromJobInfo(Job57Active(383L, DateTime.UtcNow.AddHours(-23)));
+
+        snap.HasActiveJob.Should().BeTrue();
+        snap.IsLootReady.Should().BeTrue("return time has passed");
+        snap.IsOnJob.Should().BeFalse("a returned laborer is loot-ready, not on-job — this keeps 'all on job' from firing the webhook mid-collection");
+    }
+
+    [Test]
+    public void NotOnJob_FebFoodDates_NeverProduceReadyAt()
+    {
+        var snap = new LaborerSnapshot(383L);
+        snap.UpdateFromLaborerObjectInfo(Info56(383L, null)); // no param 8 = not dispatched
+
+        snap.IsOnJob.Should().BeFalse();
+        snap.ReadyAtUtc.Should().BeNull("param 6/7 are food timestamps, not job times");
+        snap.IsLootReady.Should().BeFalse();
+    }
+
+    [Test]
+    public void ReconnectNoParam8_ReadyAtDerivedFromJobStartPlusCycle()
+    {
+        var snap = new LaborerSnapshot(383L);
+        // Reconnect path: only job-info (no LaborerObjectInfo param 8). jobStart 23h ago + 22h cycle = ready.
+        snap.UpdateFromJobInfo(Job57Active(383L, DateTime.UtcNow.AddHours(-23)));
+
+        snap.HasActiveJob.Should().BeTrue();
+        snap.IsLootReady.Should().BeTrue("jobStart + 22h base cycle is already in the past");
+        snap.IsOnJob.Should().BeFalse("return time has passed → loot-ready, not on-job");
+    }
+
+    [Test]
+    public void LootReadyLaborer_IsNotOnJob_KeepsWebhookGateClosed()
+    {
+        // Regression guard: the owner "all on job" webhook gate is snapshots.All(s => s.IsOnJob).
+        // A laborer with loot ready (return passed, not yet re-dispatched) must report IsOnJob = false,
+        // or the popup fires mid-collection (which it did when IsOnJob was a sticky latched bool).
+        var ready = new LaborerSnapshot(1L);
+        ready.UpdateFromLaborerObjectInfo(Info56(1L, DateTime.UtcNow.AddHours(-1)));
+        ready.UpdateFromJobInfo(Job57Active(1L, DateTime.UtcNow.AddHours(-23)));
+
+        ready.IsLootReady.Should().BeTrue();
+        ready.IsOnJob.Should().BeFalse("a loot-ready laborer must not satisfy the all-on-job webhook gate");
+    }
+}
+
 [TestFixture]
 public class IslandSlotLabelTests
 {
@@ -433,5 +545,96 @@ public class IslandPlotPersistedStatusTests
 
         LaborerConfigHelper.TryParseUtc(parsed["key"], out var result).Should().BeTrue();
         result.Should().BeCloseTo(original, TimeSpan.FromSeconds(1));
+    }
+}
+
+[TestFixture]
+public class FarmablePlotTypeClassificationTests
+{
+    // Herb seeds carry the "_FARM_" token but are herb-garden plants — they must resolve by the herb
+    // name, not be bucketed as Farm. Guards the unified classifier (FarmablePlotData) used for plot
+    // typing, slot assignment and yield bucketing.
+    [TestCase("T6_FARM_FOXGLOVE_SEED", PlotType.HerbGarden)]
+    [TestCase("T8_FARM_YARROW_SEED", PlotType.HerbGarden)]
+    [TestCase("T5_FARM_TEASEL_SEED", PlotType.HerbGarden)]
+    [TestCase("T1_FARM_CARROT_SEED", PlotType.Farm)]
+    [TestCase("T7_FARM_CORN_SEED", PlotType.Farm)]
+    [TestCase("T5_FARM_CABBAGE_SEED", PlotType.Farm)]
+    [TestCase("T8_FARM_COW_BABY", PlotType.Pasture)]
+    [TestCase("T3_FARM_CHICKEN_BABY", PlotType.Pasture)]
+    public void TryResolveFarmablePlotInfo_ByUniqueName_ResolvesExpectedPlotType(string uniqueName, PlotType expected)
+    {
+        var info = PlotTypeExtensions.TryResolveFarmablePlotInfo(uniqueName);
+
+        info.Should().NotBeNull();
+        info.PlotType.Should().Be(expected);
+    }
+}
+
+[TestFixture]
+public class IslandPlotSlotDotsTests
+{
+    [Test]
+    public void SlotDots_WithPerTilePlantedAts_RendersIndividualSlotStates()
+    {
+        var plot = new IslandPlot(PlotType.HerbGarden, 1) { Configuration = "CropType: Foxglove Seeds" };
+        var now = DateTime.UtcNow;
+
+        // tile 0 just planted (growing), tile 1 long past cycle (ready), tile 2 empty (collected).
+        plot.SetTilePlantedAts(new DateTime?[] { now, now.AddHours(-1000), null });
+
+        var dots = plot.SlotDots;
+
+        dots.Should().HaveCount(9); // HerbGarden = 9 slots, padded with "home"
+        dots[0].Should().Be("on_job");
+        dots[1].Should().Be("loot_ready");
+        dots[2].Should().Be("home");
+        dots[8].Should().Be("home");
+    }
+
+    [Test]
+    public void SlotDots_KennelHasFourSlots()
+    {
+        var plot = new IslandPlot(PlotType.Kennel, 1);
+        plot.SetTilePlantedAts(new DateTime?[] { DateTime.UtcNow });
+
+        plot.SlotDots.Should().HaveCount(4);
+    }
+
+    [Test]
+    public void SlotDots_NoTileData_FallsBackToAggregate()
+    {
+        var plot = new IslandPlot(PlotType.Farm, 1);
+        // No per-tile data and no PlotPlantedAt → all slots "home".
+        plot.SlotDots.Should().OnlyContain(s => s == "home");
+    }
+}
+
+[TestFixture]
+public class IslandLayoutTransformTests
+{
+    // The per-plot timer resolver maps a farmable plant's world position to its plot card via this transform.
+    // Lock the calibrated player-standard WorldTransform so a regression in the affine coefficients (which
+    // would silently break per-plot timer set/clear) is caught here.
+    [Test]
+    public void WorldToNearestSlot_PlayerStandard_HasCalibratedTransform()
+    {
+        var layout = IslandLayouts.Get(IslandLayouts.PlayerStandard);
+        layout.Should().NotBeNull();
+
+        // A world position over the slot-5 region resolves to slot 5 (pixel ≈ 323,436 vs slot 5 at 324,439).
+        layout.WorldToNearestSlot(143.8f, 136f).Should().Be(5);
+    }
+
+    [Test]
+    public void WorldToNearestSlot_RequireLarge_NeverReturnsSmallSlot()
+    {
+        var layout = IslandLayouts.Get(IslandLayouts.PlayerStandard);
+
+        // Small slots are 17/18; requiring large must exclude them regardless of nearest pixel.
+        var slot = layout.WorldToNearestSlot(143.8f, 136f, requireLarge: true);
+        slot.Should().NotBeNull();
+        slot.Should().NotBe(17);
+        slot.Should().NotBe(18);
     }
 }

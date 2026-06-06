@@ -36,11 +36,22 @@ public class LaborerSnapshot
     public bool HasPremium { get; set; }
     public int Nutrition { get; set; }
 
-    // True when param 8/9 are present in LaborerObjectInfo (laborer dispatched on job).
-    public bool IsOnJob { get; set; }
+    // Latched: the laborer has been dispatched this session and not yet confirmed collected. Param 8 /
+    // the job-info journal id are sent intermittently while the laborer is out, so a single packet that
+    // omits them must not clear this. Reset on island change.
+    public bool HasActiveJob { get; set; }
 
-    // True when LaborerObjectJobInfo param 1 = true (home with loot available).
-    public bool IsLootReady { get; set; }
+    // On-job / loot-ready are DERIVED from the latched job state + the return time, never from a single
+    // packet flag. On-job = dispatched with the return still in the future; loot-ready = return passed;
+    // home = no active job. Keeping IsOnJob derived (not a sticky bool) is what stops "all on job" from
+    // becoming trivially true and firing the owner webhook mid-collection.
+    public bool IsOnJob => HasActiveJob && ReadyAtUtc.HasValue && ReadyAtUtc.Value > DateTime.UtcNow;
+    public bool IsLootReady => HasActiveJob && ReadyAtUtc.HasValue && ReadyAtUtc.Value <= DateTime.UtcNow;
+
+    // Return/ready-at time: param 8 (already end-of-cycle) when known, else JobStartTime + base cycle.
+    public DateTime? ReadyAtUtc => JobDispatchTime ?? (JobStartTime.HasValue
+        ? JobStartTime.Value.AddHours(IslandConstants.LaborerBaseCycleHours)
+        : null);
 
     // True once this laborer has been observed at home (IsOnJob=false) at least once.
     // Used to distinguish "already on job when we arrived" from "just dispatched".
@@ -66,8 +77,6 @@ public class LaborerSnapshot
 
     public int FameFillValue { get; set; }
     public int Happiness { get; set; }
-    public DateTime? NextReturnAt { get; set; }
-    public DateTime? LastJobStartedAt { get; set; }
     public DateTime? JobStartTime { get; set; }
 
     public int JournalItemId { get; set; }
@@ -117,30 +126,23 @@ public class LaborerSnapshot
 
         if (!string.IsNullOrEmpty(e.FirstName)) FirstName = e.FirstName;
         if (!string.IsNullOrEmpty(e.LastName)) LastName = e.LastName;
-        // Don't overwrite IsLootReady=true with IsOnJob=true from a stale dispatch ticks param.
-        // LaborerObjectJobInfo is authoritative for loot-ready state.
-        if (!(IsLootReady && e.IsOnJob))
-            IsOnJob = e.IsOnJob;
+        // Job state is latched (see HasActiveJob): only set, never clear from a packet that omits param 8.
+        if (e.IsOnJob) HasActiveJob = true;
         ActiveJobId = e.ActiveJobId;
-        JobDispatchTime = e.JobDispatchTime;
+        // Latch the return time too — keep the last known value when this packet omits param 8.
+        if (e.JobDispatchTime.HasValue) JobDispatchTime = e.JobDispatchTime;
         SentByCharacter = e.SentByCharacter;
         FameFillValue = (int)e.FameFill.DoubleValue;
         Happiness = e.Happiness;
-        if (e.NextReturnAt.HasValue) NextReturnAt = e.NextReturnAt;
-        if (e.LastJobStartedAt.HasValue) LastJobStartedAt = e.LastJobStartedAt;
 
         if (!e.IsOnJob)
         {
             HasBeenSeenAsHome = true;
             JustSentAt = null;
-            SentDetailSnapshot = string.Empty;
         }
 
-        if (e.IsOnJob && !IsLootReady)
-        {
-            if (string.IsNullOrEmpty(SentDetailSnapshot) && JobDispatchTime.HasValue)
-                SentDetailSnapshot = FormatSentElapsed(DateTime.UtcNow, JobDispatchTime.Value);
-        }
+        if (IsOnJob && !IsLootReady && string.IsNullOrEmpty(SentDetailSnapshot) && JobDispatchTime.HasValue)
+            SentDetailSnapshot = FormatSentElapsed(DateTime.UtcNow, JobDispatchTime.Value);
 
         return IsOnJob != prevOnJob
             || IsLootReady != prevLootReady
@@ -150,31 +152,19 @@ public class LaborerSnapshot
 
     public void UpdateFromJobInfo(LaborerObjectJobInfoEvent e)
     {
-        IsLootReady = e.IsLootReady;
         JournalItemId = e.JournalItemId;
         CurrentFameFill = e.CurrentFameFill;
         if (e.JobStartTime.HasValue) JobStartTime = e.JobStartTime;
 
+        // Form A (non-zero journal id) latches the active job. This is the primary detection path after
+        // a game reconnect, when LaborerObjectInfo param 8 may be absent. The bare form carries no state
+        // and must not clear it (it is broadcast even while the laborer is still out). On-job/loot-ready
+        // are derived from ReadyAtUtc, not from this event.
         if (e.IsAwayOnJob)
         {
-            // Laborer is actively away — journal present but loot not yet ready.
-            // This is the primary detection path after a game session reconnect, because
-            // LaborerObjectInfo param 8 (dispatch ticks) is only present in the same session
-            // the laborer was dispatched. On subsequent visits, only LaborerObjectJobInfo
-            // reliably signals the away-on-job state via a non-zero JournalItemId.
-            IsOnJob = true;
+            HasActiveJob = true;
             if (string.IsNullOrEmpty(SentDetailSnapshot) && JobDispatchTime.HasValue)
                 SentDetailSnapshot = FormatSentElapsed(DateTime.UtcNow, JobDispatchTime.Value);
-        }
-        else if (e.IsLootReady)
-        {
-            IsOnJob = false;
-            SentDetailSnapshot = string.Empty;
-        }
-        else
-        {
-            IsOnJob = false;
-            SentDetailSnapshot = string.Empty;
         }
     }
 

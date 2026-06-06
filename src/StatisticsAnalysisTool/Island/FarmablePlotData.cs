@@ -179,6 +179,31 @@ internal static class FarmablePlotData
         return isGrown ? (PlotType.Pasture, "AnimalType") : (PlotType.Kennel, "AnimalType");
     }
 
+    // Classify a plot by its stored configuration display name (e.g. "Elusive Foxglove Seeds",
+    // "Carrot Seeds", "Baby Chickens"). Used to migrate plots whose PlotType was resolved by an older
+    // keyword classifier that mistook herb seeds (T*_FARM_*_SEED) for farm crops. Matches the crop/animal
+    // token anywhere in the name so plurals and prefixes ("Baby Chickens") still resolve.
+    internal static (PlotType? plotType, string configKey) ClassifyFarmableByDisplayName(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            return (null, null);
+
+        var upper = displayName.ToUpperInvariant();
+
+        if (HerbNames.Any(h => upper.Contains(h, StringComparison.Ordinal)))
+            return (PlotType.HerbGarden, "CropType");
+        if (CropNames.Any(c => upper.Contains(c, StringComparison.Ordinal)))
+            return (PlotType.Farm, "CropType");
+        if (SaddlerAnimalNames.Any(a => upper.Contains(a, StringComparison.Ordinal)))
+            return (PlotType.Saddler, "MountType");
+        if (PastureAnimalNames.Any(a => upper.Contains(a, StringComparison.Ordinal)))
+            return (PlotType.Pasture, "AnimalType");
+        if (KennelAnimalNames.Any(a => upper.Contains(a, StringComparison.Ordinal)))
+            return (PlotType.Kennel, "AnimalType");
+
+        return (null, null);
+    }
+
     internal static FarmablePlotInfo TryParseFarmablePlotInfoFromUniqueName(string uniqueName)
     {
         var (plotType, configKey) = ClassifyFarmableByUniqueName(uniqueName);

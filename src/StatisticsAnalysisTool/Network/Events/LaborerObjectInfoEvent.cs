@@ -8,9 +8,13 @@ using System.Reflection;
 namespace StatisticsAnalysisTool.Network.Events;
 
 // EVENT [56]LaborerObjectInfo
-//   When home:   map[0:<objectId> 1:<firstName> 2:<lastName> 3:<fameFill:FixPoint> 4:<happiness:FixPoint> 5:<happiness:FixPoint (dup)>
-//                    6:<nextReturnAt:ticks> 7:<lastJobStartedAt:ticks> 10:'' 252:56]
-//   When on job: same + 8:<dispatchTicks> 9:<jobGuid:Byte[]> 10:<zoneName>
+//   Always:      map[0:<objectId> 1:<firstName> 2:<lastName> 3:<fameFill:FixPoint> 4:<happiness:FixPoint> 5:<happiness:FixPoint (dup)>
+//                    6:<foodTicks:ticks> 7:<foodTicks:ticks> 10:'' 252:56]
+//   When on job: same + 8:<returnAt:ticks> 9:<jobGuid:Byte[]> 10:<zoneName>
+//
+// Param 6/7 are static food/contract timestamps (observed months in the past), NOT job times, so they
+// are intentionally ignored. Param 8 is the only reliable return time: present iff the laborer is away
+// on a job, decoding to dispatch + ~cycle in the future.
 public class LaborerObjectInfoEvent
 {
     public long ObjectId { get; private set; } = -1;
@@ -22,8 +26,6 @@ public class LaborerObjectInfoEvent
     public string SentByCharacter { get; private set; } = string.Empty;
     public FixPoint FameFill { get; private set; }
     public int Happiness { get; private set; }
-    public DateTime? NextReturnAt { get; private set; }
-    public DateTime? LastJobStartedAt { get; private set; }
 
     public LaborerObjectInfoEvent(Dictionary<byte, object> parameters)
     {
@@ -50,25 +52,7 @@ public class LaborerObjectInfoEvent
                 Happiness = (int)FixPoint.FromInternalValue(raw4 ?? 0).DoubleValue;
             }
 
-            if (parameters.TryGetValue(6, out var p6))
-            {
-                var ticks6 = p6.ObjectToLong();
-                if (ticks6.HasValue && ticks6.Value > 0)
-                {
-                    NextReturnAt = new DateTime(ticks6.Value, DateTimeKind.Utc);
-                    Log.Debug("[LaborerObjectInfoEvent] p6 raw={Raw} → NextReturnAt={Resolved} (now={Now})", ticks6.Value, NextReturnAt, DateTime.UtcNow);
-                }
-            }
-
-            if (parameters.TryGetValue(7, out var p7))
-            {
-                var ticks7 = p7.ObjectToLong();
-                if (ticks7.HasValue && ticks7.Value > 0)
-                {
-                    LastJobStartedAt = new DateTime(ticks7.Value, DateTimeKind.Utc);
-                    Log.Debug("[LaborerObjectInfoEvent] p7 raw={Raw} → LastJobStartedAt={Resolved}", ticks7.Value, LastJobStartedAt);
-                }
-            }
+            // Param 6/7 (static food/contract timestamps) deliberately not read — see header.
 
             if (parameters.TryGetValue(8, out var p8))
             {
@@ -77,7 +61,7 @@ public class LaborerObjectInfoEvent
                 {
                     IsOnJob = true;
                     JobDispatchTime = new DateTime(ticks.Value, DateTimeKind.Utc);
-                    Log.Debug("[LaborerObjectInfoEvent] p8 raw={Raw} → JobDispatchTime={Resolved}", ticks.Value, JobDispatchTime);
+                    Log.Debug("[LaborerObjectInfoEvent] p8 raw={Raw} → return-at JobDispatchTime={Resolved}", ticks.Value, JobDispatchTime);
                 }
             }
 

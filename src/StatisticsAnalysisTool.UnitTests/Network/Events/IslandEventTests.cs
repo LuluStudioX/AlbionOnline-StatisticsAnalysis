@@ -176,12 +176,14 @@ public class LaborerObjectInfoEventTests
 [TestFixture]
 public class LaborerObjectJobInfoEventTests
 {
-    // EVENT [57] LaborerObjectJobInfo — captured from packets-20260416.log
-    // Loot ready:   0:712 1:True  2:11799 3:3600000 5:639118868011736295 252:57
-    // After collect: 0:712 252:57
+    // EVENT [57] LaborerObjectJobInfo — two forms seen across every island capture:
+    //   Active job: 0:712 1:True 2:11799 3:3600000 5:639118868011736295 252:57  (param 1 always true)
+    //   Idle/bare:  0:712 252:57
+    // Param 1 marks "has an active job" (away on job), NOT loot-ready. Loot-ready is time-derived
+    // downstream (LaborerSnapshot.IsLootReady), so the event only exposes IsAwayOnJob.
 
     [Test]
-    public void Constructor_LootReady_IsLootReadyTrueIsAwayOnJobFalse()
+    public void Constructor_ActiveJobPacket_IsAwayOnJobTrue()
     {
         var parameters = new Dictionary<byte, object>
         {
@@ -194,20 +196,18 @@ public class LaborerObjectJobInfoEventTests
         var evt = new LaborerObjectJobInfoEvent(parameters);
 
         evt.ObjectId.Should().Be(712);
-        evt.IsLootReady.Should().BeTrue();
-        evt.IsAwayOnJob.Should().BeFalse();
+        evt.IsAwayOnJob.Should().BeTrue();
         evt.JournalItemId.Should().Be(11799);
         evt.CurrentFameFill.Should().Be(FixPoint.FromInternalValue(3600000));
     }
 
     [Test]
-    public void Constructor_AwayOnJob_IsAwayOnJobTrueIsLootReadyFalse()
+    public void Constructor_JournalPresent_IsAwayOnJobTrue()
     {
-        // Away = journal present, loot not ready yet
+        // A non-zero journal id means the laborer holds an active job, regardless of param 1.
         var parameters = new Dictionary<byte, object>
         {
             { 0, 710L },
-            { 1, false },
             { 2, 11799 },
             { 3, 7200000L }
         };
@@ -215,15 +215,14 @@ public class LaborerObjectJobInfoEventTests
         var evt = new LaborerObjectJobInfoEvent(parameters);
 
         evt.ObjectId.Should().Be(710);
-        evt.IsLootReady.Should().BeFalse();
         evt.IsAwayOnJob.Should().BeTrue();
         evt.JournalItemId.Should().Be(11799);
     }
 
     [Test]
-    public void Constructor_IdleAfterCollect_AllStateFalse()
+    public void Constructor_BareForm_IsAwayOnJobFalse()
     {
-        // Only ObjectId present — laborer idle at home after loot collected
+        // Only ObjectId present — no active job (idle at home or just collected).
         var parameters = new Dictionary<byte, object>
         {
             { 0, 711L }
@@ -232,13 +231,12 @@ public class LaborerObjectJobInfoEventTests
         var evt = new LaborerObjectJobInfoEvent(parameters);
 
         evt.ObjectId.Should().Be(711);
-        evt.IsLootReady.Should().BeFalse();
         evt.IsAwayOnJob.Should().BeFalse();
         evt.JournalItemId.Should().Be(0);
     }
 
     [Test]
-    public void Constructor_RealLootReadyPacket_ParsesFameCorrectly()
+    public void Constructor_ActiveJobPacket_ParsesFameCorrectly()
     {
         // Real packet: 0:187 1:True 2:12047 3:750000 5:639118447788395661
         var parameters = new Dictionary<byte, object>
@@ -252,7 +250,7 @@ public class LaborerObjectJobInfoEventTests
         var evt = new LaborerObjectJobInfoEvent(parameters);
 
         evt.ObjectId.Should().Be(187);
-        evt.IsLootReady.Should().BeTrue();
+        evt.IsAwayOnJob.Should().BeTrue();
         evt.JournalItemId.Should().Be(12047);
         evt.CurrentFameFill.DoubleValue.Should().BeApproximately(750000 / 10000.0, 0.001);
     }

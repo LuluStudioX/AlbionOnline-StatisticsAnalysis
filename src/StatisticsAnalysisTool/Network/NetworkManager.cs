@@ -56,7 +56,6 @@ public class NetworkManager
         builder.AddEventHandler(new TakeSilverEventHandler(trackingController));
         builder.AddEventHandler(new ActionOnBuildingFinishedEventHandler(trackingController));
         builder.AddEventHandler(new NewBuildingEventHandler(trackingController));
-        builder.AddEventHandler(new FarmBuildingInfoEventHandler(trackingController));
         builder.AddEventHandler(new FarmableObjectInfoEventHandler(trackingController));
         builder.AddEventHandler(new LaborerObjectInfoEventHandler(trackingController));
         builder.AddEventHandler(new LaborerObjectJobInfoEventHandler(trackingController));
@@ -135,6 +134,12 @@ public class NetworkManager
         builder.AddResponseHandler(new PastureHarvestResponseHandler(trackingController));
         builder.AddResponseHandler(new PastureProductHarvestResponseHandler(trackingController));
         builder.AddResponseHandler(new PastureFeedConsumedResponseHandler(trackingController));
+
+        // Collect REQUESTS carry the plot ObjectId the harvest responses lack — used for per-plot timer clearing.
+        builder.AddRequestHandler(new HerbGardenCollectRequestHandler(trackingController));
+        builder.AddRequestHandler(new PastureCollectRequestHandler(trackingController));
+        builder.AddRequestHandler(new PastureProductCollectRequestHandler(trackingController));
+        builder.AddRequestHandler(new PastureFeedCollectRequestHandler(trackingController));
 
         return builder.Build();
     }

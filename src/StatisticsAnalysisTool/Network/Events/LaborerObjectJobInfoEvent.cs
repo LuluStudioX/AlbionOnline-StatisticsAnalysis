@@ -6,18 +6,17 @@ using System.Reflection;
 
 namespace StatisticsAnalysisTool.Network.Events;
 
-// EVENT [57]LaborerObjectJobInfo
-//   Away on job:     map[0:<objectId> 1:false 2:<journalItemId> 3:<fameFill> 5:<jobStartTime:ticks> 252:57]
-//   With loot ready: map[0:<objectId> 1:true  2:<journalItemId> 3:<fameFill> 252:57]
-//   After collect:   map[0:<objectId> 252:57]  (all optional params absent)
+// EVENT [57]LaborerObjectJobInfo — two forms observed across every island capture:
+//   Active job:  map[0:<objectId> 1:true 2:<journalItemId> 3:<fameFill> 5:<jobStartTime:ticks> 252:57]
+//   Idle/bare:   map[0:<objectId> 252:57]  (all optional params absent)
 //
-// param 1 = false + param 2 > 0  →  away on job
-// param 1 = true               →  returned home, loot ready
-// all optional params absent    →  idle at home
+// Param 1 is ALWAYS true when present (never observed false) — it marks "has an active job", NOT
+// loot-ready. Whether the job is still running or finished (loot ready) cannot be read from this
+// event; it is derived downstream from the return time (LaborerObjectInfo param 8 / JobStartTime +
+// cycle). See LaborerSnapshot.IsLootReady.
 public class LaborerObjectJobInfoEvent
 {
     public long ObjectId { get; private set; } = -1;
-    public bool IsLootReady { get; private set; }
     public bool IsAwayOnJob { get; private set; }
     public int JournalItemId { get; private set; }
     public FixPoint CurrentFameFill { get; private set; }
@@ -29,9 +28,6 @@ public class LaborerObjectJobInfoEvent
         {
             if (parameters.TryGetValue(0, out var p0))
                 ObjectId = p0.ObjectToLong() ?? -1;
-
-            if (parameters.TryGetValue(1, out var p1))
-                IsLootReady = p1.ObjectToBool();
 
             if (parameters.TryGetValue(2, out var p2))
                 JournalItemId = p2.ObjectToInt();
@@ -49,7 +45,8 @@ public class LaborerObjectJobInfoEvent
                     JobStartTime = new DateTime(ticks5.Value, DateTimeKind.Utc);
             }
 
-            IsAwayOnJob = JournalItemId > 0 && !IsLootReady;
+            // A non-zero journal id means the laborer holds an active job assignment (form A above).
+            IsAwayOnJob = JournalItemId > 0;
         }
         catch (Exception e)
         {

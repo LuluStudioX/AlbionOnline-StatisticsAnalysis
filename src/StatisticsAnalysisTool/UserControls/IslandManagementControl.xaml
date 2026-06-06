@@ -1410,8 +1410,10 @@
                         </TabItem.Header>
                         <Grid Margin="8">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="3*"/>
-                                <RowDefinition Height="5"/>
+                                <!-- Collected/Consumed grids size to content (capped) so the metrics below
+                                     always stay in view; metrics get all remaining space. -->
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
@@ -1424,7 +1426,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- Collected panel -->
-                                <GroupBox Grid.Column="0">
+                                <GroupBox Grid.Column="0" MinHeight="90" MaxHeight="200">
                                     <GroupBox.Header>
                                         <StackPanel Orientation="Horizontal">
                                             <fa5:ImageAwesome Icon="Solid_BoxOpen" Width="10" Height="10" Margin="0,0,5,0"
@@ -1460,7 +1462,7 @@
                                 </GroupBox>
 
                                 <!-- Consumed panel -->
-                                <GroupBox Grid.Column="2">
+                                <GroupBox Grid.Column="2" MinHeight="90" MaxHeight="200">
                                     <GroupBox.Header>
                                         <StackPanel Orientation="Horizontal">
                                             <fa5:ImageAwesome Icon="Solid_MinusCircle" Width="10" Height="10" Margin="0,0,5,0"
@@ -1496,9 +1498,22 @@
                                 </GroupBox>
                             </Grid>
 
-                            <!-- Row 1: GridSplitter -->
-                            <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" Background="Transparent"
-                                          ResizeBehavior="PreviousAndNext" ResizeDirection="Rows"/>
+                            <!-- Row 1: Yield toolbar (Clear, right-aligned) -->
+                            <DockPanel Grid.Row="1" Margin="0,4,0,2" LastChildFill="False">
+                                <Button DockPanel.Dock="Right" Height="22" Padding="9,0" FontSize="10" Cursor="Hand"
+                                        Click="BtnClearIslandYield_Click"
+                                        Background="Transparent"
+                                        BorderThickness="1"
+                                        BorderBrush="{StaticResource SolidColorBrush.Accent.Red.3}"
+                                        Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"
+                                        ToolTip="Clear all collected and consumed yield data for this island">
+                                    <StackPanel Orientation="Horizontal">
+                                        <fa5:ImageAwesome Icon="Solid_TrashAlt" Width="9" Height="9" Margin="0,0,6,0"
+                                                          Foreground="{StaticResource SolidColorBrush.Accent.Red.3}"/>
+                                        <TextBlock Text="{Binding Translation.IslandManagementYieldClear, FallbackValue='Clear Yield Data'}"/>
+                                    </StackPanel>
+                                </Button>
+                            </DockPanel>
 
                             <!-- Row 2: Sub-tabs -->
                             <TabControl Grid.Row="2" TabStripPlacement="Top" Background="Transparent"
@@ -1513,7 +1528,6 @@
                                     </TabItem.Header>
                                     <Grid Margin="0,4,0,0">
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
@@ -1655,31 +1669,6 @@
                                                                                  Converter={StaticResource BooleanToVisibilityConverter},
                                                                                  FallbackValue=Collapsed}"/>
 
-                                        <!-- Totals + Clear bar -->
-                                        <Border Grid.Row="3" Margin="0,4,0,0"
-                                                Background="{StaticResource SolidColorBrush.Background.2}"
-                                                BorderBrush="{StaticResource SolidColorBrush.Background.4}"
-                                                BorderThickness="0,1,0,0" Padding="6,4">
-                                            <DockPanel>
-                                                <Button DockPanel.Dock="Right" Height="20" Padding="6,0" FontSize="10"
-                                                        Click="BtnClearIslandYield_Click"
-                                                        Foreground="{StaticResource SolidColorBrush.Accent.Red.3}">
-                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldClear, FallbackValue='Clear Yield Data'}"/>
-                                                </Button>
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldCollectedValue, FallbackValue='Collected value: '}"
-                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
-                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalYieldValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
-                                                               Foreground="{StaticResource SolidColorBrush.Accent.Green.3}" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Text=" silver  |  " Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11"/>
-                                                    <TextBlock Text="{Binding Translation.IslandManagementYieldConsumedValue, FallbackValue='Consumed value: '}"
-                                                               Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11"/>
-                                                    <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalConsumedValue, StringFormat='{}{0:N0}', FallbackValue='0'}"
-                                                               Foreground="{StaticResource SolidColorBrush.Accent.Red.3}" FontSize="11" FontWeight="SemiBold"/>
-                                                    <TextBlock Text=" silver" Foreground="{StaticResource SolidColorBrush.Text.4}" FontSize="11"/>
-                                                </StackPanel>
-                                            </DockPanel>
-                                        </Border>
                                     </Grid>
                                 </TabItem>
 

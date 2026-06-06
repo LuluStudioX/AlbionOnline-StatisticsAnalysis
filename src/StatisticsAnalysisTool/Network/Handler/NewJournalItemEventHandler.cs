@@ -17,7 +17,8 @@ public class NewJournalItemEventHandler(TrackingController trackingController) :
         EstimatedMarketValueController.Add(value.Item.ItemIndex, value.Item.EstimatedMarketValueInternal, value.Item.Quality);
         trackingController.LootController.AddDiscoveredItem(value.Item);
         trackingController.DungeonController.AddDiscoveredItem(value.Item);
-        trackingController.IslandController?.HandleLaborerItemDetail(value.Item);
+        // Laborer journals: empty stacks rise = collected, full stacks fall = consumed (island-guarded).
+        trackingController.IslandController?.HandleLaborerJournalDetail(value.Item);
         await Task.CompletedTask;
     }
 }

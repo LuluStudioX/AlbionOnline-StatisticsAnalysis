@@ -97,6 +97,8 @@ public partial class IslandController
         _transitionTimer = null;
         _pushDebounceTimer?.Dispose();
         _pushDebounceTimer = null;
+        _yieldFlushTimer?.Dispose();
+        _yieldFlushTimer = null;
     }
 
     private void ScheduleNextPlotTransition()
@@ -152,16 +154,32 @@ public partial class IslandController
     private string _sessionOwner;
     private string _sessionWorldMapDataType;
     private string _sessionSourceClusterIndex;
-    private readonly HashSet<long> _seenItemObjectIds = [];
-    private readonly object _seenItemObjectIdsLock = new();
-    // Laborer loot item details (objectId -> item) from NewLaborerItem (code 32). Recorded as yield
-    // only when the matching "collected" marker (bare NewSimpleItem, code 27) arrives — that fires at
-    // the actual collect, never on view, and never for the cumulative inventory stacks. So viewing a
-    // laborer's loot panel cannot inflate totals, and inventory stacks (code 32 only) are excluded.
-    private readonly ConcurrentDictionary<long, (int ItemIndex, int Quantity)> _collectibleItemCache = new();
+    private readonly object _consumedTilesLock = new();
+    // Tiles ("islandId|uniqueName|x|y") already booked as a consumed seed. Keyed by stable position, not
+    // object id: re-entering an island re-broadcasts every existing plant with a NEW object id, so an
+    // object-id dedup that reset on entry re-counted every plant on every visit. Position is stable across
+    // re-entries, and this set is deliberately NOT cleared on island change/entry so an already-handled
+    // island never re-books its existing plantings as freshly consumed. (Same-tile replant within one app
+    // run is therefore not re-counted — accepted until the per-plot rewrite tracks collect→replant cycles.)
+    private readonly HashSet<string> _consumedPlantedTiles = [];
+    // Last seen quantity per laborer-loot inventory object (NewLaborerItem, code 32). Yield is the
+    // positive growth between broadcasts; the first sighting is the baseline. Reset on island change.
+    private readonly ConcurrentDictionary<long, int> _lastItemQty = new();
+    // Last seen quantity per laborer-journal stack (NewJournalItem, code 35). Empty journals rise =
+    // collected; full journals fall = consumed. Reset on island change.
+    private readonly ConcurrentDictionary<long, int> _lastJournalQty = new();
+    // Farmable plant ObjectId -> world position (from NewBuilding 45). Lets a collect request (op 73/74/76/77)
+    // and FarmableObjectInfo (201) resolve the specific plot card via the layout's nearest slot, so timers are
+    // set/cleared per plot instead of across every plot of the type (which caused the collect clear-storm).
+    private readonly ConcurrentDictionary<long, (float X, float Y)> _farmablePositions = new();
+    // Per-plot, per-tile planted time keyed by world-position (stable across the object-id churn). Drives the
+    // per-slot dots on each card; runtime only (reset per island session). null value = collected/empty slot.
+    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<string, DateTime?>> _plotTilePlanted = new();
 
     public void ClearSession()
     {
+        // Commit any yield collected on the island we're leaving before the session state is reset.
+        FlushPendingYield();
         _snapshots.Clear();
         lock (_snapshotOrderLock)
             _snapshotsByOrder.Clear();
@@ -173,8 +191,12 @@ public partial class IslandController
         _sessionWorldMapDataType = null;
         _sessionSourceClusterIndex = null;
         _sessionHasPremium = false;
-        lock (_seenItemObjectIdsLock) _seenItemObjectIds.Clear();
-        _collectibleItemCache.Clear();
+        // Yield baselines reset per island session; the consumed-plant tile set deliberately persists so a
+        // re-joined, already-handled island does not re-book its existing plantings as freshly consumed.
+        _lastItemQty.Clear();
+        _lastJournalQty.Clear();
+        _farmablePositions.Clear();
+        _plotTilePlanted.Clear();
         _collectionReadyWebhookSentThisSession = false;
         Interlocked.Exchange(ref _detectionCounter, 0);
         lock (_lastSnapshotLock)
@@ -194,8 +216,10 @@ public partial class IslandController
         _sessionSourceClusterIndex = cluster.SourceClusterIndex;
         _sessionOwner = SettingsController.CurrentSettings.MainTrackingCharacterName
             ?? _trackingController?.EntityController?.LocalUserData?.Username;
-        lock (_seenItemObjectIdsLock) _seenItemObjectIds.Clear();
-        _collectibleItemCache.Clear();
+        // Only yield baselines reset on entry; _consumedPlantedTiles persists so re-joining an
+        // already-handled island does not re-count its existing plantings as consumed.
+        _lastItemQty.Clear();
+        _lastJournalQty.Clear();
         Log.Information("[IslandController] Entered island cluster: name={Name} wmd={Wmd} src={Src} owner={Owner}",
             _sessionIslandName, _sessionWorldMapDataType, _sessionSourceClusterIndex, _sessionOwner);
 
@@ -308,6 +332,10 @@ public partial class IslandController
                 var island = FindCurrentIsland();
                 if (island != null)
                 {
+                    // Cache plant position so collect requests / FarmableObjectInfo can resolve this plot card.
+                    if (e.Position.HasValue)
+                        _farmablePositions[e.ObjectId] = (e.Position.Value.X, e.Position.Value.Y);
+
                     // Code 45 param 20 = server-now timestamp, not planted-at.
                     // Timer is seeded accurately by FarmableObjectInfo (code 201) which carries elapsed time.
                     // No timer update from NewBuilding.
@@ -325,18 +353,49 @@ public partial class IslandController
                     // Zone-in broadcasts carry old PlantedAt (hours ago) — 30s guard filters them out.
                     var isJustPlanted = e.PlantedAt.HasValue
                         && (DateTime.UtcNow - e.PlantedAt.Value).TotalSeconds <= 30;
+                    // Dedup by stable tile (island + plant + world position), NOT object id: each island
+                    // re-entry re-broadcasts existing plants with fresh object ids, so an object-id key
+                    // re-counted every plant on every visit. Position is constant across re-entries and the
+                    // set persists for the app run, so an already-handled island never re-books its plants.
+                    var isNewPlanting = false;
+                    if (e.Position.HasValue)
+                    {
+                        var tileKey = string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                            $"{island.Id}|{e.UniqueName}|{e.Position.Value.X:0.##}|{e.Position.Value.Y:0.##}");
+                        lock (_consumedTilesLock) isNewPlanting = _consumedPlantedTiles.Add(tileKey);
+                    }
                     if (isJustPlanted)
                     {
-                        var item = ItemController.GetItemByUniqueName(e.UniqueName);
-                        if (item != null && item.Index > 0)
+                        // Stamp this plot's timer at the observed plant time. Freshly-planted plots only ever
+                        // send the array-form FarmableObjectInfo (no scalar elapsed to derive PlantedAt from),
+                        // so the plant action is the reliable PlantedAt source for them; pre-existing plots are
+                        // covered by scalar 201. Idempotent, so re-broadcasts within the 30s window are harmless.
+                        var plantedPlot = ResolveFarmablePlotByObjectId(island, e.ObjectId);
+                        if (plantedPlot != null && e.PlantedAt.HasValue
+                            && UpdatePlotTile(plantedPlot, e.ObjectId, e.PlantedAt.Value))
                         {
-                            var plotType = IsFarmableSeed(e.UniqueName) ? PlotType.HerbGarden : PlotType.Pasture;
-                            island.AddConsumed(item.Index, 1, plotType);
                             island.UpdateModificationDate();
                             _ = SaveToFileAsync();
-                            PushYieldUpdateToBindings(island);
-                            Log.Information("[IslandController] Recorded planted item as consumed: island={Island}, item={Item}, plotType={PlotType}",
-                                island.Name, e.UniqueName, plotType);
+                            RefreshIslandStatusAsync(island);
+                        }
+
+                        if (isNewPlanting)
+                        {
+                            var item = ItemController.GetItemByUniqueName(e.UniqueName);
+                            if (item != null && item.Index > 0)
+                            {
+                                // Bucket consumed by the same classifier used everywhere else, so a crop seed
+                                // (carrot/pumpkin) counts under Farm and a herb seed under HerbGarden — not the
+                                // old "_SEED => HerbGarden" rule that mislabelled crop seeds.
+                                var plotType = PlotTypeExtensions.TryResolveFarmablePlotInfo(e.UniqueName)?.PlotType
+                                    ?? (IsFarmableSeed(e.UniqueName) ? PlotType.HerbGarden : PlotType.Pasture);
+                                island.AddConsumed(item.Index, 1, plotType);
+                                island.UpdateModificationDate();
+                                _ = SaveToFileAsync();
+                                PushYieldUpdateToBindings(island);
+                                Log.Information("[IslandController] Recorded planted item as consumed: island={Island}, item={Item}, plotType={PlotType}",
+                                    island.Name, e.UniqueName, plotType);
+                            }
                         }
                     }
                 }
@@ -395,6 +454,14 @@ public partial class IslandController
         var u = uniqueName.ToUpperInvariant();
 
         if (u.Contains("LABOURER") || u.Contains("PLAYERHOUSE") || u.Contains("PLAYER_HOUSE") || u.Contains("_HOUSE_")) { plotType = PlotType.House; return true; }
+
+        // Farmable plant names (T*_FARM_*_SEED / *_BABY / *_GROWN) carry the crop/animal in the name, so a
+        // herb seed like T6_FARM_FOXGLOVE_SEED must classify by FOXGLOVE (HerbGarden) — not by the literal
+        // "_FARM_" token below, which would wrongly bucket every herb/animal seed as a farm crop. Delegate to
+        // the single name→type table so plot typing, slot assignment and yield bucketing agree.
+        var (farmableType, _) = FarmablePlotData.ClassifyFarmableByUniqueName(uniqueName);
+        if (farmableType.HasValue) { plotType = farmableType.Value; return true; }
+
         if (u.Contains("FARMHOUSE") || u.Contains("_FARM_") || u.Contains("_CROPS_")) { plotType = PlotType.Farm; return true; }
         if (u.Contains("HERBGARDEN") || u.Contains("_HERB_") || u.Contains("_HERBGARDEN_")) { plotType = PlotType.HerbGarden; return true; }
         if (u.Contains("PASTURE") || u.Contains("_ANIMAL_")) { plotType = PlotType.Pasture; return true; }
@@ -461,11 +528,9 @@ public partial class IslandController
         if (prefs == null || !prefs.AutoStartCycleOnIslandActivity) return;
         if (!snapshot.IsOnJob) return;
 
-        // JobDispatchTime = ready-at (param 8, only in same-session dispatch).
-        // On reconnect it's absent — fall back to NextReturnAt (param 6, always sent) or JobStartTime + cycle.
-        DateTime? readyUtcNullable = snapshot.JobDispatchTime
-            ?? snapshot.NextReturnAt
-            ?? (snapshot.JobStartTime.HasValue ? snapshot.JobStartTime.Value.AddHours(IslandConstants.LaborerBaseCycleHours) : null);
+        // Ready-at = param 8 (same-session dispatch); on reconnect param 8 is absent, so ReadyAtUtc
+        // falls back to JobStartTime + base cycle. Param 6/7 are food timestamps and never used here.
+        DateTime? readyUtcNullable = snapshot.ReadyAtUtc;
 
         if (!readyUtcNullable.HasValue) return;
 
@@ -507,13 +572,11 @@ public partial class IslandController
     {
         if (e.ObjectId < 0) return;
         if (!_snapshots.TryGetValue(e.ObjectId, out var snapshot)) return;
-        var wasLootReady = snapshot.IsLootReady;
         var wasOnJob = snapshot.IsOnJob;
         var prevJobStartTime = snapshot.JobStartTime;
         snapshot.UpdateFromJobInfo(e);
 
-        // Yield is recorded from the per-item "collected" marker (bare NewSimpleItem / code 27),
-        // not from loot-ready state — see HandleLaborerItemCollected.
+        // Yield is recorded from NewLaborerItem (code 32) quantity growth — see HandleLaborerItemDetail.
 
         if (e.JournalItemId > 0)
         {
@@ -530,24 +593,11 @@ public partial class IslandController
                                 || (prevJobStartTime != null && e.JobStartTime != prevJobStartTime)
                             );
 
-        Log.Debug("[IslandController] LaborerJobInfo: objectId={ObjId}, journalId={JournalId}, jobStart={JobStart}, prevJobStart={PrevJobStart}, lootReady={LootReady}, isNewDispatch={IsNewDispatch}",
-            e.ObjectId, e.JournalItemId, e.JobStartTime, prevJobStartTime, e.IsLootReady, isNewDispatch);
+        Log.Debug("[IslandController] LaborerJobInfo: objectId={ObjId}, journalId={JournalId}, jobStart={JobStart}, prevJobStart={PrevJobStart}, awayOnJob={AwayOnJob}, isNewDispatch={IsNewDispatch}",
+            e.ObjectId, e.JournalItemId, e.JobStartTime, prevJobStartTime, e.IsAwayOnJob, isNewDispatch);
 
-        if (isNewDispatch)
-        {
-            var island = FindCurrentIsland();
-            if (island != null)
-            {
-                island.AddConsumed(e.JournalItemId, 1, PlotType.House);
-                _ = SaveToFileAsync();
-                PushYieldUpdateToBindings(island);
-                Log.Information("[IslandController] Recorded consumed journal: island={Island}, journalId={JournalId}", island.Name, e.JournalItemId);
-            }
-            else
-            {
-                Log.Warning("[IslandController] isNewDispatch=true but no current island found");
-            }
-        }
+        // Consumed/collected journals are tracked from the actual NewJournalItem (code 35) stack deltas
+        // in HandleLaborerJournalDetail — NOT booked here per dispatch (that under-counted to one each).
 
         if (e.IsAwayOnJob)
             TryAutoStartIslandTimerFromLaborer(snapshot);
@@ -568,11 +618,33 @@ public partial class IslandController
 
         var snapshots = _snapshots.Values.ToList();
         if (snapshots.Count == 0) return;
-        // Fire only when ALL laborers are on job — last dispatch just sent.
+        // The island we're on must itself be fully re-dispatched (all laborers away on a fresh job).
         if (!snapshots.All(s => s.IsOnJob)) return;
 
-        _collectionReadyWebhookSentThisSession = true;
         var islandOwner = FindCurrentIsland()?.Owner?.Trim() ?? _sessionOwner;
+        if (string.IsNullOrWhiteSpace(islandOwner)) return;
+
+        // Fire only when EVERY island of this owner is done this cycle — i.e. none still NeedsVisit
+        // (ready/overdue, or never planted). Royal-city islands have no laborer cycle and are excluded.
+        List<Island.Island> ownerIslands;
+        lock (_islandsLock)
+            ownerIslands = _islands
+                .Where(i => string.Equals(i.Owner?.Trim(), islandOwner, StringComparison.OrdinalIgnoreCase)
+                            && !IsIslandInRoyalCity(i))
+                .ToList();
+
+        if (ownerIslands.Count == 0) return;
+        var pending = ownerIslands.Where(i => i.NeedsVisit).ToList();
+        if (pending.Count > 0)
+        {
+            Log.Debug("[IslandController] Owner webhook held: {Owner} still has {Count} island(s) to collect: {Names}",
+                islandOwner, pending.Count, string.Join(", ", pending.Select(i => i.Name)));
+            return;
+        }
+
+        _collectionReadyWebhookSentThisSession = true;
+        Log.Information("[IslandController] All {Count} islands done for owner {Owner} — triggering collection-ready webhook.",
+            ownerIslands.Count, islandOwner);
         _ = TrySendCollectionReadyWebhookAsync(islandOwner);
     }
 
@@ -686,28 +758,96 @@ public partial class IslandController
         return true;
     }
 
-    private void PersistPlotPlantedAt(Island.Island island, DateTime plantedAt)
+    // Resolve the specific farm/herb/pasture plot card a farmable ObjectId belongs to, via its cached world
+    // position and the island layout's nearest small slot. Returns null when the position is unknown or no
+    // matching plot owns that slot — callers then fall back to the per-type behaviour (no regression).
+    private IslandPlot ResolveFarmablePlotByObjectId(Island.Island island, long objectId)
     {
-        if (island?.Plots == null) return;
-        foreach (var plot in island.Plots.Where(p => FarmPlotTypes.Contains(p.PlotType)))
-            plot.PlotPlantedAt = plantedAt;
+        if (island?.Plots == null || objectId < 0) return null;
+        if (!_farmablePositions.TryGetValue(objectId, out var pos)) return null;
+
+        var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
+        var slot = layout?.WorldToNearestSlot(pos.X, pos.Y, requireLarge: false);
+        if (!slot.HasValue) return null;
+
+        return island.Plots.FirstOrDefault(p => FarmPlotTypes.Contains(p.PlotType) && p.MapSlotIndex == slot.Value);
+    }
+
+    // Per-plot collect: a collect REQUEST (op 73/74/76/77) carries the collected plant's ObjectId. Clear only
+    // that tile (awaiting replant) instead of every plot of the type — kills the collect clear-storm.
+    public void HandleFarmableCollect(long plotObjectId)
+    {
+        if (plotObjectId < 0) return;
+        var island = FindCurrentIsland();
+        if (island == null) return;
+
+        var plot = ResolveFarmablePlotByObjectId(island, plotObjectId);
+        if (plot == null)
+        {
+            Log.Debug("[IslandController] Collect for unresolved farmable objId={ObjectId} — no per-plot timer cleared", plotObjectId);
+            return;
+        }
+
+        if (!UpdatePlotTile(plot, plotObjectId, null)) return;
         island.UpdateModificationDate();
         _ = SaveToFileAsync();
+        RefreshIslandStatusAsync(island);
+        Log.Information("[IslandController] Cleared plot tile on collect: island={Island}, plot={Plot}, objId={ObjectId}",
+            island.Name, plot.DisplayLabel, plotObjectId);
+    }
+
+    // Record/clear one tile's planted time for its plot and refresh the plot's per-slot dots + aggregate timer.
+    // Tiles are keyed by world position so the per-visit object-id churn never double-counts a slot. Returns
+    // false when nothing changed (so callers skip a redundant save). Falls back to the plot-level timer when
+    // the plant has no cached position.
+    private bool UpdatePlotTile(IslandPlot plot, long objectId, DateTime? plantedAt)
+    {
+        if (plot == null) return false;
+
+        if (!_farmablePositions.TryGetValue(objectId, out var pos))
+        {
+            if (plot.PlotPlantedAt == plantedAt) return false;
+            plot.PlotPlantedAt = plantedAt;
+            return true;
+        }
+
+        var posKey = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{pos.X:0.##}|{pos.Y:0.##}");
+        var tiles = _plotTilePlanted.GetOrAdd(plot.Id, _ => new ConcurrentDictionary<string, DateTime?>());
+        if (tiles.TryGetValue(posKey, out var existing) && existing == plantedAt) return false;
+        tiles[posKey] = plantedAt;
+
+        // One dot per occupied tile (stable order), capped to the plot's slot count.
+        var ordered = tiles.OrderBy(kv => kv.Key, StringComparer.Ordinal)
+            .Select(kv => kv.Value)
+            .Take(plot.SlotsPerPlot)
+            .ToList();
+        plot.SetTilePlantedAts(ordered);
+
+        // Aggregate card timer = the earliest still-growing tile (soonest collection); null if none growing.
+        var growing = tiles.Values.Where(v => v.HasValue).Select(v => v.Value).ToList();
+        plot.PlotPlantedAt = growing.Count > 0 ? growing.Min() : (DateTime?) null;
+        return true;
+    }
+
+    // Fallback (no per-plot resolution): stamp every farm-type plot. Returns whether anything changed so the
+    // caller persists/refreshes only on a real change. Does not save itself.
+    private bool PersistPlotPlantedAt(Island.Island island, DateTime plantedAt)
+    {
+        if (island?.Plots == null) return false;
+        var changed = false;
+        foreach (var plot in island.Plots.Where(p => FarmPlotTypes.Contains(p.PlotType)))
+        {
+            if (plot.PlotPlantedAt == plantedAt) continue;
+            plot.PlotPlantedAt = plantedAt;
+            changed = true;
+        }
+        return changed;
     }
 
     private void ClearPlotPlantedAt(Island.Island island)
     {
         if (island?.Plots == null) return;
         foreach (var plot in island.Plots.Where(p => FarmPlotTypes.Contains(p.PlotType)))
-            plot.PlotPlantedAt = null;
-        island.UpdateModificationDate();
-        _ = SaveToFileAsync();
-    }
-
-    private void ClearPlotPlantedAtByType(Island.Island island, PlotType plotType)
-    {
-        if (island?.Plots == null) return;
-        foreach (var plot in island.Plots.Where(p => p.PlotType == plotType))
             plot.PlotPlantedAt = null;
         island.UpdateModificationDate();
         _ = SaveToFileAsync();
@@ -720,36 +860,6 @@ public partial class IslandController
         _ = SaveToFileAsync();
         RefreshIslandStatusAsync(island);
         TryAutoPrefillPayout(island);
-    }
-
-    public void HandleFarmBuildingInfo(FarmBuildingInfoEvent e)
-    {
-        if (e.ObjectId < 0) return;
-        Log.Debug("[IslandController] FarmBuildingInfo ObjectId={ObjectId} PlantedAt={PlantedAt}", e.ObjectId, e.PlantedAt);
-
-        if (!e.PlantedAt.HasValue) return;
-
-        var island = FindCurrentIsland();
-        if (island == null) return;
-
-        // Param 4 is only a valid planting timestamp when crops are still growing.
-        // When harvestable the game still sends param 4 but with current-time semantics.
-        // Guard: if PlantedAt + minimum cycle is already past, crops are ready and
-        // the timestamp is not a real planted-at — ignore to avoid resetting the timer.
-        if (e.PlantedAt.Value.AddHours(IslandConstants.LaborerBaseCycleHours) <= DateTime.UtcNow)
-        {
-            Log.Debug("[IslandController] FarmBuildingInfo PlantedAt already past minimum cycle — skipping timer update: island={Island}, plantedAt={PlantedAt:O}",
-                island.Name, e.PlantedAt.Value);
-            return;
-        }
-
-        island.LastPlantedAt = e.PlantedAt.Value;
-        island.UpdateModificationDate();
-        _ = SaveToFileAsync();
-        Log.Information("[IslandController] Updated island timer from FarmBuildingInfo: island={Island}, plantedAt={PlantedAt:O}",
-            island.Name, e.PlantedAt.Value);
-        PersistPlotPlantedAt(island, e.PlantedAt.Value);
-        PushLiveStatusToBindings();
     }
 
     public void HandleHarvestFinished(HarvestFinishedObject harvest)
@@ -845,22 +955,36 @@ public partial class IslandController
         var island = FindCurrentIsland();
         if (island == null) return;
 
+        // Op 73 delivers every crop, herb and fibre harvest under one code, so the route-level plotType
+        // (HerbGarden) mislabels farm crops (carrot/corn/cabbage). The response carries the farmable
+        // signal — its *_SEED entry — so resolve the real plot type from that and fall back to the route
+        // default when nothing in the response resolves (e.g. output-only responses).
+        var effectivePlotType = plotType;
+        foreach (var (uniqueName, _) in response.Items)
+        {
+            var info = PlotTypeExtensions.TryResolveFarmablePlotInfo(uniqueName);
+            if (info != null)
+            {
+                effectivePlotType = info.PlotType;
+                break;
+            }
+        }
+
         foreach (var (uniqueName, quantity) in response.Items)
         {
             var item = ItemController.GetItemByUniqueName(uniqueName);
             if (item == null || item.Index <= 0) continue;
 
-            island.AddYield(item.Index, quantity, plotType);
+            island.AddYield(item.Index, quantity, effectivePlotType);
             island.UpdateModificationDate();
 
             Log.Information("[IslandController] Recorded farmable harvest: island={Island}, item={Item}, qty={Qty}, plotType={PlotType}",
-                island.Name, uniqueName, quantity, plotType);
+                island.Name, uniqueName, quantity, effectivePlotType);
         }
 
-        ClearPlotPlantedAtByType(island, plotType);
-        RefreshIslandStatusAsync(island);
-        Log.Information("[IslandController] Cleared plot timers after farmable harvest: island={Island}, plotType={PlotType}", island.Name, plotType);
-
+        // Timer clearing is per-plot via the collect REQUEST (HandleFarmableCollect) — not here. The response
+        // fires once per item and carries no plot id, so clearing by type here re-wiped freshly-replanted
+        // plots on every harvest (the collect clear-storm). Yield recording only.
         _ = SaveToFileAsync();
         PushYieldUpdateToBindings(island);
     }
@@ -885,15 +1009,10 @@ public partial class IslandController
         if (e.ActionType == ActionOnBuildingType.Repair) return;
         if (e.ActionType == ActionOnBuildingType.BuyAndCrafting) return;
 
-        // Clear per-plot timers on collect/harvest so plots show "awaiting replant".
-        // Cycle restart is NOT triggered here: laborer dispatch is tracked via TryAutoStartIslandTimerFromLaborer
-        // (back-calculates accurate dispatch time); crop replant is detected via HandleFarmableObjectInfo /
-        // HandleFarmBuildingInfo. Triggering CommitIslandPlant here would stamp a wrong "now" timestamp
-        // mid-collection before the user has actually dispatched laborers or replanted crops.
-        ClearPlotPlantedAt(island);
-        RefreshIslandStatusAsync(island);
-        Log.Information("[IslandController] Cleared plot timers after building action: island={Island}, actionType={ActionType}",
-            island.Name, e.ActionType);
+        // No timer mutation here. Farm/herb/pasture collect is now cleared per-plot via the collect REQUEST
+        // (HandleFarmableCollect); a blanket ClearPlotPlantedAt(island) here would wipe every plot's timer.
+        // This event is not even observed on islands in captures (count 0) and its ActionType is unreliable
+        // (param 4 absent on the wire), so it must not drive timer state. Kept for action logging only.
     }
 
     public IReadOnlyList<LaborerSnapshot> GetCurrentSnapshots()
@@ -935,7 +1054,13 @@ public partial class IslandController
         var island = FindCurrentIsland();
         if (island == null) return;
 
-        if (!IsNewFarmableSignature(e.ObjectId, e.Signature)) return;
+        // Dedup by DERIVED state (planted-minute + crop), not the raw param signature. The raw signature
+        // embeds the live server tick, so it changed on every broadcast — reprocessing and re-saving on
+        // every 201 (12k+ Islands.json saves per session). PlantedAt is stable while a plant grows, so this
+        // collapses the re-broadcast storm to one process per real plant/replant.
+        var stateKey = (e.PlantedAt.HasValue ? e.PlantedAt.Value.Ticks / TimeSpan.TicksPerMinute : -1L)
+                       + "|" + e.FarmableUniqueName;
+        if (!IsNewFarmableSignature(e.ObjectId, stateKey)) return;
 
         var activityTimestampUtcResolved = e.TryResolveActivityTimestampUtc();
         var activityTimestampUtc = activityTimestampUtcResolved ?? DateTime.MinValue;
@@ -960,16 +1085,24 @@ public partial class IslandController
         Log.Information("[IslandController] Farmable state changed: island={Island}, objectId={ObjectId}, activityAt={ActivityAt:O}",
             island.Name, e.ObjectId, activityTimestampUtc);
 
-        // Param 4 (remaining 100µs) + param 5 (server ticks) → derive PlantedAt and update per-plot timers.
+        // Param 4 (remaining 100µs) + param 5 (server ticks) → derive PlantedAt and update the timer.
         if (e.PlantedAt.HasValue && e.PlantedAt.Value.AddHours(IslandConstants.LaborerBaseCycleHours) > DateTime.UtcNow)
         {
-            island.LastPlantedAt = e.PlantedAt.Value;
-            island.UpdateModificationDate();
-            _ = SaveToFileAsync();
-            PersistPlotPlantedAt(island, e.PlantedAt.Value);
-            RefreshIslandStatusAsync(island);
-            Log.Information("[IslandController] Updated island timer from FarmableObjectInfo: island={Island}, objectId={ObjectId}, plantedAt={PlantedAt:O}",
-                island.Name, e.ObjectId, e.PlantedAt.Value);
+            // Set only the tile this object belongs to (per-slot); fall back to per-type when unresolved.
+            // Persist/refresh only on a real change so a minute-boundary re-process doesn't re-save.
+            var plot = ResolveFarmablePlotByObjectId(island, e.ObjectId);
+            var changed = plot != null
+                ? UpdatePlotTile(plot, e.ObjectId, e.PlantedAt.Value)
+                : PersistPlotPlantedAt(island, e.PlantedAt.Value);
+            if (changed)
+            {
+                island.LastPlantedAt = e.PlantedAt.Value;
+                island.UpdateModificationDate();
+                _ = SaveToFileAsync();
+                RefreshIslandStatusAsync(island);
+                Log.Information("[IslandController] Updated plot timer from FarmableObjectInfo: island={Island}, objectId={ObjectId}, plot={Plot}, plantedAt={PlantedAt:O}",
+                    island.Name, e.ObjectId, plot?.DisplayLabel ?? "(per-type)", e.PlantedAt.Value);
+            }
         }
 
         var prefs = _mainWindowViewModel?.IslandBindings?.Preferences;
@@ -1043,42 +1176,139 @@ public partial class IslandController
         _ = SaveToFileAsync();
     }
 
+    // NewLaborerItem (code 32) broadcasts a laborer-loot inventory object's CURRENT quantity, re-sent
+    // as that stack grows while collecting. Yield = the positive growth (delta) of each object's
+    // quantity since first seen this island visit. The first sighting is the pre-collection baseline
+    // (no yield), so pre-existing inventory and merely viewing a laborer never count — only the
+    // increase from an actual collect does. (The bare NewSimpleItem "collected" marker / code 27 used
+    // previously is never delivered by the live event pipeline; this delta reproduces it exactly.)
+    private static readonly string[] LaborerResourceTokens =
+    {
+        "_PLANKS", "_METALBAR", "_LEATHER", "_CLOTH", "_STONEBLOCK",
+        "_WOOD", "_ORE", "_HIDE", "_FIBER", "_ROCK"
+    };
+
+    // True only for the resource families a laborer produces (raw + refined). Farm/herb/pasture products
+    // also land in island storage and broadcast code 32, but they are tracked precisely by the harvest-
+    // response path (HerbGarden/Pasture). Without this filter every farm item was double-recorded under
+    // PlotType.House (e.g. T8_YARROW counted twice). Journals go through HandleLaborerJournalDetail.
+    private static bool IsLaborerLootResource(string uniqueName)
+    {
+        if (string.IsNullOrEmpty(uniqueName)) return false;
+        var u = uniqueName.ToUpperInvariant();
+        if (u.Contains("FARM") || u.Contains("SEED")) return false;
+        foreach (var token in LaborerResourceTokens)
+            if (u.Contains(token)) return true;
+        return false;
+    }
+
     public void HandleLaborerItemDetail(DiscoveredItem item)
     {
         if (item == null || item.ObjectId < 0 || item.ItemIndex <= 0 || item.Quantity <= 0) return;
 
-        // Cache the loot detail. NewLaborerItem (code 32) carries it on panel-open AND re-broadcasts
-        // it for the cumulative inventory stacks as their quantity grows. We do NOT record yield here —
-        // only when the per-item "collected" marker (HandleLaborerItemCollected) confirms an actual
-        // collect. Inventory stacks never get that marker, so they are naturally excluded.
-        _collectibleItemCache[item.ObjectId] = (item.ItemIndex, item.Quantity);
-    }
+        // Only laborer-produced resources count here — farm products are handled by the harvest path.
+        if (!IsLaborerLootResource(ItemController.GetItemUniqueNameByIndex(item.ItemIndex))) return;
 
-    // Bare NewSimpleItem (code 27) carries only an ObjectId and fires when that item is actually
-    // collected. If we have cached loot detail for it (from NewLaborerItem), record it as yield.
-    // This is the single source of truth for collected yield: it never fires on view, and never for
-    // the cumulative inventory stacks.
-    public void HandleLaborerItemCollected(long objectId)
-    {
-        if (objectId < 0) return;
-        if (!_collectibleItemCache.TryRemove(objectId, out var detail)) return;
+        // Yield = positive growth of a PERSISTENT island-storage stack only. Opening a laborer spawns
+        // short-lived preview objects (new high object ids, destroyed by a code-27 on collect); those
+        // appear exactly once, so a baseline-only rule never counts them — which is what keeps merely
+        // viewing a laborer from inflating yield. Real storage stacks carry an entry-load baseline and
+        // grow as loot is deposited, so only their growth is counted.
+        var hadPrev = _lastItemQty.TryGetValue(item.ObjectId, out var prevQty);
+        _lastItemQty[item.ObjectId] = item.Quantity;
+        if (!hadPrev) return; // first sighting — baseline only (covers preview objects and pre-existing stock)
 
-        bool isNewObject;
-        lock (_seenItemObjectIdsLock)
-            isNewObject = _seenItemObjectIds.Add(objectId);
-        if (!isNewObject) return;
+        var delta = item.Quantity - prevQty;
+        if (delta <= 0) return; // no growth (or a stack rollover) — nothing collected
 
         var island = FindCurrentIsland();
         if (island == null) return;
 
-        island.AddYield(detail.ItemIndex, detail.Quantity, PlotType.House);
-        island.TotalLootCollected += detail.Quantity;
+        island.AddYield(item.ItemIndex, delta, PlotType.House);
+        island.TotalLootCollected += delta;
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
-        PushYieldUpdateToBindings(island);
+        // Collecting fires this many times per second as each stack grows. Debounce the file save and
+        // UI push so we don't flood the disk and dispatcher (which was starving the yield/card refresh).
+        ScheduleYieldFlush(island);
 
         Log.Information("[IslandController] Recorded collected laborer yield: island={Island}, itemId={ItemId}, qty={Qty}, objectId={ObjectId}",
-            island.Name, detail.ItemIndex, detail.Quantity, objectId);
+            island.Name, item.ItemIndex, delta, item.ObjectId);
+    }
+
+    // NewJournalItem (code 35) broadcasts a laborer-journal stack's CURRENT quantity. EMPTY journals
+    // (…_JOURNAL_…_EMPTY) rise as laborers hand them back = collected; FULL journals (…_FULL) fall as
+    // they are fed back in as fame fuel = consumed. Same baseline rule as resources (see above).
+    public void HandleLaborerJournalDetail(DiscoveredItem item)
+    {
+        if (item == null || item.ObjectId < 0 || item.ItemIndex <= 0 || item.Quantity < 0) return;
+
+        var name = ItemController.GetItemUniqueNameByIndex(item.ItemIndex);
+        if (string.IsNullOrEmpty(name) || name.IndexOf("JOURNAL", StringComparison.OrdinalIgnoreCase) < 0) return;
+        var isEmpty = name.EndsWith("_EMPTY", StringComparison.OrdinalIgnoreCase);
+        var isFull = name.EndsWith("_FULL", StringComparison.OrdinalIgnoreCase);
+        if (!isEmpty && !isFull) return;
+
+        var hadPrev = _lastJournalQty.TryGetValue(item.ObjectId, out var prevQty);
+        _lastJournalQty[item.ObjectId] = item.Quantity;
+
+        var island = FindCurrentIsland();
+        if (island == null) return;
+
+        if (isEmpty)
+        {
+            // Baseline-only growth, same as resources: only a persistent stack's increase counts, so
+            // preview/temp journal objects (seen once) never inflate the collected total.
+            if (!hadPrev) return;
+            var gained = item.Quantity - prevQty;
+            if (gained <= 0) return;
+
+            island.AddYield(item.ItemIndex, gained, PlotType.House);
+            island.TotalLootCollected += gained;
+            Log.Information("[IslandController] Recorded collected journal: island={Island}, itemId={ItemId}, qty={Qty}, objectId={ObjectId}",
+                island.Name, item.ItemIndex, gained, item.ObjectId);
+        }
+        else // full journal — consumed as it is spent
+        {
+            if (!hadPrev) return; // need a baseline before a drop can be measured
+            var spent = prevQty - item.Quantity;
+            if (spent <= 0) return;
+
+            island.AddConsumed(item.ItemIndex, spent, PlotType.House);
+            Log.Information("[IslandController] Recorded consumed journal: island={Island}, itemId={ItemId}, qty={Qty}, objectId={ObjectId}",
+                island.Name, item.ItemIndex, spent, item.ObjectId);
+        }
+
+        island.UpdateModificationDate();
+        ScheduleYieldFlush(island);
+    }
+
+    private volatile System.Threading.Timer _yieldFlushTimer;
+    private Island.Island _pendingYieldIsland;
+    private readonly object _yieldFlushLock = new();
+
+    private void ScheduleYieldFlush(Island.Island island)
+    {
+        lock (_yieldFlushLock)
+        {
+            _pendingYieldIsland = island;
+            if (_yieldFlushTimer == null)
+                _yieldFlushTimer = new System.Threading.Timer(_ => FlushPendingYield(), null, 400, Timeout.Infinite);
+            else
+                _yieldFlushTimer.Change(400, Timeout.Infinite);
+        }
+    }
+
+    private void FlushPendingYield()
+    {
+        Island.Island island;
+        lock (_yieldFlushLock)
+        {
+            island = _pendingYieldIsland;
+            _pendingYieldIsland = null;
+        }
+        if (island == null) return;
+        _ = SaveToFileAsync();
+        PushYieldUpdateToBindings(island);
     }
 
     private void PushYieldUpdateToBindings(Island.Island island)
@@ -1086,15 +1316,20 @@ public partial class IslandController
         var bindings = _mainWindowViewModel?.IslandBindings;
         if (bindings == null) return;
 
-        var entry = bindings.Islands.FirstOrDefault(e => e.IslandId == island.Id);
-        if (entry == null) return;
-
         var mismatches = ComputeYieldMismatches(island);
 
+        // Resolve the entry INSIDE the dispatcher: a binding rebuild can replace the entry instance
+        // between now and the UI tick, so capturing it here would update an orphaned (off-screen)
+        // entry while the visible SelectedIsland points at the new one. Looking it up on the UI thread
+        // guarantees we update the live entry the Yield panel is bound to.
         Application.Current?.Dispatcher?.InvokeAsync(() =>
         {
-            entry.YieldItems = new ObservableCollection<IslandYieldEntry>(island.YieldHistory);
-            entry.ConsumedItems = new ObservableCollection<IslandConsumedEntry>(island.ConsumedHistory);
+            var entry = bindings.Islands.FirstOrDefault(e => e.IslandId == island.Id);
+            if (entry == null) return;
+            // Patch the collections in place (no wholesale replace) so the Yield panel updates the
+            // changed rows only instead of clearing and rebuilding — kills the blank-flash on collect.
+            entry.UpdateYieldItems(island.YieldHistory);
+            entry.UpdateConsumedItems(island.ConsumedHistory);
             entry.SetYieldMismatches(mismatches);
             bindings.RefreshOwnerYield();
         });
@@ -1226,17 +1461,23 @@ public partial class IslandController
             Log.Information("[IslandController] Backfilled cluster identifiers on '{Name}' after auto-select.", match.Name);
         }
 
-        var entry = _mainWindowViewModel?.IslandBindings?.Islands?
-            .FirstOrDefault(e => e.IslandId == match.Id);
-        if (entry == null) return;
+        var islandId = match.Id;
+        var islandName = match.Name;
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
         {
-            if (_mainWindowViewModel?.IslandBindings != null)
-                _mainWindowViewModel.IslandBindings.SelectedIsland = entry;
-        });
+            var bindings = _mainWindowViewModel?.IslandBindings;
+            if (bindings == null) return;
 
-        Log.Information("[IslandController] Auto-selected island '{Name}' on cluster entry.", match.Name);
+            // Resolve the entry ON the UI thread: a binding rebuild can replace the entry instance
+            // between cluster entry and this tick. Selecting a captured (now-orphaned) instance leaves
+            // the list highlighting the wrong row — or none — so look it up against the live collection.
+            var entry = bindings.Islands?.FirstOrDefault(e => e.IslandId == islandId);
+            if (entry == null) return;
+
+            bindings.SelectedIsland = entry;
+            Log.Information("[IslandController] Auto-selected island '{Name}' on cluster entry.", islandName);
+        });
     }
 
     public void OnIslandManuallySelected(Guid islandId)
@@ -1405,6 +1646,60 @@ public partial class IslandController
         if (!snapshot.WorldPosition.HasValue) return null;
         var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
         return layout?.WorldToNearestSlot(snapshot.WorldPosition.Value.X, snapshot.WorldPosition.Value.Y, requireLarge: true);
+    }
+
+    // A house plot's MapSlotIndex (its physical-position number, used by the map AND the "#N" card label)
+    // can desync from where its laborers actually stand — seeding/recalibration left stored values as a
+    // permutation of the true slots, so the same physical house showed a different number than the one
+    // collected. Re-derive each name-matched plot's slot from its live laborers' world positions
+    // (majority vote) and apply the corrected, collision-free assignment. Converges in one pass, then
+    // makes no further changes (idempotent), so it is safe to run on every status push.
+    private void HealHouseMapSlots(Island.Island island,
+        IReadOnlyDictionary<Guid, IReadOnlyDictionary<int, LaborerSnapshot>> assignments)
+    {
+        if (island?.Plots == null || assignments == null || assignments.Count == 0) return;
+        var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
+        if (layout == null) return;
+
+        var desired = new Dictionary<Guid, int>();
+        foreach (var (plotId, slotMap) in assignments)
+        {
+            var votes = new Dictionary<int, int>();
+            foreach (var snap in slotMap.Values)
+            {
+                if (snap?.WorldPosition is not { } pos) continue;
+                var s = layout.WorldToNearestSlot(pos.X, pos.Y, requireLarge: true);
+                if (s.HasValue) votes[s.Value] = votes.GetValueOrDefault(s.Value) + 1;
+            }
+            if (votes.Count > 0)
+                desired[plotId] = votes.Aggregate((a, b) => b.Value > a.Value ? b : a).Key;
+        }
+        if (desired.Count == 0) return;
+
+        // Only act on a slot a single plot wants (clean bijection); skip contested slots to avoid churn.
+        var contested = desired.Values.GroupBy(v => v).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
+        var changed = false;
+        foreach (var (plotId, slot) in desired)
+        {
+            if (contested.Contains(slot)) continue;
+            var plot = island.Plots.FirstOrDefault(p => p.Id == plotId);
+            if (plot == null || plot.MapSlotIndex == slot) continue;
+
+            // Free this physical slot from any other house plot so two cards never share a position.
+            foreach (var other in island.Plots)
+                if (other.Id != plotId && other.PlotType == PlotType.House && other.MapSlotIndex == slot)
+                    other.MapSlotIndex = null;
+
+            plot.MapSlotIndex = slot;
+            changed = true;
+            Log.Information("[IslandController] Healed house map slot from live position: island={Island}, plot#{Plot}, slot={Slot}",
+                island.Name, plot.PlotNumber, slot);
+        }
+        if (changed)
+        {
+            island.UpdateModificationDate();
+            _ = SaveToFileAsync();
+        }
     }
 
     private void TryAutoAssignHousePlotMapSlot(Island.Island island, LaborerSnapshot snapshot)
@@ -1968,6 +2263,7 @@ public partial class IslandController
         var loaded = await FileController.LoadAsync<List<IslandDto>>(path);
 
         List<Island.Island> islands;
+        var anyMigrated = false;
         if (loaded == null || loaded.Count == 0)
         {
             islands = [];
@@ -1976,7 +2272,11 @@ public partial class IslandController
         {
             islands = loaded.Select(IslandMapping.FromDto).ToList();
             foreach (var island in islands)
+            {
                 SanitizeHouseSlotAssignments(island);
+                if (MigratePlotTypesFromConfiguration(island))
+                    anyMigrated = true;
+            }
         }
 
         lock (_islandsLock)
@@ -1984,6 +2284,9 @@ public partial class IslandController
             _islands.Clear();
             _islands.AddRange(islands);
         }
+
+        if (anyMigrated)
+            await SaveToFileAsync();
 
         await LoadOwnerProfilesAsync();
 
@@ -2010,6 +2313,41 @@ public partial class IslandController
                 plot.MapSlotIndex = null;
             }
         }
+    }
+
+    // One-time migration: older builds resolved plot type with a keyword classifier that bucketed every
+    // T*_FARM_*_SEED as Farm — so herb gardens (foxglove/agaric/etc.) were stored as Farm. Re-classify each
+    // farmable plot by its configured crop/animal name so its type, slot assignment and yield bucketing
+    // agree. Returns true if any plot type changed (caller persists once).
+    private static bool MigratePlotTypesFromConfiguration(Island.Island island)
+    {
+        if (island?.Plots == null) return false;
+
+        var changed = false;
+        foreach (var plot in island.Plots)
+        {
+            // Only the configurable farmable plot types can be mis-typed by the old classifier.
+            if (plot.PlotType is not (PlotType.Farm or PlotType.HerbGarden or PlotType.Pasture or PlotType.Kennel or PlotType.Saddler))
+                continue;
+
+            var configuredName = plot.PlotType.GetConfiguredTypeName(plot.Configuration);
+            if (string.IsNullOrWhiteSpace(configuredName))
+                continue;
+
+            var (resolved, _) = FarmablePlotData.ClassifyFarmableByDisplayName(configuredName);
+            if (!resolved.HasValue || resolved.Value == plot.PlotType)
+                continue;
+
+            Log.Information("[IslandController] Migrated plot type on '{Island}': {Old} -> {New} (config '{Config}')",
+                island.Name, plot.PlotType, resolved.Value, configuredName);
+            plot.PlotType = resolved.Value;
+            changed = true;
+        }
+
+        if (changed)
+            island.UpdateModificationDate();
+
+        return changed;
     }
 
     public async Task SaveToFileAsync()
@@ -2205,6 +2543,7 @@ public partial class IslandController
             {
                 var assignments = IslandLaborerResolver.Resolve(
                     sessionIsland.Plots.Where(p => p.PlotType == PlotType.House).ToList(), snapshots);
+                HealHouseMapSlots(sessionIsland, assignments);
                 var anyChanged = false;
                 foreach (var p in sessionIsland.Plots)
                 {
@@ -2247,8 +2586,11 @@ public partial class IslandController
                 var islSnapshots = isl.Id == sessionIslandId ? snapshots : Array.Empty<LaborerSnapshot>();
                 IReadOnlyDictionary<Guid, IReadOnlyDictionary<int, LaborerSnapshot>> assignments = null;
                 if (islSnapshots.Count > 0)
+                {
                     assignments = IslandLaborerResolver.Resolve(
                         isl.Plots.Where(p => p.PlotType == PlotType.House).ToList(), islSnapshots);
+                    HealHouseMapSlots(isl, assignments);
+                }
                 var anyChanged = false;
                 foreach (var p in isl.Plots)
                 {

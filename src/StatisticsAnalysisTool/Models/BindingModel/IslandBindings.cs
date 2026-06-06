@@ -1725,6 +1725,77 @@ public class IslandEntry : BaseViewModel
         OnPropertyChanged(nameof(HasYieldMismatch));
     }
 
+    // Update the bound yield list IN PLACE (patch quantities, add new rows, drop gone ones) instead of
+    // replacing the ObservableCollection. Replacing it reset the bound ItemsControl on every collect
+    // tick, which flashed the whole Collected/Consumed panel blank before repopulating.
+    public void UpdateYieldItems(IReadOnlyList<IslandYieldEntry> source)
+    {
+        var changed = false;
+        foreach (var src in source)
+        {
+            var existing = _yieldItems.FirstOrDefault(e => e.ItemIndex == src.ItemIndex && e.SourcePlot == src.SourcePlot);
+            if (existing == null)
+            {
+                _yieldItems.Add(new IslandYieldEntry { ItemIndex = src.ItemIndex, Quantity = src.Quantity, SourcePlot = src.SourcePlot, CollectedAt = src.CollectedAt });
+                changed = true;
+            }
+            else if (existing.Quantity != src.Quantity)
+            {
+                existing.Quantity = src.Quantity;
+                changed = true;
+            }
+        }
+        for (var i = _yieldItems.Count - 1; i >= 0; i--)
+            if (source.All(s => s.ItemIndex != _yieldItems[i].ItemIndex || s.SourcePlot != _yieldItems[i].SourcePlot))
+            {
+                _yieldItems.RemoveAt(i);
+                changed = true;
+            }
+
+        if (!changed) return;
+        OnPropertyChanged(nameof(TotalYieldValue));
+        OnPropertyChanged(nameof(NetProfit));
+        OnPropertyChanged(nameof(IsNetProfitNegative));
+        OnPropertyChanged(nameof(ROIText));
+        OnPropertyChanged(nameof(TotalYieldQuantity));
+        OnPropertyChanged(nameof(UniqueYieldItems));
+        BuildYieldChart();
+    }
+
+    public void UpdateConsumedItems(IReadOnlyList<IslandConsumedEntry> source)
+    {
+        var changed = false;
+        foreach (var src in source)
+        {
+            var existing = _consumedItems.FirstOrDefault(e => e.ItemIndex == src.ItemIndex && e.SourcePlot == src.SourcePlot);
+            if (existing == null)
+            {
+                _consumedItems.Add(new IslandConsumedEntry { ItemIndex = src.ItemIndex, Quantity = src.Quantity, SourcePlot = src.SourcePlot, ConsumedAt = src.ConsumedAt });
+                changed = true;
+            }
+            else if (existing.Quantity != src.Quantity)
+            {
+                existing.Quantity = src.Quantity;
+                changed = true;
+            }
+        }
+        for (var i = _consumedItems.Count - 1; i >= 0; i--)
+            if (source.All(s => s.ItemIndex != _consumedItems[i].ItemIndex || s.SourcePlot != _consumedItems[i].SourcePlot))
+            {
+                _consumedItems.RemoveAt(i);
+                changed = true;
+            }
+
+        if (!changed) return;
+        OnPropertyChanged(nameof(TotalConsumedValue));
+        OnPropertyChanged(nameof(NetProfit));
+        OnPropertyChanged(nameof(IsNetProfitNegative));
+        OnPropertyChanged(nameof(ROIText));
+        OnPropertyChanged(nameof(TotalConsumedQuantity));
+        OnPropertyChanged(nameof(UniqueConsumedItems));
+        BuildYieldChart();
+    }
+
     public void BuildYieldChart()
     {
         if (_selectedChartMode == IslandYieldChartMode.Summary)

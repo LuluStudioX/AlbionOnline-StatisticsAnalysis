@@ -9,7 +9,11 @@ public class NewSimpleItemEventHandler(TrackingController trackingController) : 
 {
     protected override async Task OnActionAsync(NewSimpleItemEvent value)
     {
-
+        if (value.Item == null)
+        {
+            await Task.CompletedTask;
+            return;
+        }
 
         if (trackingController.IsTrackingAllowedByMainCharacter())
         {
@@ -20,8 +24,6 @@ public class NewSimpleItemEventHandler(TrackingController trackingController) : 
         trackingController.LootController.AddDiscoveredItem(value.Item);
         trackingController.DungeonController.AddDiscoveredItem(value.Item);
         trackingController.GatheringController.AddFishedItem(value.Item);
-        // Bare NewSimpleItem (ObjectId only) is the island "item collected" marker.
-        trackingController.IslandController.HandleLaborerItemCollected(value.Item.ObjectId);
         await Task.CompletedTask;
     }
 }

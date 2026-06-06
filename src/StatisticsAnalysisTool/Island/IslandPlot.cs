@@ -37,6 +37,7 @@ public class IslandPlot : BaseViewModel
         {
             _mapSlotIndex = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(DisplayLabel));
         }
     }
 
@@ -64,7 +65,11 @@ public class IslandPlot : BaseViewModel
     /// </summary>
     public bool IsLargePlotType() => _plotType is not (PlotType.Farm or PlotType.HerbGarden or PlotType.Pasture);
 
-    public string DisplayLabel => PlotNumber.HasValue ? $"#{PlotNumber} {BuildingTypeName}" : BuildingTypeName;
+    // Prefer the physical-position number (MapSlotIndex) so a card's "#N" matches the map dot and the
+    // actual house you collect; fall back to the creation-order PlotNumber when no slot is resolved yet.
+    public string DisplayLabel => MapSlotIndex.HasValue
+        ? $"#{MapSlotIndex} {BuildingTypeName}"
+        : PlotNumber.HasValue ? $"#{PlotNumber} {BuildingTypeName}" : BuildingTypeName;
 
     public string CollectionCycleText
     {
@@ -293,6 +298,16 @@ public class IslandPlot : BaseViewModel
             }
             if (_plotType.HasCollectionTimer())
             {
+                // Per-tile dots when live tile data is present (each slot reflects its own plant); otherwise
+                // fall back to one aggregate state for all slots (off-island / before the first live update).
+                if (_tilePlantedAts is { Count: > 0 })
+                {
+                    var dots = new List<string>(n);
+                    for (var i = 0; i < n; i++)
+                        dots.Add(i < _tilePlantedAts.Count ? TileState(_tilePlantedAts[i]) : "home");
+                    return dots;
+                }
+
                 string state;
                 if (!PlotPlantedAt.HasValue)
                     state = "home";
@@ -304,6 +319,30 @@ public class IslandPlot : BaseViewModel
             }
             return Enumerable.Repeat("none", n).ToList();
         }
+    }
+
+    // Live per-slot planted times (one entry per occupied tile of this plot); null entry = empty slot.
+    // Runtime only (not persisted); drives the per-slot SlotDots while on the island.
+    private IReadOnlyList<DateTime?> _tilePlantedAts;
+
+    /// <summary>
+    /// Push the live per-tile planted times for this plot (set by IslandController from FarmableObjectInfo /
+    /// plant / collect events). Each entry maps to one slot dot. Pass null/empty to revert to aggregate dots.
+    /// </summary>
+    public void SetTilePlantedAts(IReadOnlyList<DateTime?> tilePlantedAts)
+    {
+        _tilePlantedAts = tilePlantedAts;
+        OnPropertyChanged(nameof(SlotDots));
+        OnPropertyChanged(nameof(PlotSentState));
+    }
+
+    private string TileState(DateTime? plantedAt)
+    {
+        if (!plantedAt.HasValue) return "home";
+        var hours = _plotType.GetBaseCollectionHours(_configuration);
+        if (hours > 0 && DateTime.UtcNow >= plantedAt.Value.ToUniversalTime().AddHours(hours))
+            return "loot_ready";
+        return "on_job";
     }
 
     private static string ToCode(LaborerLiveStatus s) => s switch
@@ -402,37 +441,43 @@ public class IslandPlot : BaseViewModel
 
         if (PlotType != PlotType.House) return LaborerLiveStatus.None;
 
-        if (dict.TryGetValue(LaborerConfigHelper.LootReadyKey(slot), out var lrVal)
-            && string.Equals(lrVal, "true", StringComparison.OrdinalIgnoreCase))
-            return LaborerLiveStatus.LootReady;
-
-        DateTime? dispatchUtc = null;
+        // Derive from the persisted anchor (ReadyAtUtc) — single source of truth, same as the live path.
+        DateTime? readyAtUtc = null;
         if (dict.TryGetValue(LaborerConfigHelper.DispatchTimeKey(slot), out var dtStr)
             && LaborerConfigHelper.TryParseUtc(dtStr, out var parsedDispatch))
         {
-            dispatchUtc = parsedDispatch.ToUniversalTime();
+            // Stored DispatchTime is the laborer's ready-at time (JobDispatchTime), already the end of
+            // the cycle — use it directly. Adding the cycle again double-counts (~44h instead of ~22h).
+            readyAtUtc = parsedDispatch.ToUniversalTime();
         }
         else if (islandLastPlantedAt.HasValue
             && dict.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var slotLaborerType)
             && !string.IsNullOrWhiteSpace(slotLaborerType)
             && !string.Equals(slotLaborerType, LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
         {
-            // No per-slot DispatchTime — use island-level LastPlantedAt as proxy dispatch time
-            dispatchUtc = islandLastPlantedAt.Value.ToUniversalTime();
+            // No per-slot DispatchTime — island-level LastPlantedAt is a cycle START, so add the cycle.
+            var jobDurationHours = _plotType.GetBaseCollectionHours(_configuration);
+            if (jobDurationHours <= 0) jobDurationHours = IslandConstants.LaborerBaseCycleHours;
+            readyAtUtc = islandLastPlantedAt.Value.ToUniversalTime().AddHours(jobDurationHours);
         }
 
-        if (!dispatchUtc.HasValue) return LaborerLiveStatus.None;
-
-        var jobDurationHours = _plotType.GetBaseCollectionHours(_configuration);
-        if (jobDurationHours <= 0) jobDurationHours = IslandConstants.LaborerBaseCycleHours;
-        var readyAt = dispatchUtc.Value.AddHours(jobDurationHours);
-        var remaining = readyAt - DateTime.UtcNow;
-        if (remaining > TimeSpan.Zero)
+        if (readyAtUtc.HasValue)
         {
-            timeRemaining = FormatRemaining(remaining);
-            return LaborerLiveStatus.Sent;
+            var remaining = readyAtUtc.Value - DateTime.UtcNow;
+            if (remaining > TimeSpan.Zero)
+            {
+                timeRemaining = FormatRemaining(remaining);
+                return LaborerLiveStatus.Sent;
+            }
+            return LaborerLiveStatus.LootReady;
         }
-        return LaborerLiveStatus.LootReady;
+
+        // Legacy fallback: configs saved before the anchor change only stored a derived loot-ready bool.
+        if (dict.TryGetValue(LaborerConfigHelper.LootReadyKey(slot), out var lrVal)
+            && string.Equals(lrVal, "true", StringComparison.OrdinalIgnoreCase))
+            return LaborerLiveStatus.LootReady;
+
+        return LaborerLiveStatus.None;
     }
 
     private LaborerLiveStatus RenderLiveStatus(
@@ -454,26 +499,35 @@ public class IslandPlot : BaseViewModel
             }
         }
 
-        if (match.IsOnJob && match.JobDispatchTime.HasValue)
+        // Persist ONLY the anchor (ReadyAtUtc = param 8, else JobStartTime + cycle). On-job, loot-ready and
+        // time-left are all derived from it — live here and offline in MatchStatusOffline — so there is no
+        // separate derived flag to store or keep in sync. The anchor is present iff the laborer has an active
+        // job (on-job OR loot-ready) and is cleared when home so offline state can never go stale.
+        var readyAt = match.ReadyAtUtc;
+        if (readyAt.HasValue)
         {
-            var remaining = match.JobDispatchTime.Value - DateTime.UtcNow;
-            if (remaining > TimeSpan.Zero)
-                timeRemaining = FormatRemaining(remaining);
+            if (match.IsOnJob)
+            {
+                var remaining = readyAt.Value - DateTime.UtcNow;
+                if (remaining > TimeSpan.Zero)
+                    timeRemaining = FormatRemaining(remaining);
+            }
 
-            var newDispatch = LaborerConfigHelper.FormatUtc(match.JobDispatchTime.Value);
+            var newDispatch = LaborerConfigHelper.FormatUtc(readyAt.Value);
             if (!dict.TryGetValue(LaborerConfigHelper.DispatchTimeKey(slot), out var existing) || existing != newDispatch)
             {
                 dict[LaborerConfigHelper.DispatchTimeKey(slot)] = newDispatch;
                 configChanged = true;
             }
         }
-
-        var newLootReady = match.IsLootReady ? "true" : "false";
-        if (!dict.TryGetValue(LaborerConfigHelper.LootReadyKey(slot), out var existingLr) || existingLr != newLootReady)
+        else if (dict.Remove(LaborerConfigHelper.DispatchTimeKey(slot)))
         {
-            dict[LaborerConfigHelper.LootReadyKey(slot)] = newLootReady;
             configChanged = true;
         }
+
+        // Migrate away the old derived loot-ready bool — it is now derived from the anchor.
+        if (dict.Remove(LaborerConfigHelper.LootReadyKey(slot)))
+            configChanged = true;
 
         if (match.IsLootReady) return LaborerLiveStatus.LootReady;
         if (match.IsOnJob && match.JustSentAt.HasValue) return LaborerLiveStatus.Sent;
