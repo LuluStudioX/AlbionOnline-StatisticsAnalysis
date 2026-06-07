@@ -162,6 +162,12 @@ public partial class IslandController
     // Last seen quantity per laborer-journal stack (NewJournalItem, code 35). Empty journals rise =
     // collected; full journals fall = consumed. Reset on island change.
     private readonly ConcurrentDictionary<long, int> _lastJournalQty = new();
+    // Timestamp (UTC ticks) of the last laborer collect REQUEST (op 257). Collected yield (code 32 / empty
+    // journal rise) is only counted within LaborerCollectYieldWindow of it: verified against captures, real
+    // collect growth lands 1-3s after the 257, while storage repaints/streaming/object-id reuse (incl. the
+    // 999 cap sentinel) fire outside any collect and would otherwise inflate yield (~73% of raw deltas).
+    private long _lastLaborerCollectTicks;
+    private static readonly TimeSpan LaborerCollectYieldWindow = TimeSpan.FromSeconds(5);
     // Farmable plant ObjectId -> world position (from NewBuilding 45). Lets a collect request (op 73/74/76/77)
     // and FarmableObjectInfo (201) resolve the specific plot card via the layout's nearest slot, so timers are
     // set/cleared per plot instead of across every plot of the type (which caused the collect clear-storm).
@@ -188,6 +194,7 @@ public partial class IslandController
         // re-joined, already-handled island does not re-book its existing plantings as freshly consumed.
         _lastItemQty.Clear();
         _lastJournalQty.Clear();
+        System.Threading.Volatile.Write(ref _lastLaborerCollectTicks, 0);
         _farmablePositions.Clear();
         _plotTilePlanted.Clear();
         _collectionReadyWebhookSentThisSession = false;
@@ -1092,6 +1099,23 @@ public partial class IslandController
         return false;
     }
 
+    // Open the collect window: a laborer collect REQUEST (op 257) just fired, so the storage-stack growth
+    // that follows over the next few seconds is real collected loot. Called from LaborerCollectRequestHandler.
+    public void NotifyLaborerCollect(long laborerObjectId)
+    {
+        System.Threading.Volatile.Write(ref _lastLaborerCollectTicks, DateTime.UtcNow.Ticks);
+        Log.Debug("[IslandController] Laborer collect request: objectId={ObjectId} — yield window opened", laborerObjectId);
+    }
+
+    // True while within LaborerCollectYieldWindow of the last collect request. Storage stacks (code 32/35)
+    // are repainted/streamed/object-id-reused constantly; only growth inside this window is a real collect.
+    private bool InLaborerCollectWindow()
+    {
+        var last = System.Threading.Volatile.Read(ref _lastLaborerCollectTicks);
+        if (last == 0) return false;
+        return DateTime.UtcNow - new DateTime(last, DateTimeKind.Utc) <= LaborerCollectYieldWindow;
+    }
+
     public void HandleLaborerItemDetail(DiscoveredItem item)
     {
         if (item == null || item.ObjectId < 0 || item.ItemIndex <= 0 || item.Quantity <= 0) return;
@@ -1110,6 +1134,10 @@ public partial class IslandController
 
         var delta = item.Quantity - prevQty;
         if (delta <= 0) return; // no growth (or a stack rollover) — nothing collected
+
+        // Only count growth that follows a real collect request. Outside the window the broadcast is a
+        // storage repaint/stream/object-id reuse, not a collection (kept the baseline up to date above).
+        if (!InLaborerCollectWindow()) return;
 
         var island = FindCurrentIsland();
         if (island == null) return;
@@ -1151,6 +1179,10 @@ public partial class IslandController
             if (!hadPrev) return;
             var gained = item.Quantity - prevQty;
             if (gained <= 0) return;
+
+            // Empty journals only rise when laborers hand them back on collect — gate to the collect window
+            // so zone-in streaming / storage repaints don't book phantom collected journals.
+            if (!InLaborerCollectWindow()) return;
 
             island.AddYield(item.ItemIndex, gained, PlotType.House);
             island.TotalLootCollected += gained;

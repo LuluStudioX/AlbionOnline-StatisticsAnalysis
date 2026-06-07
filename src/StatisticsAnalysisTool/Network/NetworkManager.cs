@@ -141,6 +141,10 @@ public class NetworkManager
         builder.AddRequestHandler(new PastureProductCollectRequestHandler(trackingController));
         builder.AddRequestHandler(new PastureFeedCollectRequestHandler(trackingController));
 
+        // Laborer collect REQUEST (op 257) opens the short window in which NewLaborerItem/journal stack
+        // growth counts as real collected yield (outside it, code-32/35 broadcasts are storage repaints).
+        builder.AddRequestHandler(new LaborerCollectRequestHandler(trackingController));
+
         return builder.Build();
     }
 
