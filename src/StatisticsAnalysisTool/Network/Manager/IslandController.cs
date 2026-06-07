@@ -30,6 +30,7 @@ public partial class IslandController
         [PlotType.Farm, PlotType.HerbGarden, PlotType.Pasture, PlotType.Kennel];
 
     private readonly MainWindowViewModel _mainWindowViewModel;
+    private readonly IslandYieldTracker _yieldTracker;
     private TrackingController _trackingController;
     private readonly List<Island.Island> _islands = [];
     private readonly object _islandsLock = new();
@@ -61,7 +62,7 @@ public partial class IslandController
     public IslandController(MainWindowViewModel mainWindowViewModel)
     {
         _mainWindowViewModel = mainWindowViewModel;
-
+        _yieldTracker = new IslandYieldTracker(mainWindowViewModel, SaveToFileAsync);
     }
 
     public void SetTrackingController(TrackingController trackingController)
@@ -94,8 +95,7 @@ public partial class IslandController
         _transitionTimer = null;
         _pushDebounceTimer?.Dispose();
         _pushDebounceTimer = null;
-        _yieldFlushTimer?.Dispose();
-        _yieldFlushTimer = null;
+        _yieldTracker.StopFlushTimer();
     }
 
     private void ScheduleNextPlotTransition()
@@ -176,7 +176,7 @@ public partial class IslandController
     public void ClearSession()
     {
         // Commit any yield collected on the island we're leaving before the session state is reset.
-        FlushPendingYield();
+        _yieldTracker.FlushNow();
         _snapshots.Clear();
         lock (_snapshotOrderLock)
             _snapshotsByOrder.Clear();
@@ -394,7 +394,7 @@ public partial class IslandController
         island.AddConsumed(item.Index, 1, plotType);
         island.UpdateModificationDate();
         _ = SaveToFileAsync();
-        PushYieldUpdateToBindings(island);
+        _yieldTracker.PushUpdate(island);
         Log.Information("[IslandController] Recorded planted item as consumed: island={Island}, item={Item}, plotType={PlotType}",
             island.Name, e.UniqueName, plotType);
     }
@@ -881,7 +881,7 @@ public partial class IslandController
         }
 
         _ = SaveToFileAsync();
-        PushYieldUpdateToBindings(island);
+        _yieldTracker.PushUpdate(island);
     }
 
     private void HandleFarmableHarvestInternal(FarmableHarvestResponse response, PlotType plotType)
@@ -924,7 +924,7 @@ public partial class IslandController
         // fires once per item and carries no plot id, so clearing by type here re-wiped freshly-replanted
         // plots on every harvest (the collect clear-storm). Yield recording only.
         _ = SaveToFileAsync();
-        PushYieldUpdateToBindings(island);
+        _yieldTracker.PushUpdate(island);
     }
 
     public IReadOnlyList<LaborerSnapshot> GetCurrentSnapshots()
@@ -1068,7 +1068,7 @@ public partial class IslandController
         island.ClearYield();
         island.UpdateModificationDate();
         _ = SaveToFileAsync();
-        PushYieldUpdateToBindings(island);
+        _yieldTracker.PushUpdate(island);
     }
 
     public void ClearAllYield(IEnumerable<Guid> islandIds)
@@ -1082,7 +1082,7 @@ public partial class IslandController
         {
             island.ClearYield();
             island.UpdateModificationDate();
-            PushYieldUpdateToBindings(island);
+            _yieldTracker.PushUpdate(island);
         }
         _ = SaveToFileAsync();
     }
@@ -1140,7 +1140,7 @@ public partial class IslandController
         island.UpdateModificationDate();
         // Collecting fires this many times per second as each stack grows. Debounce the file save and
         // UI push so we don't flood the disk and dispatcher (which was starving the yield/card refresh).
-        ScheduleYieldFlush(island);
+        _yieldTracker.Schedule(island);
 
         Log.Information("[IslandController] Recorded collected laborer yield: island={Island}, itemId={ItemId}, qty={Qty}, objectId={ObjectId}",
             island.Name, item.ItemIndex, delta, item.ObjectId);
@@ -1190,96 +1190,7 @@ public partial class IslandController
         }
 
         island.UpdateModificationDate();
-        ScheduleYieldFlush(island);
-    }
-
-    private volatile System.Threading.Timer _yieldFlushTimer;
-    private Island.Island _pendingYieldIsland;
-    private readonly object _yieldFlushLock = new();
-
-    private void ScheduleYieldFlush(Island.Island island)
-    {
-        lock (_yieldFlushLock)
-        {
-            _pendingYieldIsland = island;
-            if (_yieldFlushTimer == null)
-                _yieldFlushTimer = new System.Threading.Timer(_ => FlushPendingYield(), null, 400, Timeout.Infinite);
-            else
-                _yieldFlushTimer.Change(400, Timeout.Infinite);
-        }
-    }
-
-    private void FlushPendingYield()
-    {
-        Island.Island island;
-        lock (_yieldFlushLock)
-        {
-            island = _pendingYieldIsland;
-            _pendingYieldIsland = null;
-        }
-        if (island == null) return;
-        _ = SaveToFileAsync();
-        PushYieldUpdateToBindings(island);
-    }
-
-    private void PushYieldUpdateToBindings(Island.Island island)
-    {
-        var bindings = _mainWindowViewModel?.IslandBindings;
-        if (bindings == null) return;
-
-        var mismatches = ComputeYieldMismatches(island);
-
-        // Resolve the entry INSIDE the dispatcher: a binding rebuild can replace the entry instance
-        // between now and the UI tick, so capturing it here would update an orphaned (off-screen)
-        // entry while the visible SelectedIsland points at the new one. Looking it up on the UI thread
-        // guarantees we update the live entry the Yield panel is bound to.
-        Application.Current?.Dispatcher?.InvokeAsync(() =>
-        {
-            var entry = bindings.Islands.FirstOrDefault(e => e.IslandId == island.Id);
-            if (entry == null) return;
-            // Patch the collections in place (no wholesale replace) so the Yield panel updates the
-            // changed rows only instead of clearing and rebuilding — kills the blank-flash on collect.
-            entry.UpdateYieldItems(island.YieldHistory);
-            entry.UpdateConsumedItems(island.ConsumedHistory);
-            entry.SetYieldMismatches(mismatches);
-            bindings.RefreshOwnerYield();
-        });
-    }
-
-    private static IReadOnlyList<string> ComputeYieldMismatches(Island.Island island)
-    {
-        var mismatches = new List<string>();
-        if (island.ConsumedHistory.Count == 0) return mismatches;
-
-        var configuredJournalNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var plot in island.Plots?.Where(p => p.PlotType == PlotType.House) ?? Enumerable.Empty<IslandPlot>())
-        {
-            var cfg = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-            for (var slot = 1; slot <= 3; slot++)
-            {
-                if (cfg.TryGetValue(LaborerConfigHelper.JournalKey(slot), out var journal)
-                    && !string.IsNullOrWhiteSpace(journal)
-                    && !journal.Equals(LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
-                {
-                    configuredJournalNames.Add(ItemController.GetCleanUniqueName(journal));
-                }
-            }
-        }
-
-        if (configuredJournalNames.Count == 0) return mismatches;
-
-        foreach (var consumed in island.ConsumedHistory.Where(e => e.SourcePlot == PlotType.House))
-        {
-            var uniqueName = ItemController.GetUniqueNameByIndex(consumed.ItemIndex);
-            var cleanName = ItemController.GetCleanUniqueName(uniqueName);
-            if (!configuredJournalNames.Contains(cleanName))
-            {
-                var displayName = ItemController.GetItemByIndex(consumed.ItemIndex)?.LocalizedName ?? uniqueName;
-                mismatches.Add($"{displayName} tracked but not in configured laborer slots");
-            }
-        }
-
-        return mismatches;
+        _yieldTracker.Schedule(island);
     }
 
     private void TryAutoApplyFarmableConfig(Island.Island island, string farmableUniqueName)
