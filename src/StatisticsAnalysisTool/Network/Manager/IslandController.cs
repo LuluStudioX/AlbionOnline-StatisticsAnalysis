@@ -10,13 +10,9 @@ using StatisticsAnalysisTool.Models.NetworkModel;
 using StatisticsAnalysisTool.Network.Events;
 using StatisticsAnalysisTool.Network.Operations.Responses;
 using StatisticsAnalysisTool.ViewModels;
-using StatisticsAnalysisTool.Views;
 using System;
 using System.Collections.Concurrent;
-using System.Text.Json.Serialization;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,6 +27,7 @@ public partial class IslandController
 
     private readonly MainWindowViewModel _mainWindowViewModel;
     private readonly IslandYieldTracker _yieldTracker;
+    private readonly IslandWebhookService _webhookService = new();
     private TrackingController _trackingController;
     private readonly List<Island.Island> _islands = [];
     private readonly object _islandsLock = new();
@@ -651,71 +648,54 @@ public partial class IslandController
         var profile = GetOwnerProfile(ownerName);
         if (string.IsNullOrWhiteSpace(profile?.WebhookUrl)) return;
 
-        var confirmed = await PromptWebhookConfirmAsync(ownerName).ConfigureAwait(false);
-        if (!confirmed) return;
+        var outcome = await _webhookService.PromptAsync().ConfigureAwait(false);
+        if (!outcome.Send) return;
+
+        if (outcome.SaveNote)
+            ApplyWebhookNote(ownerName, outcome.Notes, outcome.Emv);
 
         var message = _mainWindowViewModel?.IslandBindings?.BuildDiscordMessage(ownerName);
         if (string.IsNullOrEmpty(message)) return;
 
         Log.Information("[IslandController] Sending collection-ready webhook: owner={Owner}", ownerName);
-        await DiscordWebhookService.SendAsync(profile.WebhookUrl, message).ConfigureAwait(false);
+        await _webhookService.SendAsync(profile.WebhookUrl, message).ConfigureAwait(false);
     }
 
-    private Task<bool> PromptWebhookConfirmAsync(string ownerName)
+    // Persist the daily notes / EMV captured by the "Save and send" path onto the owner's cycle history.
+    private void ApplyWebhookNote(string ownerName, string notes, decimal? emv)
     {
-        return Application.Current.Dispatcher.InvokeAsync(() =>
+        if (string.IsNullOrWhiteSpace(notes) && !emv.HasValue) return;
+
+        lock (_ownerProfilesLock)
         {
-            var dialog = new WebhookConfirmDialog
+            var profile = GetOwnerProfile(ownerName);
+            if (profile != null)
             {
-                Owner = Application.Current.MainWindow
-            };
+                var today = DateTime.Today;
+                var record = profile.CycleHistory?
+                    .FirstOrDefault(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands);
 
-            if (dialog.ShowDialog() != true) return false;
-
-            if (dialog.Result == WebhookConfirmDialog.ConfirmResult.DontSend) return false;
-
-            if (dialog.Result == WebhookConfirmDialog.ConfirmResult.SaveAndSend)
-            {
-                var notes = dialog.DailyNotes;
-                var emv = dialog.EmvAmount;
-
-                if (!string.IsNullOrWhiteSpace(notes) || emv.HasValue)
+                if (record != null && !string.IsNullOrWhiteSpace(notes))
                 {
-                    lock (_ownerProfilesLock)
+                    record.Notes = string.IsNullOrWhiteSpace(record.Notes) || string.Equals(record.Notes.Trim(), AutoPrefillNotesMarker, StringComparison.OrdinalIgnoreCase)
+                        ? notes
+                        : $"{record.Notes}; {notes}";
+                }
+
+                if (emv.HasValue)
+                {
+                    profile.CycleHistory.Add(new OwnerCycleRecord
                     {
-                        var profile = GetOwnerProfile(ownerName);
-                        if (profile != null)
-                        {
-                            var today = DateTime.Today;
-                            var record = profile.CycleHistory?
-                                .FirstOrDefault(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands);
-
-                            if (record != null && !string.IsNullOrWhiteSpace(notes))
-                            {
-                                record.Notes = string.IsNullOrWhiteSpace(record.Notes) || string.Equals(record.Notes.Trim(), AutoPrefillNotesMarker, StringComparison.OrdinalIgnoreCase)
-                                    ? notes
-                                    : $"{record.Notes}; {notes}";
-                            }
-
-                            if (emv.HasValue)
-                            {
-                                profile.CycleHistory.Add(new OwnerCycleRecord
-                                {
-                                    Date = today,
-                                    RecordType = CycleRecordType.Other,
-                                    EarnedAmount = emv.Value,
-                                    Notes = "EMV"
-                                });
-                            }
-                        }
-                    }
-                    _ = SaveOwnerProfilesAsync();
-                    _mainWindowViewModel?.IslandBindings?.RefreshOwnerOverview();
+                        Date = today,
+                        RecordType = CycleRecordType.Other,
+                        EarnedAmount = emv.Value,
+                        Notes = "EMV"
+                    });
                 }
             }
-
-            return true;
-        }).Task;
+        }
+        _ = SaveOwnerProfilesAsync();
+        _mainWindowViewModel?.IslandBindings?.RefreshOwnerOverview();
     }
 
     public async Task<bool> SendWebhookManualAsync(string ownerName)
@@ -728,8 +708,7 @@ public partial class IslandController
         if (string.IsNullOrEmpty(message)) return false;
 
         Log.Information("[IslandController] Manual webhook send: owner={Owner}", ownerName);
-        await DiscordWebhookService.SendAsync(profile.WebhookUrl, message).ConfigureAwait(false);
-        return true;
+        return await _webhookService.SendAsync(profile.WebhookUrl, message).ConfigureAwait(false);
     }
 
     // Resolve the specific farm/herb/pasture plot card a farmable ObjectId belongs to, via its cached world
