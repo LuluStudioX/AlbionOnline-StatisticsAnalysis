@@ -46,9 +46,8 @@ public partial class IslandController
     private volatile System.Threading.Timer _pushDebounceTimer;
     private const int PushDebounceMs = 200;
 
-    // Farmable signature dedup and detected item names
+    // Farmable state-change dedup keyed by ObjectId.
     private readonly ConcurrentDictionary<long, string> _farmableSignatures = new();
-    private readonly ConcurrentDictionary<long, string> _detectedFarmableNames = new();
 
     // 5-min snapshot cache so UI stays populated briefly after loot collection
     private readonly object _lastSnapshotLock = new();
@@ -159,8 +158,8 @@ public partial class IslandController
     // object id: re-entering an island re-broadcasts every existing plant with a NEW object id, so an
     // object-id dedup that reset on entry re-counted every plant on every visit. Position is stable across
     // re-entries, and this set is deliberately NOT cleared on island change/entry so an already-handled
-    // island never re-books its existing plantings as freshly consumed. (Same-tile replant within one app
-    // run is therefore not re-counted — accepted until the per-plot rewrite tracks collect→replant cycles.)
+    // island never re-books its existing plantings as freshly consumed. A collect evicts the tile's booking
+    // (EvictConsumedTileBooking) so a same-run replant on that position re-counts its new seed.
     private readonly HashSet<string> _consumedPlantedTiles = [];
     // Last seen quantity per laborer-loot inventory object (NewLaborerItem, code 32). Yield is the
     // positive growth between broadcasts; the first sighting is the baseline. Reset on island change.
@@ -185,7 +184,6 @@ public partial class IslandController
             _snapshotsByOrder.Clear();
         _sessionBuildingCounts.Clear();
         _farmableSignatures.Clear();
-        _detectedFarmableNames.Clear();
         _sessionIslandName = null;
         _sessionOwner = null;
         _sessionWorldMapDataType = null;
@@ -324,83 +322,83 @@ public partial class IslandController
                 }
             }
 
-            // Seed island cycle timer from server-reported planted time (farmable plant events only).
-            // This ensures the countdown is accurate even when visiting an island that was planted
-            // before the current session — without this, auto-start would stamp DateTime.UtcNow instead.
-            if (IsFarmablePlant(e.UniqueName))
-            {
-                var island = FindCurrentIsland();
-                if (island != null)
-                {
-                    // Cache plant position so collect requests / FarmableObjectInfo can resolve this plot card.
-                    if (e.Position.HasValue)
-                        _farmablePositions[e.ObjectId] = (e.Position.Value.X, e.Position.Value.Y);
-
-                    // Code 45 param 20 = server-now timestamp, not planted-at.
-                    // Timer is seeded accurately by FarmableObjectInfo (code 201) which carries elapsed time.
-                    // No timer update from NewBuilding.
-
-                    // Position-based crop/animal type assignment — resolves the correct plot when
-                    // multiple plots of the same type exist (e.g. 2 herb gardens on one island).
-                    if (e.Position.HasValue)
-                    {
-                        var info = PlotTypeExtensions.TryResolveFarmablePlotInfo(e.UniqueName);
-                        if (info != null && !string.IsNullOrWhiteSpace(info.ConfigKey))
-                            TryAutoApplyFarmableConfigByPosition(island, info, e.Position.Value.X, e.Position.Value.Y);
-                    }
-
-                    // PlantedAt from key 8 matches packet timestamp when player places item (<1s delta).
-                    // Zone-in broadcasts carry old PlantedAt (hours ago) — 30s guard filters them out.
-                    var isJustPlanted = e.PlantedAt.HasValue
-                        && (DateTime.UtcNow - e.PlantedAt.Value).TotalSeconds <= 30;
-                    // Dedup by stable tile (island + plant + world position), NOT object id: each island
-                    // re-entry re-broadcasts existing plants with fresh object ids, so an object-id key
-                    // re-counted every plant on every visit. Position is constant across re-entries and the
-                    // set persists for the app run, so an already-handled island never re-books its plants.
-                    var isNewPlanting = false;
-                    if (e.Position.HasValue)
-                    {
-                        var tileKey = string.Create(System.Globalization.CultureInfo.InvariantCulture,
-                            $"{island.Id}|{e.UniqueName}|{e.Position.Value.X:0.##}|{e.Position.Value.Y:0.##}");
-                        lock (_consumedTilesLock) isNewPlanting = _consumedPlantedTiles.Add(tileKey);
-                    }
-                    if (isJustPlanted)
-                    {
-                        // Stamp this plot's timer at the observed plant time. Freshly-planted plots only ever
-                        // send the array-form FarmableObjectInfo (no scalar elapsed to derive PlantedAt from),
-                        // so the plant action is the reliable PlantedAt source for them; pre-existing plots are
-                        // covered by scalar 201. Idempotent, so re-broadcasts within the 30s window are harmless.
-                        var plantedPlot = ResolveFarmablePlotByObjectId(island, e.ObjectId);
-                        if (plantedPlot != null && e.PlantedAt.HasValue
-                            && UpdatePlotTile(plantedPlot, e.ObjectId, e.PlantedAt.Value))
-                        {
-                            island.UpdateModificationDate();
-                            _ = SaveToFileAsync();
-                            RefreshIslandStatusAsync(island);
-                        }
-
-                        if (isNewPlanting)
-                        {
-                            var item = ItemController.GetItemByUniqueName(e.UniqueName);
-                            if (item != null && item.Index > 0)
-                            {
-                                // Bucket consumed by the same classifier used everywhere else, so a crop seed
-                                // (carrot/pumpkin) counts under Farm and a herb seed under HerbGarden — not the
-                                // old "_SEED => HerbGarden" rule that mislabelled crop seeds.
-                                var plotType = PlotTypeExtensions.TryResolveFarmablePlotInfo(e.UniqueName)?.PlotType
-                                    ?? (IsFarmableSeed(e.UniqueName) ? PlotType.HerbGarden : PlotType.Pasture);
-                                island.AddConsumed(item.Index, 1, plotType);
-                                island.UpdateModificationDate();
-                                _ = SaveToFileAsync();
-                                PushYieldUpdateToBindings(island);
-                                Log.Information("[IslandController] Recorded planted item as consumed: island={Island}, item={Item}, plotType={PlotType}",
-                                    island.Name, e.UniqueName, plotType);
-                            }
-                        }
-                    }
-                }
-            }
+            // Farmable plant placement (position cache, per-tile timer seed, consumed-seed booking).
+            TryHandleFarmablePlantPlacement(e);
         }
+    }
+
+    // Caches a freshly placed farmable plant's position, seeds its per-tile timer and books the seed as
+    // consumed (once per stable tile). Split out of HandleNewBuilding for readability.
+    private void TryHandleFarmablePlantPlacement(NewBuildingEvent e)
+    {
+        if (!IsFarmablePlant(e.UniqueName)) return;
+
+        var island = FindCurrentIsland();
+        if (island == null) return;
+
+        // Cache plant position so collect requests / FarmableObjectInfo can resolve this plot card.
+        // Code 45 param 20 is a server-now timestamp, not planted-at, so no timer is seeded here; the
+        // timer is seeded accurately by FarmableObjectInfo (code 201), which carries elapsed time.
+        if (e.Position.HasValue)
+            _farmablePositions[e.ObjectId] = (e.Position.Value.X, e.Position.Value.Y);
+
+        // Position-based crop/animal type assignment — resolves the correct plot when
+        // multiple plots of the same type exist (e.g. 2 herb gardens on one island).
+        if (e.Position.HasValue)
+        {
+            var info = PlotTypeExtensions.TryResolveFarmablePlotInfo(e.UniqueName);
+            if (info != null && !string.IsNullOrWhiteSpace(info.ConfigKey))
+                TryAutoApplyFarmableConfigByPosition(island, info, e.Position.Value.X, e.Position.Value.Y);
+        }
+
+        // PlantedAt from key 8 matches packet timestamp when player places item (<1s delta).
+        // Zone-in broadcasts carry old PlantedAt (hours ago) — 30s guard filters them out.
+        var isJustPlanted = e.PlantedAt.HasValue
+            && (DateTime.UtcNow - e.PlantedAt.Value).TotalSeconds <= 30;
+
+        // Dedup by stable tile (island + plant + world position), NOT object id: each island re-entry
+        // re-broadcasts existing plants with fresh object ids, so an object-id key re-counted every plant
+        // on every visit. Position is constant across re-entries and the set persists for the app run, so
+        // an already-handled island never re-books its plants. (Computed unconditionally so the tile is
+        // marked known even for zone-in re-broadcasts of pre-existing plants.)
+        var isNewPlanting = false;
+        if (e.Position.HasValue)
+        {
+            var tileKey = string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"{island.Id}|{e.UniqueName}|{e.Position.Value.X:0.##}|{e.Position.Value.Y:0.##}");
+            lock (_consumedTilesLock) isNewPlanting = _consumedPlantedTiles.Add(tileKey);
+        }
+
+        if (!isJustPlanted) return;
+
+        // Stamp this plot's timer at the observed plant time. Freshly-planted plots only ever send the
+        // array-form FarmableObjectInfo (no scalar elapsed to derive PlantedAt from), so the plant action
+        // is the reliable PlantedAt source for them; pre-existing plots are covered by scalar 201.
+        // Idempotent, so re-broadcasts within the 30s window are harmless.
+        var plantedPlot = ResolveFarmablePlotByObjectId(island, e.ObjectId);
+        if (plantedPlot != null && e.PlantedAt.HasValue
+            && UpdatePlotTile(plantedPlot, e.ObjectId, e.PlantedAt.Value))
+        {
+            island.UpdateModificationDate();
+            _ = SaveToFileAsync();
+            RefreshIslandStatusAsync(island);
+        }
+
+        if (!isNewPlanting) return;
+
+        var item = ItemController.GetItemByUniqueName(e.UniqueName);
+        if (item == null || item.Index <= 0) return;
+
+        // Bucket consumed by the same classifier used everywhere else, so a crop seed (carrot/pumpkin)
+        // counts under Farm and a herb seed under HerbGarden — not the old "_SEED => HerbGarden" rule.
+        var plotType = PlotTypeExtensions.TryResolveFarmablePlotInfo(e.UniqueName)?.PlotType
+            ?? (IsFarmableSeed(e.UniqueName) ? PlotType.HerbGarden : PlotType.Pasture);
+        island.AddConsumed(item.Index, 1, plotType);
+        island.UpdateModificationDate();
+        _ = SaveToFileAsync();
+        PushYieldUpdateToBindings(island);
+        Log.Information("[IslandController] Recorded planted item as consumed: island={Island}, item={Item}, plotType={PlotType}",
+            island.Name, e.UniqueName, plotType);
     }
 
     // Removes any snapshot that shares this laborer's name but has a different ObjectId — the
@@ -665,28 +663,6 @@ public partial class IslandController
         await DiscordWebhookService.SendAsync(profile.WebhookUrl, message).ConfigureAwait(false);
     }
 
-    private bool IsOnlyAutoPrefilled(string ownerName)
-    {
-        var profile = GetOwnerProfile(ownerName);
-        if (profile?.CycleHistory == null) return false;
-
-        var today = DateTime.Today;
-        var todayIslandRecords = profile.CycleHistory
-            .Where(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands)
-            .ToList();
-
-        if (todayIslandRecords.Count == 0) return false;
-
-        var allAutoPrefilled = todayIslandRecords.All(c =>
-            string.IsNullOrWhiteSpace(c.Notes)
-            || string.Equals(c.Notes.Trim(), AutoPrefillNotesMarker, StringComparison.OrdinalIgnoreCase));
-
-        var hasExtraEarned = profile.CycleHistory
-            .Any(c => c.Date.Date == today && c.RecordType != CycleRecordType.Islands);
-
-        return allAutoPrefilled && !hasExtraEarned;
-    }
-
     private Task<bool> PromptWebhookConfirmAsync(string ownerName)
     {
         return Application.Current.Dispatcher.InvokeAsync(() =>
@@ -788,12 +764,36 @@ public partial class IslandController
             return;
         }
 
+        // Collecting frees the tile for a replant, so drop its consumed-seed booking: a same-run replant on
+        // this position then re-counts its new seed as consumed. (The booking is otherwise kept for the whole
+        // app run so re-entering an already-handled island never re-counts its existing plants.)
+        EvictConsumedTileBooking(island, plotObjectId);
+
         if (!UpdatePlotTile(plot, plotObjectId, null)) return;
         island.UpdateModificationDate();
         _ = SaveToFileAsync();
         RefreshIslandStatusAsync(island);
         Log.Information("[IslandController] Cleared plot tile on collect: island={Island}, plot={Plot}, objId={ObjectId}",
             island.Name, plot.DisplayLabel, plotObjectId);
+    }
+
+    // Removes the consumed-seed booking for the tile at a farmable object's world position (any crop), so a
+    // replant on the same tile within this app run re-counts its seed. No-op when the position is unknown.
+    private void EvictConsumedTileBooking(Island.Island island, long objectId)
+    {
+        if (island == null) return;
+        if (!_farmablePositions.TryGetValue(objectId, out var pos)) return;
+
+        var prefix = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{island.Id}|");
+        var suffix = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"|{pos.X:0.##}|{pos.Y:0.##}");
+        lock (_consumedTilesLock)
+        {
+            var stale = _consumedPlantedTiles
+                .Where(k => k.StartsWith(prefix, StringComparison.Ordinal) && k.EndsWith(suffix, StringComparison.Ordinal))
+                .ToList();
+            foreach (var k in stale)
+                _consumedPlantedTiles.Remove(k);
+        }
     }
 
     // Record/clear one tile's planted time for its plot and refresh the plot's per-slot dots + aggregate timer.
@@ -844,15 +844,6 @@ public partial class IslandController
         return changed;
     }
 
-    private void ClearPlotPlantedAt(Island.Island island)
-    {
-        if (island?.Plots == null) return;
-        foreach (var plot in island.Plots.Where(p => FarmPlotTypes.Contains(p.PlotType)))
-            plot.PlotPlantedAt = null;
-        island.UpdateModificationDate();
-        _ = SaveToFileAsync();
-    }
-
     private void CommitIslandPlant(Island.Island island)
     {
         island.PlantAll();
@@ -860,57 +851,6 @@ public partial class IslandController
         _ = SaveToFileAsync();
         RefreshIslandStatusAsync(island);
         TryAutoPrefillPayout(island);
-    }
-
-    public void HandleHarvestFinished(HarvestFinishedObject harvest)
-    {
-        if (harvest == null) return;
-
-        var island = FindCurrentIsland();
-        if (island == null) return;
-
-        Log.Information("[IslandController] Island harvest activity: island={Island}, objectId={ObjectId}, itemId={ItemId}",
-            island.Name, harvest.ObjectId, harvest.ItemId);
-
-        var localUserObjectId = _trackingController?.EntityController?.LocalUserData?.UserObjectId;
-        if (!localUserObjectId.HasValue || harvest.UserObjectId != localUserObjectId.Value)
-        {
-            Log.Debug("[IslandController] Harvest belongs to different player (local={LocalId}, harvest={HarvestId}) — skipping auto-start",
-                localUserObjectId, harvest.UserObjectId);
-            return;
-        }
-
-        var totalYield = harvest.StandardAmount + harvest.CollectorBonusAmount + harvest.PremiumBonusAmount;
-        if (harvest.ItemId > 0 && totalYield > 0)
-        {
-            island.AddYield(harvest.ItemId, totalYield, PlotType.Farm);
-            PushYieldUpdateToBindings(island);
-            Log.Information("[IslandController] Recorded harvest yield: island={Island}, itemId={ItemId}, qty={Qty}",
-                island.Name, harvest.ItemId, totalYield);
-        }
-
-        // Evaluate cycleRunning before clearing so the check uses live plot timers,
-        // not the stale island-level LastPlantedAt fallback.
-        var cycleWasRunning = island.NextCollectionReadyAt.HasValue
-            && island.NextCollectionReadyAt.Value > DateTime.UtcNow;
-
-        ClearPlotPlantedAt(island);
-        RefreshIslandStatusAsync(island);
-        Log.Information("[IslandController] Cleared plot timers after harvest: island={Island}", island.Name);
-
-        var prefs = _mainWindowViewModel?.IslandBindings?.Preferences;
-        if (prefs == null || !prefs.AutoStartCycleOnIslandActivity) return;
-
-        if (cycleWasRunning) return;
-
-        if (IsIslandInRoyalCity(island))
-        {
-            Log.Debug("[IslandController] Skipped auto-start for island in royal city: {Island}", island.Name);
-            return;
-        }
-
-        CommitIslandPlant(island);
-        Log.Information("[IslandController] Auto-started island cycle from harvest activity: island={Island}", island.Name);
     }
 
     public void HandleFarmableHarvestResponse(FarmableHarvestResponse response)
@@ -989,32 +929,6 @@ public partial class IslandController
         PushYieldUpdateToBindings(island);
     }
 
-    public void HandleActionOnBuildingFinished(ActionOnBuildingFinishedEvent e)
-    {
-        if (e == null) return;
-
-        var island = FindCurrentIsland();
-
-        // Log all action types on island so unknown values (e.g. replant) can be captured and identified.
-        if (island != null)
-            Log.Information("[IslandController] ActionOnBuildingFinished on island: island={Island}, type={ActionType} ({ActionTypeInt})",
-                island.Name, e.ActionType, (int) e.ActionType);
-
-        if (island == null) return;
-
-        var localUserObjectId = _trackingController?.EntityController?.LocalUserData?.UserObjectId;
-        if (!e.UserObjectId.HasValue || !localUserObjectId.HasValue || e.UserObjectId.Value != localUserObjectId.Value)
-            return;
-
-        if (e.ActionType == ActionOnBuildingType.Repair) return;
-        if (e.ActionType == ActionOnBuildingType.BuyAndCrafting) return;
-
-        // No timer mutation here. Farm/herb/pasture collect is now cleared per-plot via the collect REQUEST
-        // (HandleFarmableCollect); a blanket ClearPlotPlantedAt(island) here would wipe every plot's timer.
-        // This event is not even observed on islands in captures (count 0) and its ActionType is unreliable
-        // (param 4 absent on the wire), so it must not drive timer state. Kept for action logging only.
-    }
-
     public IReadOnlyList<LaborerSnapshot> GetCurrentSnapshots()
     {
         List<LaborerSnapshot> current;
@@ -1076,7 +990,6 @@ public partial class IslandController
 
         if (!string.IsNullOrWhiteSpace(e.FarmableUniqueName))
         {
-            _detectedFarmableNames[e.ObjectId] = e.FarmableUniqueName;
             Log.Debug("[IslandController] Farmable item detected: island={Island}, objectId={ObjectId}, uniqueName={UniqueName}",
                 island.Name, e.ObjectId, e.FarmableUniqueName);
             TryAutoApplyFarmableConfig(island, e.FarmableUniqueName);
@@ -1618,524 +1531,6 @@ public partial class IslandController
         var biome = island.Biome ?? string.Empty;
         return city.IndexOf("royal", StringComparison.OrdinalIgnoreCase) >= 0
                || biome.IndexOf("royal", StringComparison.OrdinalIgnoreCase) >= 0;
-    }
-
-    // Detects whether the mixed-use region's house sits at the TOP (alt) or BOTTOM (base) from its
-    // real world position, so the small S1/S2 slots render on the opposite end. This replaces the
-    // occupancy-only guess, which wrongly pushed S1/S2 down whenever the slot was occupied at all.
-    private void TryDetectMixedRegionPlacement(Island.Island island, LaborerSnapshot snapshot)
-    {
-        if (!snapshot.WorldPosition.HasValue) return;
-        var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
-        if (layout == null) return;
-
-        var alt = layout.ClassifyMixedRegionHouseAlt(snapshot.WorldPosition.Value.X, snapshot.WorldPosition.Value.Y);
-        if (!alt.HasValue || island.MixedRegionAltActive == alt.Value) return;
-
-        island.MixedRegionAltActive = alt.Value;
-        island.UpdateModificationDate();
-        _ = SaveToFileAsync();
-        RefreshBindingsAsync();
-        Log.Information("[IslandController] Mixed-region placement detected: island={Island}, altActive={Alt}", island.Name, alt.Value);
-    }
-
-    // Resolves a laborer's world position to the nearest LARGE map slot. Houses are large-footprint
-    // plots, so the small S1/S2 slots are excluded — a house must never resolve onto them.
-    private static int? ResolveHouseSlot(Island.Island island, LaborerSnapshot snapshot)
-    {
-        if (!snapshot.WorldPosition.HasValue) return null;
-        var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
-        return layout?.WorldToNearestSlot(snapshot.WorldPosition.Value.X, snapshot.WorldPosition.Value.Y, requireLarge: true);
-    }
-
-    // A house plot's MapSlotIndex (its physical-position number, used by the map AND the "#N" card label)
-    // can desync from where its laborers actually stand — seeding/recalibration left stored values as a
-    // permutation of the true slots, so the same physical house showed a different number than the one
-    // collected. Re-derive each name-matched plot's slot from its live laborers' world positions
-    // (majority vote) and apply the corrected, collision-free assignment. Converges in one pass, then
-    // makes no further changes (idempotent), so it is safe to run on every status push.
-    private void HealHouseMapSlots(Island.Island island,
-        IReadOnlyDictionary<Guid, IReadOnlyDictionary<int, LaborerSnapshot>> assignments)
-    {
-        if (island?.Plots == null || assignments == null || assignments.Count == 0) return;
-        var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
-        if (layout == null) return;
-
-        var desired = new Dictionary<Guid, int>();
-        foreach (var (plotId, slotMap) in assignments)
-        {
-            var votes = new Dictionary<int, int>();
-            foreach (var snap in slotMap.Values)
-            {
-                if (snap?.WorldPosition is not { } pos) continue;
-                var s = layout.WorldToNearestSlot(pos.X, pos.Y, requireLarge: true);
-                if (s.HasValue) votes[s.Value] = votes.GetValueOrDefault(s.Value) + 1;
-            }
-            if (votes.Count > 0)
-                desired[plotId] = votes.Aggregate((a, b) => b.Value > a.Value ? b : a).Key;
-        }
-        if (desired.Count == 0) return;
-
-        // Only act on a slot a single plot wants (clean bijection); skip contested slots to avoid churn.
-        var contested = desired.Values.GroupBy(v => v).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
-        var changed = false;
-        foreach (var (plotId, slot) in desired)
-        {
-            if (contested.Contains(slot)) continue;
-            var plot = island.Plots.FirstOrDefault(p => p.Id == plotId);
-            if (plot == null || plot.MapSlotIndex == slot) continue;
-
-            // Free this physical slot from any other house plot so two cards never share a position.
-            foreach (var other in island.Plots)
-                if (other.Id != plotId && other.PlotType == PlotType.House && other.MapSlotIndex == slot)
-                    other.MapSlotIndex = null;
-
-            plot.MapSlotIndex = slot;
-            changed = true;
-            Log.Information("[IslandController] Healed house map slot from live position: island={Island}, plot#{Plot}, slot={Slot}",
-                island.Name, plot.PlotNumber, slot);
-        }
-        if (changed)
-        {
-            island.UpdateModificationDate();
-            _ = SaveToFileAsync();
-        }
-    }
-
-    private void TryAutoAssignHousePlotMapSlot(Island.Island island, LaborerSnapshot snapshot)
-    {
-        var slotIndex = ResolveHouseSlot(island, snapshot);
-        if (!slotIndex.HasValue) return;
-
-        // Skip if a house plot already claims this slot.
-        if (island.Plots.Any(p => p.PlotType == PlotType.House && p.MapSlotIndex == slotIndex.Value))
-            return;
-
-        var unassigned = island.Plots.FirstOrDefault(p =>
-            p.PlotType == PlotType.House && !p.MapSlotIndex.HasValue);
-        if (unassigned == null) return;
-
-        unassigned.MapSlotIndex = slotIndex.Value;
-        island.UpdateModificationDate();
-        _ = SaveToFileAsync();
-        Log.Information("[IslandController] Auto-assigned house map slot {Slot} from laborer world pos", slotIndex.Value);
-        RefreshIslandStatusAsync(island);
-    }
-
-    // Non-mutating lookup: the house plot owning this slot, else the first unassigned house plot.
-    // The slot is committed by the caller only when an actual config write succeeds (avoids orphan
-    // cards that carry a slot number but no laborer).
-    private static IslandPlot FindHousePlotBySlot(Island.Island island, int slotIndex)
-    {
-        var existing = island.Plots.FirstOrDefault(p =>
-            p.PlotType == PlotType.House && p.MapSlotIndex == slotIndex);
-        if (existing != null) return existing;
-
-        return island.Plots.FirstOrDefault(p =>
-            p.PlotType == PlotType.House && !p.MapSlotIndex.HasValue);
-    }
-
-    private bool TryEnsureHousePlotConfiguration(Island.Island island, LaborerSnapshot snapshot)
-    {
-        if (island?.Plots == null || snapshot.BuildingTier <= 0 || string.IsNullOrWhiteSpace(snapshot.LaborerType))
-            return false;
-
-        // Name match first: config-stored names are reliable ground truth and survive slot resets.
-        // World position match second: assigns MapSlotIndex once name confirms the right plot.
-        if (TryMatchHousePlotByLaborerName(island, snapshot))
-            return true;
-
-        if (TryMatchHousePlotByWorldPosition(island, snapshot))
-            return true;
-
-        return TryEnrichHousePlotByTypeMatch(island, snapshot);
-    }
-
-    private bool TryMatchHousePlotByWorldPosition(Island.Island island, LaborerSnapshot snapshot)
-    {
-        if (!snapshot.WorldPosition.HasValue)
-            return false;
-
-        // HousePlotGuid (param 9) is shared across ALL houses on the same island, so it cannot
-        // uniquely identify a house. World position is the only per-house discriminator available.
-        var slotIndex = ResolveHouseSlot(island, snapshot);
-        if (!slotIndex.HasValue)
-            return false;
-
-        var slotPlot = FindHousePlotBySlot(island, slotIndex.Value);
-        if (slotPlot == null) return false;
-
-        if (HousePlotHasEmptySlot(slotPlot.Configuration))
-        {
-            // Don't duplicate a laborer that already lives in another card.
-            if (!string.IsNullOrWhiteSpace(snapshot.FullName) && IsLaborerNameInAnyOtherHousePlot(island, slotPlot, snapshot.FullName))
-                return true;
-
-            if (TryAutofillHousePlot(slotPlot, snapshot))
-            {
-                slotPlot.MapSlotIndex = slotIndex.Value; // commit slot only after a successful write
-                PurgeDuplicateLaborerName(island, slotPlot, snapshot.FullName);
-                island.UpdateModificationDate();
-                _ = SaveToFileAsync();
-                RefreshIslandStatusAsync(island);
-                Log.Information("[IslandController] Position-matched house on live detection: island={Island}, laborer={Laborer}, type={Type}, tier=T{Tier}, slot={Slot}",
-                    island.Name, snapshot.FullName, snapshot.LaborerType, snapshot.BuildingTier, slotIndex.Value);
-                return true;
-            }
-            return false;
-        }
-
-        // Seed model: a manual slot whose type matches but carries no name yet — stamp the live
-        // laborer's real name onto it (live truth fills the placeholder). Each laborer fills the
-        // first empty-name slot of its type; the written name then blocks the next laborer from it.
-        if (TryFillLiveNameOntoSeedSlot(island, slotPlot, snapshot))
-        {
-            slotPlot.MapSlotIndex = slotIndex.Value;
-            PurgeDuplicateLaborerName(island, slotPlot, snapshot.FullName);
-            island.UpdateModificationDate();
-            _ = SaveToFileAsync();
-            RefreshIslandStatusAsync(island);
-            Log.Information("[IslandController] Stamped live name on seed slot at position-matched house: island={Island}, laborer={Laborer}, type={Type}, tier=T{Tier}, slot={Slot}",
-                island.Name, snapshot.FullName, snapshot.LaborerType, snapshot.BuildingTier, slotIndex.Value);
-            return true;
-        }
-
-        // Card fully configured for this slot. If the detected laborer no longer matches, the user
-        // swapped a laborer — overwrite the stale slot.
-        if (!HousePlotMatchesLaborer(slotPlot, snapshot) && !HousePlotMatchesLaborerByName(slotPlot, snapshot))
-        {
-            if (TryOverwriteHousePlotSlotForSwap(slotPlot, snapshot))
-            {
-                slotPlot.MapSlotIndex = slotIndex.Value; // commit slot only after a successful write
-                PurgeDuplicateLaborerName(island, slotPlot, snapshot.FullName);
-                island.UpdateModificationDate();
-                _ = SaveToFileAsync();
-                RefreshIslandStatusAsync(island);
-                Log.Information("[IslandController] Laborer swap detected at position-matched house: island={Island}, laborer={Laborer}, type={Type}, tier=T{Tier}, slot={Slot}",
-                    island.Name, snapshot.FullName, snapshot.LaborerType, snapshot.BuildingTier, slotIndex.Value);
-            }
-        }
-        else if (!string.IsNullOrWhiteSpace(snapshot.FullName))
-        {
-            if (PurgeDuplicateLaborerName(island, slotPlot, snapshot.FullName))
-            {
-                island.UpdateModificationDate();
-                _ = SaveToFileAsync();
-            }
-        }
-        return true;
-    }
-
-    private bool TryMatchHousePlotByLaborerName(Island.Island island, LaborerSnapshot snapshot)
-    {
-        if (string.IsNullOrWhiteSpace(snapshot.FullName))
-            return false;
-
-        var namePlot = island.Plots.FirstOrDefault(p =>
-            p.PlotType == PlotType.House && HousePlotMatchesLaborerByName(p, snapshot));
-        if (namePlot == null) return false;
-
-        var changed = PurgeDuplicateLaborerName(island, namePlot, snapshot.FullName);
-
-        // Also assign MapSlotIndex from world position when it's missing (e.g. after a slot reset).
-        var slotAssigned = false;
-        if (!namePlot.MapSlotIndex.HasValue && snapshot.WorldPosition.HasValue)
-        {
-            var slotIndex = ResolveHouseSlot(island, snapshot);
-            if (slotIndex.HasValue && !island.Plots.Any(p => p.MapSlotIndex == slotIndex.Value))
-            {
-                namePlot.MapSlotIndex = slotIndex.Value;
-                changed = true;
-                slotAssigned = true;
-                Log.Information("[IslandController] Name-matched house re-anchored to slot {Slot} for laborer {Name}", slotIndex.Value, snapshot.FullName);
-            }
-        }
-
-        if (changed)
-        {
-            island.UpdateModificationDate();
-            _ = SaveToFileAsync();
-            // Full binding rebuild needed when slot was re-assigned so cards re-sort and labels update.
-            if (slotAssigned)
-                RefreshBindingsAsync();
-            else
-                RefreshIslandStatusAsync(island);
-        }
-
-        return true;
-    }
-
-    private bool TryEnrichHousePlotByTypeMatch(Island.Island island, LaborerSnapshot snapshot)
-    {
-        try
-        {
-            // Secondary: type+name match against already-configured cards (useful on re-visit when position
-            // resolves to a card that is already fully filled, so we only need to update tier/name if changed).
-            foreach (var plot in island.Plots.Where(p => p.PlotType == PlotType.House))
-            {
-                var config = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-
-                for (var slot = 1; slot <= 3; slot++)
-                {
-                    if (!config.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var laborerValue)
-                        || string.IsNullOrWhiteSpace(laborerValue)
-                        || string.Equals(laborerValue, LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    var configuredType = LaborerConfigHelper.NormalizeLaborerType(laborerValue);
-                    var detectedType = LaborerConfigHelper.NormalizeLaborerType(snapshot.LaborerType);
-                    if (!string.Equals(configuredType, detectedType, StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    var digits = new string((config.TryGetValue(LaborerConfigHelper.JournalTierKey(slot), out var tierVal) ? tierVal : string.Empty).Where(char.IsDigit).ToArray());
-                    var tierChanged = !int.TryParse(digits, out var configuredTier) || configuredTier != snapshot.BuildingTier;
-                    var nameKey = LaborerConfigHelper.LaborerNameKey(slot);
-                    var storedName = config.TryGetValue(nameKey, out var sn) ? sn : string.Empty;
-                    var nameChanged = !string.IsNullOrWhiteSpace(snapshot.FullName)
-                        && !string.Equals(LaborerConfigHelper.NormalizeLaborerFullName(storedName),
-                            LaborerConfigHelper.NormalizeLaborerFullName(snapshot.FullName),
-                            StringComparison.OrdinalIgnoreCase);
-
-                    // Don't overwrite with a name that already exists in a different house card —
-                    // that would duplicate the laborer across two cards.
-                    if (nameChanged && IsLaborerNameInAnyOtherHousePlot(island, plot, snapshot.FullName))
-                        nameChanged = false;
-
-                    if (tierChanged || nameChanged)
-                    {
-                        if (tierChanged)
-                            config[LaborerConfigHelper.JournalTierKey(slot)] = $"Tier {snapshot.BuildingTier}";
-                        if (nameChanged)
-                            config[nameKey] = snapshot.FullName;
-                        plot.Configuration = LaborerConfigHelper.BuildConfiguration(config);
-                        PurgeDuplicateLaborerName(island, plot, snapshot.FullName);
-                        island.UpdateModificationDate();
-                        _ = SaveToFileAsync();
-                        RefreshIslandStatusAsync(island);
-                        Log.Information("[IslandController] Enriched house plot config from type-match: island={Island}, laborer={Laborer}, slot={Slot}",
-                            island.Name, snapshot.FullName, slot);
-                    }
-                    else if (!string.IsNullOrWhiteSpace(snapshot.FullName))
-                    {
-                        // No write needed, but purge stale duplicates if this card is the authority for the name.
-                        if (PurgeDuplicateLaborerName(island, plot, snapshot.FullName))
-                        {
-                            island.UpdateModificationDate();
-                            _ = SaveToFileAsync();
-                        }
-                    }
-                    return true; // type (and tier) matched — this snapshot belongs to this plot
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Failed to auto-adjust house tier for island {Island}", island?.Name);
-        }
-
-        return false;
-    }
-
-    private static bool HousePlotMatchesLaborerByName(IslandPlot plot, LaborerSnapshot snapshot)
-    {
-        if (string.IsNullOrWhiteSpace(snapshot.FullName)) return false;
-        var config = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-        var normalizedName = LaborerConfigHelper.NormalizeLaborerFullName(snapshot.FullName);
-        for (var slot = 1; slot <= 3; slot++)
-        {
-            if (config.TryGetValue(LaborerConfigHelper.LaborerNameKey(slot), out var storedName)
-                && !string.IsNullOrWhiteSpace(storedName)
-                && string.Equals(LaborerConfigHelper.NormalizeLaborerFullName(storedName), normalizedName, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-        return false;
-    }
-
-    private static bool IsLaborerNameInAnyOtherHousePlot(Island.Island island, IslandPlot excludePlot, string fullName)
-    {
-        if (string.IsNullOrWhiteSpace(fullName)) return false;
-        var normalized = LaborerConfigHelper.NormalizeLaborerFullName(fullName);
-        foreach (var plot in island.Plots.Where(p => p.PlotType == PlotType.House && p.Id != excludePlot.Id))
-        {
-            var config = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-            for (var slot = 1; slot <= 3; slot++)
-            {
-                if (config.TryGetValue(LaborerConfigHelper.LaborerNameKey(slot), out var storedName)
-                    && !string.IsNullOrWhiteSpace(storedName)
-                    && string.Equals(LaborerConfigHelper.NormalizeLaborerFullName(storedName), normalized, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    // Removes fullName from all house plots OTHER than authorityPlot.
-    // Returns true if any config was changed.
-    private static bool PurgeDuplicateLaborerName(Island.Island island, IslandPlot authorityPlot, string fullName)
-    {
-        if (string.IsNullOrWhiteSpace(fullName)) return false;
-        var normalized = LaborerConfigHelper.NormalizeLaborerFullName(fullName);
-        var changed = false;
-        foreach (var plot in island.Plots.Where(p => p.PlotType == PlotType.House && p.Id != authorityPlot.Id))
-        {
-            var config = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-            var plotChanged = false;
-            for (var slot = 1; slot <= 3; slot++)
-            {
-                if (!config.TryGetValue(LaborerConfigHelper.LaborerNameKey(slot), out var storedName)
-                    || string.IsNullOrWhiteSpace(storedName))
-                    continue;
-                if (!string.Equals(LaborerConfigHelper.NormalizeLaborerFullName(storedName), normalized, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                config[LaborerConfigHelper.LaborerNameKey(slot)] = string.Empty;
-                plotChanged = true;
-            }
-            if (plotChanged)
-            {
-                plot.Configuration = LaborerConfigHelper.BuildConfiguration(config);
-                changed = true;
-                Log.Information("[IslandController] Purged duplicate laborer name '{Name}' from house plot {PlotId}", fullName, plot.Id);
-            }
-        }
-        return changed;
-    }
-
-    private static bool HousePlotMatchesLaborer(IslandPlot plot, LaborerSnapshot snapshot)
-    {
-        var config = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-        for (var slot = 1; slot <= 3; slot++)
-        {
-            if (!config.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var laborerValue)
-                || !config.TryGetValue(LaborerConfigHelper.JournalTierKey(slot), out var tierValue))
-                continue;
-
-            var configuredType = LaborerConfigHelper.NormalizeLaborerType(laborerValue);
-            var detectedType = LaborerConfigHelper.NormalizeLaborerType(snapshot.LaborerType);
-            if (!string.Equals(configuredType, detectedType, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var digits = new string(tierValue.Where(char.IsDigit).ToArray());
-            if (int.TryParse(digits, out var configuredTier) && configuredTier == snapshot.BuildingTier)
-                return true;
-        }
-        return false;
-    }
-
-    private static bool HousePlotHasEmptySlot(string configuration)
-    {
-        var config = LaborerConfigHelper.ParseConfiguration(configuration);
-        for (var slot = 1; slot <= 3; slot++)
-        {
-            if (!config.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var laborerValue)
-                || string.IsNullOrWhiteSpace(laborerValue)
-                || string.Equals(laborerValue, LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-        return false;
-    }
-
-    private static bool TryAutofillHousePlot(IslandPlot plot, LaborerSnapshot snapshot)
-    {
-        var config = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-        for (var slot = 1; slot <= 3; slot++)
-        {
-            if (config.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var laborerValue)
-                && !string.IsNullOrWhiteSpace(laborerValue)
-                && !string.Equals(laborerValue, LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var displayType = LaborerConfigHelper.ToDisplayLaborerType(snapshot.LaborerType);
-            config[LaborerConfigHelper.LaborerKey(slot)] = displayType;
-            config[LaborerConfigHelper.JournalKey(slot)] = LaborerConfigHelper.GetJournalName(snapshot.LaborerType, displayType);
-            config[LaborerConfigHelper.LaborerNameKey(slot)] = LaborerConfigHelper.NormalizeLaborerFullName(snapshot.FullName);
-            config[LaborerConfigHelper.JournalTierKey(slot)] = $"Tier {snapshot.BuildingTier}";
-            plot.Configuration = LaborerConfigHelper.BuildConfiguration(config);
-            return true;
-        }
-        return false;
-    }
-
-    // Seed model: writes the live laborer's name onto the first type-matching slot that has no name
-    // yet (a manual placeholder). Returns false when no such slot exists, the laborer already owns a
-    // slot here, or the name lives in another house plot. Each laborer claims one empty-name slot;
-    // the written name then prevents the next same-type laborer from reusing it.
-    private static bool TryFillLiveNameOntoSeedSlot(Island.Island island, IslandPlot plot, LaborerSnapshot snapshot)
-    {
-        if (string.IsNullOrWhiteSpace(snapshot.FullName) || string.IsNullOrWhiteSpace(snapshot.LaborerType))
-            return false;
-        if (IsLaborerNameInAnyOtherHousePlot(island, plot, snapshot.FullName))
-            return false;
-
-        var config = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-        var detectedType = LaborerConfigHelper.NormalizeLaborerType(snapshot.LaborerType);
-        var detectedName = LaborerConfigHelper.NormalizeLaborerFullName(snapshot.FullName);
-
-        for (var slot = 1; slot <= 3; slot++)
-        {
-            if (!config.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var typeVal)
-                || string.IsNullOrWhiteSpace(typeVal)
-                || string.Equals(typeVal, LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (!string.Equals(LaborerConfigHelper.NormalizeLaborerType(typeVal), detectedType, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var existingName = config.TryGetValue(LaborerConfigHelper.LaborerNameKey(slot), out var nv) ? nv : string.Empty;
-            if (!string.IsNullOrWhiteSpace(existingName))
-            {
-                // Already this laborer — nothing to do; matching/purge handles it elsewhere.
-                if (string.Equals(LaborerConfigHelper.NormalizeLaborerFullName(existingName), detectedName, StringComparison.OrdinalIgnoreCase))
-                    return false;
-                // A different named laborer owns this slot — skip to the next.
-                continue;
-            }
-
-            config[LaborerConfigHelper.LaborerNameKey(slot)] = LaborerConfigHelper.NormalizeLaborerFullName(snapshot.FullName);
-            config[LaborerConfigHelper.JournalTierKey(slot)] = $"Tier {snapshot.BuildingTier}";
-            if (!config.ContainsKey(LaborerConfigHelper.JournalKey(slot)))
-            {
-                var displayType = LaborerConfigHelper.ToDisplayLaborerType(snapshot.LaborerType);
-                config[LaborerConfigHelper.JournalKey(slot)] = LaborerConfigHelper.GetJournalName(snapshot.LaborerType, displayType);
-            }
-            plot.Configuration = LaborerConfigHelper.BuildConfiguration(config);
-            return true;
-        }
-
-        return false;
-    }
-
-    // Overwrites the first slot whose laborer name or type doesn't match the incoming snapshot.
-    // Called when a position-matched house has no empty slots but the detected laborer is unknown —
-    // indicating the user swapped a laborer. Stale dispatch/loot data is cleared for the replaced slot.
-    private static bool TryOverwriteHousePlotSlotForSwap(IslandPlot plot, LaborerSnapshot snapshot)
-    {
-        var config = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-        var detectedType = LaborerConfigHelper.NormalizeLaborerType(snapshot.LaborerType);
-        var detectedName = LaborerConfigHelper.NormalizeLaborerFullName(snapshot.FullName);
-
-        for (var slot = 1; slot <= 3; slot++)
-        {
-            var storedType = config.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var tv)
-                ? LaborerConfigHelper.NormalizeLaborerType(tv) : string.Empty;
-            var storedName = config.TryGetValue(LaborerConfigHelper.LaborerNameKey(slot), out var nv)
-                ? LaborerConfigHelper.NormalizeLaborerFullName(nv) : string.Empty;
-
-            var typeMatches = !string.IsNullOrEmpty(storedType) && string.Equals(storedType, detectedType, StringComparison.OrdinalIgnoreCase);
-            var nameMatches = !string.IsNullOrEmpty(storedName) && !string.IsNullOrEmpty(detectedName)
-                && string.Equals(storedName, detectedName, StringComparison.OrdinalIgnoreCase);
-
-            if (typeMatches || nameMatches) continue;
-
-            var displayType = LaborerConfigHelper.ToDisplayLaborerType(snapshot.LaborerType);
-            config[LaborerConfigHelper.LaborerKey(slot)] = displayType;
-            config[LaborerConfigHelper.JournalKey(slot)] = LaborerConfigHelper.GetJournalName(snapshot.LaborerType, displayType);
-            config[LaborerConfigHelper.LaborerNameKey(slot)] = LaborerConfigHelper.NormalizeLaborerFullName(snapshot.FullName);
-            config[LaborerConfigHelper.JournalTierKey(slot)] = $"Tier {snapshot.BuildingTier}";
-            config.Remove(LaborerConfigHelper.DispatchTimeKey(slot));
-            config.Remove(LaborerConfigHelper.LootReadyKey(slot));
-            plot.Configuration = LaborerConfigHelper.BuildConfiguration(config);
-            return true;
-        }
-        return false;
     }
 
     public IslandSessionSuggestion BuildSessionSuggestion()

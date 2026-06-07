@@ -1,10 +1,12 @@
 using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.Island;
+using StatisticsAnalysisTool.Localization;
 using StatisticsAnalysisTool.Models.BindingModel;
 using StatisticsAnalysisTool.Network.Manager;
 using StatisticsAnalysisTool.Views;
 using StatisticsAnalysisTool.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -138,8 +140,9 @@ public partial class IslandManagementControl : UserControl
         if (island == null) return;
         vm.IslandBindings.ResetSlotAssignments();
         MessageBox.Show(
-            $"Slot assignments for \"{island.Name}\" have been reset.\n\nLeave and re-enter the island to remap all plots.",
-            "Slots Reset",
+            LocalizationController.Translation("ISLAND_MANAGEMENT_SLOTS_RESET_MESSAGE",
+                new List<string> { "islandName" }, new List<string> { island.Name }),
+            LocalizationController.Translation("ISLAND_MANAGEMENT_SLOTS_RESET_TITLE"),
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }

@@ -48408,6 +48408,24 @@
           "seg": "⚠ Unmatched items"
         }
       ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SLOTS_RESET_TITLE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Slots Reset"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_SLOTS_RESET_MESSAGE",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Slot assignments for \"{islandName}\" have been reset.\n\nLeave and re-enter the island to remap all plots."
+        }
+      ]
     }
   ]
 }
