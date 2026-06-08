@@ -170,6 +170,9 @@
             <DataTrigger Binding="{Binding CityFaction}" Value="{x:Static enumerations:CityFaction.Caerleon}">
                 <Setter Property="Source" Value="../Resources/factioncoin_caerleon.png"/>
             </DataTrigger>
+            <DataTrigger Binding="{Binding CityFaction}" Value="{x:Static enumerations:CityFaction.Brecilien}">
+                <Setter Property="Source" Value="../Assets/brecilien_standing_coin.png"/>
+            </DataTrigger>
         </Style.Triggers>
     </Style>
 
