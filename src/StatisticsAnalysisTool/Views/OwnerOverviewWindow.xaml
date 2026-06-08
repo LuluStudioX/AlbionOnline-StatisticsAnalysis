@@ -588,6 +588,16 @@
                                                     </Border>
                                                     <Border Background="{StaticResource SolidColorBrush.Background.3}"
                                                             CornerRadius="3" Padding="10,5">
+                                                        <Border.Style>
+                                                            <Style TargetType="{x:Type Border}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding TotalLaborers, FallbackValue=0}" Value="0">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
                                                         <StackPanel HorizontalAlignment="Center">
                                                             <TextBlock Text="{Binding TotalLaborers}" FontSize="16" FontWeight="Bold"
                                                                        Foreground="{StaticResource SolidColorBrush.Accent.Green.3}"

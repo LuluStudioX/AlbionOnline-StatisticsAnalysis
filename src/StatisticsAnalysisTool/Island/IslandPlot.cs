@@ -559,7 +559,7 @@ public class IslandPlot : BaseViewModel
                 {
                     var laborerName = dict.TryGetValue(LaborerConfigHelper.LaborerNameKey(slot), out var nv) && !string.IsNullOrWhiteSpace(nv) ? nv : string.Empty;
 
-                    var typePart = LaborerConfigHelper.ToDisplayLaborerType(rawType);
+                    var typePart = IslandLaborerProfessions.GetProfession(rawType);
                     display = string.IsNullOrWhiteSpace(tierDisplay)
                         ? typePart
                         : $"{tierDisplay} {typePart}";

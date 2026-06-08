@@ -458,8 +458,8 @@ public partial class IslandBindings
         var periodEarned = SelectedOwnerCurrentPeriodRecordedEarned;
 
         var title = left == 0
-            ? $"✅ {name} — all islands are ready"
-            : $"⏳ {name} — {left} island(s) remaining";
+            ? $"✅ {name} - all islands are ready"
+            : $"⏳ {name} - {left} island(s) remaining";
 
         var today = DateTime.Today;
         var islandNotes = GetEffectiveOwnerNames()
@@ -488,19 +488,28 @@ public partial class IslandBindings
             sb.AppendLine($"**Today's Extra $$** {extraEarned:N0}");
         sb.AppendLine($"**Accrued this period** {periodEarned:N0}");
 
-        var unpaidWeeks = GetUnpaidCompletedWeeks();
-        var netPayable = unpaidWeeks.Sum(w => w.Unpaid);
-
-        if (netPayable > 0 && unpaidWeeks.Count > 1)
-            sb.AppendLine($"**Net payable** `{netPayable:N0}`");
-
         if (extraNotes.Count > 0)
             sb.AppendLine($"**Extra notes** {string.Join("; ", extraNotes)}");
         if (islandNotes.Count > 0)
             sb.AppendLine($"**Notes** {string.Join("; ", islandNotes)}");
 
-        if (unpaidWeeks.Count > 0)
+        var unpaidWeeks = GetUnpaidCompletedWeeks();
+        var netPayable = unpaidWeeks.Sum(w => w.Unpaid);
+
+        if (unpaidWeeks.Count > 1 && netPayable > 0)
         {
+            // Multiple unpaid weeks: show the Net payable total with each week as its scaffold.
+            sb.AppendLine();
+            sb.AppendLine($"**Net payable** ```{netPayable:N0}```");
+            for (var i = 0; i < unpaidWeeks.Count; i++)
+            {
+                var glyph = i == unpaidWeeks.Count - 1 ? "┗" : "┣";
+                sb.AppendLine($"{glyph} ⚠ {unpaidWeeks[i].WeekLabel}  `{unpaidWeeks[i].Unpaid:N0}`");
+            }
+        }
+        else if (unpaidWeeks.Count > 0)
+        {
+            // Single unpaid week: no Net payable total (nothing to sum), just the standalone line.
             sb.AppendLine();
             foreach (var week in unpaidWeeks)
                 sb.AppendLine($"⚠ **Unpaid week {week.WeekLabel}👇** ```{week.Unpaid:N0}```");
@@ -1054,103 +1063,128 @@ public partial class IslandBindings
             foreach (var owner in owners)
             {
                 var ownerIslands = controller.GetIslandsByOwner(owner).ToList();
-
-                var laborerCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                var totalLaborers = 0;
-
-                // Plot type totals: type → total slot/quantity count
-                var plotTypeTotals = new Dictionary<PlotType, int>();
-                // Farmable content counts: (PlotType, display name) → count
-                var farmableContents = new Dictionary<(PlotType, string), int>();
-
-                foreach (var island in ownerIslands)
-                {
-                    foreach (var plot in island.Plots)
-                    {
-                        if (plot.PlotType == PlotType.House)
-                        {
-                            var cfg = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
-                            for (var slot = 1; slot <= 3; slot++)
-                            {
-                                if (!cfg.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var rawType)
-                                    || string.IsNullOrWhiteSpace(rawType)
-                                    || string.Equals(rawType, LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
-                                    continue;
-
-                                cfg.TryGetValue(LaborerConfigHelper.JournalTierKey(slot), out var tierText);
-                                var digits = new string((tierText ?? string.Empty).Where(char.IsDigit).ToArray());
-                                var tierPart = string.IsNullOrWhiteSpace(digits) ? string.Empty : $"T{digits} ";
-                                var typePart = LaborerConfigHelper.ToDisplayLaborerType(rawType);
-                                var key = $"{tierPart}{typePart}";
-
-                                laborerCounts[key] = (laborerCounts.TryGetValue(key, out var c) ? c : 0) + 1;
-                                totalLaborers++;
-                            }
-
-                            plotTypeTotals[PlotType.House] = (plotTypeTotals.TryGetValue(PlotType.House, out var hc) ? hc : 0) + plot.Quantity;
-                        }
-                        else
-                        {
-                            var qty = Math.Max(plot.Quantity, 1);
-                            plotTypeTotals[plot.PlotType] = (plotTypeTotals.TryGetValue(plot.PlotType, out var pc) ? pc : 0) + qty;
-
-                            if (plot.PlotType.HasFarmableConfig())
-                            {
-                                var contents = PlotTypeExtensions.ParseConfiguredObjectCounts(plot.PlotType, plot.Configuration, qty);
-                                foreach (var kv in contents)
-                                {
-                                    var contentKey = (plot.PlotType, kv.Key);
-                                    farmableContents[contentKey] = (farmableContents.TryGetValue(contentKey, out var fc) ? fc : 0) + kv.Value;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                var laborerBreakdown = laborerCounts
-                    .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
-                    .Select(kv => new LaborerTypeCount { Display = kv.Key, Count = kv.Value })
-                    .ToList();
-
-                var plotBreakdown = new List<PlotTypeSummaryRow>();
-
-                if (totalLaborers > 0 || plotTypeTotals.ContainsKey(PlotType.House))
-                {
-                    plotBreakdown.Add(new PlotTypeSummaryRow
-                    {
-                        DisplayName = "House",
-                        TotalCount = plotTypeTotals.TryGetValue(PlotType.House, out var hTotal) ? hTotal : 0,
-                        Details = laborerBreakdown
-                    });
-                }
-
-                foreach (var pt in plotTypeTotals.Keys.Where(k => k != PlotType.House).OrderBy(k => k.GetDisplayName()))
-                {
-                    var details = farmableContents
-                        .Where(kv => kv.Key.Item1 == pt)
-                        .OrderBy(kv => kv.Key.Item2, StringComparer.OrdinalIgnoreCase)
-                        .Select(kv => new LaborerTypeCount { Display = kv.Key.Item2, Count = kv.Value })
-                        .ToList();
-
-                    plotBreakdown.Add(new PlotTypeSummaryRow
-                    {
-                        DisplayName = pt.GetDisplayName(),
-                        TotalCount = plotTypeTotals[pt],
-                        Details = details
-                    });
-                }
-
-                rows.Add(new OwnerIslandSummaryRow
-                {
-                    OwnerName = owner,
-                    IslandCount = ownerIslands.Count,
-                    TotalLaborers = totalLaborers,
-                    LaborersByTierType = laborerBreakdown,
-                    PlotBreakdown = plotBreakdown
-                });
+                rows.Add(BuildSummaryRow(owner, ownerIslands));
             }
             return rows;
         }
+    }
+
+    // Per-island summary for the selected island's dashboard. Single-island view of the
+    // same plot/laborer breakdown the owner overview shows aggregated across all islands.
+    public OwnerIslandSummaryRow SelectedIslandSummary
+    {
+        get
+        {
+            var controller = GetController();
+            var islandId = SelectedIsland?.IslandId;
+            if (controller == null || islandId == null) return null;
+
+            var island = controller.GetById(islandId.Value);
+            if (island == null) return null;
+
+            return BuildSummaryRow(SelectedIsland.OwnerName ?? string.Empty, [island]);
+        }
+    }
+
+    private static OwnerIslandSummaryRow BuildSummaryRow(string ownerName, IReadOnlyCollection<Island.Island> islands)
+    {
+        var laborerCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var totalLaborers = 0;
+
+        // Plot type totals: type → total slot/quantity count
+        var plotTypeTotals = new Dictionary<PlotType, int>();
+        // Farmable content counts: (PlotType, display name) → count
+        var farmableContents = new Dictionary<(PlotType, string), int>();
+
+        foreach (var island in islands)
+        {
+            foreach (var plot in island.Plots)
+            {
+                if (plot.PlotType == PlotType.House)
+                {
+                    var cfg = LaborerConfigHelper.ParseConfiguration(plot.Configuration);
+                    for (var slot = 1; slot <= 3; slot++)
+                    {
+                        if (!cfg.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var rawType)
+                            || string.IsNullOrWhiteSpace(rawType)
+                            || string.Equals(rawType, LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        cfg.TryGetValue(LaborerConfigHelper.JournalTierKey(slot), out var tierText);
+                        var digits = new string((tierText ?? string.Empty).Where(char.IsDigit).ToArray());
+                        var tierPart = string.IsNullOrWhiteSpace(digits) ? string.Empty : $"T{digits} ";
+                        var typePart = IslandLaborerProfessions.GetProfession(rawType);
+                        var key = $"{tierPart}{typePart}";
+
+                        laborerCounts[key] = (laborerCounts.TryGetValue(key, out var c) ? c : 0) + 1;
+                        totalLaborers++;
+                    }
+
+                    plotTypeTotals[PlotType.House] = (plotTypeTotals.TryGetValue(PlotType.House, out var hc) ? hc : 0) + plot.Quantity;
+                }
+                else
+                {
+                    var qty = Math.Max(plot.Quantity, 1);
+                    plotTypeTotals[plot.PlotType] = (plotTypeTotals.TryGetValue(plot.PlotType, out var pc) ? pc : 0) + qty;
+
+                    if (plot.PlotType.HasFarmableConfig())
+                    {
+                        // Count the real tiles/animals, not the plot. A single-type plot fills all of its
+                        // tiles with that type, so a full plot = SlotsPerPlot units (e.g. 9 cows per pasture)
+                        // — mirrors how house plots count each occupied laborer slot.
+                        var slots = Math.Max(plot.TotalSlots, qty);
+                        var contents = PlotTypeExtensions.ParseConfiguredObjectCounts(plot.PlotType, plot.Configuration, slots);
+                        foreach (var kv in contents)
+                        {
+                            var contentKey = (plot.PlotType, kv.Key);
+                            farmableContents[contentKey] = (farmableContents.TryGetValue(contentKey, out var fc) ? fc : 0) + kv.Value;
+                        }
+                    }
+                }
+            }
+        }
+
+        var laborerBreakdown = laborerCounts
+            .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(kv => new LaborerTypeCount { Display = kv.Key, Count = kv.Value })
+            .ToList();
+
+        var plotBreakdown = new List<PlotTypeSummaryRow>();
+
+        if (totalLaborers > 0 || plotTypeTotals.ContainsKey(PlotType.House))
+        {
+            plotBreakdown.Add(new PlotTypeSummaryRow
+            {
+                DisplayName = "House",
+                TotalCount = plotTypeTotals.TryGetValue(PlotType.House, out var hTotal) ? hTotal : 0,
+                Details = laborerBreakdown
+            });
+        }
+
+        foreach (var pt in plotTypeTotals.Keys.Where(k => k != PlotType.House).OrderBy(k => k.GetDisplayName()))
+        {
+            var details = farmableContents
+                .Where(kv => kv.Key.Item1 == pt)
+                .OrderBy(kv => kv.Key.Item2, StringComparer.OrdinalIgnoreCase)
+                .Select(kv => new LaborerTypeCount { Display = kv.Key.Item2, Count = kv.Value })
+                .ToList();
+
+            plotBreakdown.Add(new PlotTypeSummaryRow
+            {
+                DisplayName = pt.GetDisplayName(),
+                TotalCount = plotTypeTotals[pt],
+                Details = details
+            });
+        }
+
+        return new OwnerIslandSummaryRow
+        {
+            OwnerName = ownerName,
+            IslandCount = islands.Count,
+            TotalLaborers = totalLaborers,
+            LaborersByTierType = laborerBreakdown,
+            PlotBreakdown = plotBreakdown
+        };
     }
 
     // --- Cycle form ---

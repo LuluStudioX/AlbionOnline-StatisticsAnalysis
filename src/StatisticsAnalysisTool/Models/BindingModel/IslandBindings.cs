@@ -99,6 +99,7 @@ public partial class IslandBindings : BaseViewModel
             _liveRowTimestamps.Clear();
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsIslandSelected));
+            OnPropertyChanged(nameof(SelectedIslandSummary));
             if (Preferences?.AllowMultiOwnerSelection != true)
             {
                 _selectedOverviewOwner = _selectedIsland?.OwnerName?.Trim() ?? string.Empty;
@@ -569,7 +570,7 @@ public partial class IslandBindings : BaseViewModel
                         var laborerName = dict.TryGetValue(LaborerConfigHelper.LaborerNameKey(slot), out var nv)
                             ? LaborerConfigHelper.NormalizeLaborerFullName(nv) : string.Empty;
                         var laborerType = dict.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var tv)
-                            ? LaborerConfigHelper.ToDisplayLaborerType(tv) : string.Empty;
+                            ? IslandLaborerProfessions.GetProfession(tv) : string.Empty;
                         var displayName = !string.IsNullOrWhiteSpace(laborerName) ? laborerName
                             : !string.IsNullOrWhiteSpace(laborerType) ? laborerType : null;
                         if (displayName == null) continue;

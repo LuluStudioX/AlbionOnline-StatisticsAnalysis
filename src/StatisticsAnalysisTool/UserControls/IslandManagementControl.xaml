@@ -945,48 +945,83 @@
                                                        Style="{StaticResource Island.Stat.Value}"/>
                                         </StackPanel>
                                     </Border>
-                                    <Border Style="{StaticResource Island.Stat.Tile}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Translation.IslandManagementPremium, FallbackValue=Premium}" Style="{StaticResource Island.Stat.Label}"/>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <fa5:ImageAwesome Icon="Solid_Star"
-                                                                  Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}"
-                                                                  Width="11" Height="11" VerticalAlignment="Center" Margin="0,0,4,0"
-                                                                  Visibility="{Binding IslandBindings.SelectedIsland.HasPremium,
-                                                                               Converter={StaticResource BooleanToVisibilityConverter},
-                                                                               FallbackValue=Visible}"/>
-                                                <TextBlock>
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Island.Stat.Value}">
-                                                            <Setter Property="Text" Value="{Binding Translation.IslandManagementPremiumInactive, FallbackValue=Inactive}"/>
-                                                            <Setter Property="FontSize" Value="12"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IslandBindings.SelectedIsland.HasPremium, FallbackValue=True}" Value="True">
-                                                                    <Setter Property="Text" Value="{Binding Translation.IslandManagementPremiumActive, FallbackValue=Active}"/>
-                                                                    <Setter Property="Foreground" Value="{StaticResource SolidColorBrush.Accent.Yellow.1}"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource Island.Stat.Tile}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Translation.IslandManagementLaborersSent, FallbackValue='Laborers Sent'}" Style="{StaticResource Island.Stat.Label}"/>
-                                            <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalLaborersSent, FallbackValue='128'}"
-                                                       Style="{StaticResource Island.Stat.Value.Positive}"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource Island.Stat.Tile}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Translation.IslandManagementLootCollected, FallbackValue='Loot Collected'}" Style="{StaticResource Island.Stat.Label}"/>
-                                            <TextBlock Text="{Binding IslandBindings.SelectedIsland.TotalLootCollected, FallbackValue='47'}"
-                                                       Style="{StaticResource Island.Stat.Value.Positive}"/>
-                                        </StackPanel>
-                                    </Border>
                                 </WrapPanel>
+
+                                <!-- Island summary: plot + laborer breakdown for this island only -->
+                                <Border Background="{StaticResource SolidColorBrush.Background.2}"
+                                        BorderBrush="{StaticResource SolidColorBrush.Background.4}"
+                                        BorderThickness="1" CornerRadius="1"
+                                        Padding="10,8" Margin="0,0,0,10"
+                                        DataContext="{Binding IslandBindings.SelectedIslandSummary}">
+                                    <Border.Style>
+                                        <Style TargetType="{x:Type Border}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PlotBreakdown.Count, FallbackValue=0}" Value="0">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <TextBlock Text="{Binding DataContext.Translation.IslandManagementSummary, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=Summary}"
+                                                       FontSize="10" FontWeight="Bold"
+                                                       Foreground="{StaticResource SolidColorBrush.Text.3}" VerticalAlignment="Center"/>
+                                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="{x:Type StackPanel}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding TotalLaborers, FallbackValue=0}" Value="0">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="{Binding TotalLaborers}" FontSize="12" FontWeight="Bold"
+                                                           Foreground="{StaticResource SolidColorBrush.Accent.Green.3}" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding DataContext.Translation.IslandManagementLaborers, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=' Laborers'}"
+                                                           FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <ItemsControl ItemsSource="{Binding PlotBreakdown}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type bindingModel:PlotTypeSummaryRow}">
+                                                    <StackPanel Margin="0,0,0,6">
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                                            <TextBlock Text="{Binding DisplayName}" FontSize="10" FontWeight="SemiBold"
+                                                                       Foreground="{StaticResource SolidColorBrush.Text.3}"/>
+                                                            <TextBlock Text=" ×" FontSize="10" Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                            <TextBlock Text="{Binding TotalCount}" FontSize="10" FontWeight="Bold"
+                                                                       Foreground="{StaticResource SolidColorBrush.Text.2}"/>
+                                                        </StackPanel>
+                                                        <ItemsControl ItemsSource="{Binding Details}" Margin="8,0,0,0">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate DataType="{x:Type bindingModel:LaborerTypeCount}">
+                                                                    <Border Background="{StaticResource SolidColorBrush.Background.4}"
+                                                                            CornerRadius="3" Padding="5,2" Margin="0,1,4,1">
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <TextBlock Text="{Binding Display}" FontSize="10"
+                                                                                       Foreground="{StaticResource SolidColorBrush.Text.2}"/>
+                                                                            <TextBlock Text=" ×" FontSize="10"
+                                                                                       Foreground="{StaticResource SolidColorBrush.Text.4}"/>
+                                                                            <TextBlock Text="{Binding Count}" FontSize="10" FontWeight="SemiBold"
+                                                                                       Foreground="{StaticResource SolidColorBrush.Text.1}"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
 
                                 <!-- Collection status -->
                                 <Border Background="{StaticResource SolidColorBrush.Background.2}"

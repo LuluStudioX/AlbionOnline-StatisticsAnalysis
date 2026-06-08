@@ -82,10 +82,17 @@ public partial class AddEditPlotWindow : Window
 
     private void PopulateLaborerCombos()
     {
+        // Professions come from the game's laborer-contract data (localized, never hardcoded). Fall back
+        // to the static list only if item data has not loaded yet.
+        var professions = IslandLaborerProfessions.AllProfessions();
+        var options = professions.Count > 0
+            ? new[] { LaborerConfigHelper.NoneValue }.Concat(professions)
+            : LaborerTypes;
+
         foreach (var combo in new[] { Laborer1ComboBox, Laborer2ComboBox, Laborer3ComboBox })
         {
             combo.Items.Clear();
-            foreach (var t in LaborerTypes)
+            foreach (var t in options)
                 combo.Items.Add(t);
             combo.SelectedIndex = 0;
         }
@@ -101,7 +108,7 @@ public partial class AddEditPlotWindow : Window
             if (dict.TryGetValue(key, out var raw) && !string.IsNullOrWhiteSpace(raw)
                 && !raw.Equals(LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
             {
-                var display = LaborerConfigHelper.ToDisplayLaborerType(raw);
+                var display = IslandLaborerProfessions.GetProfession(raw);
                 var match = combos[slot - 1].Items.Cast<string>()
                     .FirstOrDefault(i => i.Equals(display, StringComparison.OrdinalIgnoreCase));
                 if (match != null)
@@ -176,7 +183,7 @@ public partial class AddEditPlotWindow : Window
         {
             var selected = combos[slot - 1].SelectedItem as string ?? "None";
             if (!selected.Equals("None", StringComparison.OrdinalIgnoreCase))
-                dict[LaborerConfigHelper.LaborerKey(slot)] = LaborerConfigHelper.NormalizeLaborerType(selected);
+                dict[LaborerConfigHelper.LaborerKey(slot)] = IslandLaborerProfessions.GetToken(selected);
         }
         return dict.Count > 0 ? LaborerConfigHelper.BuildConfiguration(dict) : string.Empty;
     }

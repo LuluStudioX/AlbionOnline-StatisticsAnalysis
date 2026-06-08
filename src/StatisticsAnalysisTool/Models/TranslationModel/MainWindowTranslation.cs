@@ -184,6 +184,7 @@ public class MainWindowTranslation
     public static string IslandManagementSelectAnIsland => LocalizationController.Translation("ISLAND_MANAGEMENT_SELECT_AN_ISLAND");
     public static string IslandManagementSelectAnIslandHint => LocalizationController.Translation("ISLAND_MANAGEMENT_SELECT_AN_ISLAND_HINT");
     public static string IslandManagementOverview => LocalizationController.Translation("ISLAND_MANAGEMENT_OVERVIEW");
+    public static string IslandManagementSummary => LocalizationController.Translation("ISLAND_MANAGEMENT_SUMMARY");
     public static string IslandManagementPlots => LocalizationController.Translation("ISLAND_MANAGEMENT_PLOTS");
     public static string IslandManagementLiveStatus => LocalizationController.Translation("ISLAND_MANAGEMENT_LIVE_STATUS");
     public static string IslandManagementLiveStatusHint => LocalizationController.Translation("ISLAND_MANAGEMENT_LIVE_STATUS_HINT");
