@@ -1730,10 +1730,23 @@ public class IslandEntry : BaseViewModel
     // tick, which flashed the whole Collected/Consumed panel blank before repopulating.
     public void UpdateYieldItems(IReadOnlyList<IslandYieldEntry> source)
     {
+        // Collapse to one row per item: the same crop can be booked under more than one SourcePlot
+        // (harvest plot-type attribution varies per packet), which would otherwise show as duplicate tiles.
+        var merged = source
+            .GroupBy(e => e.ItemIndex)
+            .Select(g => new IslandYieldEntry
+            {
+                ItemIndex = g.Key,
+                Quantity = g.Sum(e => e.Quantity),
+                SourcePlot = g.First().SourcePlot,
+                CollectedAt = g.Min(e => e.CollectedAt)
+            })
+            .ToList();
+
         var changed = false;
-        foreach (var src in source)
+        foreach (var src in merged)
         {
-            var existing = _yieldItems.FirstOrDefault(e => e.ItemIndex == src.ItemIndex && e.SourcePlot == src.SourcePlot);
+            var existing = _yieldItems.FirstOrDefault(e => e.ItemIndex == src.ItemIndex);
             if (existing == null)
             {
                 _yieldItems.Add(new IslandYieldEntry { ItemIndex = src.ItemIndex, Quantity = src.Quantity, SourcePlot = src.SourcePlot, CollectedAt = src.CollectedAt });
@@ -1746,7 +1759,7 @@ public class IslandEntry : BaseViewModel
             }
         }
         for (var i = _yieldItems.Count - 1; i >= 0; i--)
-            if (source.All(s => s.ItemIndex != _yieldItems[i].ItemIndex || s.SourcePlot != _yieldItems[i].SourcePlot))
+            if (merged.All(s => s.ItemIndex != _yieldItems[i].ItemIndex))
             {
                 _yieldItems.RemoveAt(i);
                 changed = true;
@@ -1764,10 +1777,23 @@ public class IslandEntry : BaseViewModel
 
     public void UpdateConsumedItems(IReadOnlyList<IslandConsumedEntry> source)
     {
+        // Collapse to one row per item (see UpdateYieldItems): the same item can be booked under more than
+        // one SourcePlot across consume paths, which would otherwise show as duplicate tiles.
+        var merged = source
+            .GroupBy(e => e.ItemIndex)
+            .Select(g => new IslandConsumedEntry
+            {
+                ItemIndex = g.Key,
+                Quantity = g.Sum(e => e.Quantity),
+                SourcePlot = g.First().SourcePlot,
+                ConsumedAt = g.Min(e => e.ConsumedAt)
+            })
+            .ToList();
+
         var changed = false;
-        foreach (var src in source)
+        foreach (var src in merged)
         {
-            var existing = _consumedItems.FirstOrDefault(e => e.ItemIndex == src.ItemIndex && e.SourcePlot == src.SourcePlot);
+            var existing = _consumedItems.FirstOrDefault(e => e.ItemIndex == src.ItemIndex);
             if (existing == null)
             {
                 _consumedItems.Add(new IslandConsumedEntry { ItemIndex = src.ItemIndex, Quantity = src.Quantity, SourcePlot = src.SourcePlot, ConsumedAt = src.ConsumedAt });
@@ -1780,7 +1806,7 @@ public class IslandEntry : BaseViewModel
             }
         }
         for (var i = _consumedItems.Count - 1; i >= 0; i--)
-            if (source.All(s => s.ItemIndex != _consumedItems[i].ItemIndex || s.SourcePlot != _consumedItems[i].SourcePlot))
+            if (merged.All(s => s.ItemIndex != _consumedItems[i].ItemIndex))
             {
                 _consumedItems.RemoveAt(i);
                 changed = true;

@@ -146,8 +146,29 @@ public static class IslandMapping
                     return (slotDef is { IsLarge: false }) ? slotDef.SlotIndex + 10000 : p.MapSlotIndex.Value;
                 }).Select(p => ToPlotEntry(p, layout)) ?? []
             ),
-            YieldItems = new ObservableCollection<IslandYieldEntry>(isl.YieldHistory),
-            ConsumedItems = new ObservableCollection<IslandConsumedEntry>(isl.ConsumedHistory)
+            // Collapse to one row per item. The same crop can be booked under more than one SourcePlot
+            // (harvest plot-type attribution varies per packet), which would otherwise render as duplicate
+            // tiles in the Collected/Consumed panels. Totals are unaffected — the per-plot split is summed.
+            YieldItems = new ObservableCollection<IslandYieldEntry>(
+                isl.YieldHistory
+                    .GroupBy(e => e.ItemIndex)
+                    .Select(g => new IslandYieldEntry
+                    {
+                        ItemIndex = g.Key,
+                        Quantity = g.Sum(e => e.Quantity),
+                        SourcePlot = g.First().SourcePlot,
+                        CollectedAt = g.Min(e => e.CollectedAt)
+                    })),
+            ConsumedItems = new ObservableCollection<IslandConsumedEntry>(
+                isl.ConsumedHistory
+                    .GroupBy(e => e.ItemIndex)
+                    .Select(g => new IslandConsumedEntry
+                    {
+                        ItemIndex = g.Key,
+                        Quantity = g.Sum(e => e.Quantity),
+                        SourcePlot = g.First().SourcePlot,
+                        ConsumedAt = g.Min(e => e.ConsumedAt)
+                    }))
         };
         entry.RebuildSlotGrid(layout, isl.Plots ?? []);
         return entry;

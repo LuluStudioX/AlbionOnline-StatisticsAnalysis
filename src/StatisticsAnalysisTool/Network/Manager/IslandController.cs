@@ -918,6 +918,17 @@ public partial class IslandController
                 effectivePlotType = info.PlotType;
                 break;
             }
+
+            // Output-only responses carry no *_SEED entry, so the strict resolver above returns nothing and
+            // the crop falls back to the route default — booking the SAME crop under two SourcePlots across
+            // different harvests (the split). Classify the product name itself (token match, language-neutral
+            // on the unique name) so a crop always resolves to one deterministic plot type.
+            var (byName, _) = FarmablePlotData.ClassifyFarmableByDisplayName(uniqueName);
+            if (byName != null)
+            {
+                effectivePlotType = byName.Value;
+                break;
+            }
         }
 
         foreach (var (uniqueName, quantity) in response.Items)
