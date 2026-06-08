@@ -311,13 +311,13 @@ public partial class IslandMapView : UserControl
             // Spanning large plot: show plot labels at midpoint, suppress S1/S2 slot name.
             if (!isSpanningLarge)
             {
-                var nameLabel = BuildSlotNameLabel(slot, userLabel, diameter);
+                var nameLabel = BuildSlotNameLabel(slot, userLabel, diameter, renderX, renderY);
                 SlotCanvas.Children.Add(nameLabel);
             }
 
             if (assignedPlot != null)
             {
-                var plotLabel = BuildPlotTypeLabel(slot, assignedPlot, diameter);
+                var plotLabel = BuildPlotTypeLabel(assignedPlot, diameter, renderX, renderY);
                 if (isSpanningLarge)
                 {
                     Canvas.SetLeft(plotLabel, renderX - 30);
@@ -374,7 +374,7 @@ public partial class IslandMapView : UserControl
         return null;
     }
 
-    private UIElement BuildSlotNameLabel(IslandSlotDefinition slot, string userLabel, double diameter)
+    private UIElement BuildSlotNameLabel(IslandSlotDefinition slot, string userLabel, double diameter, double centerX, double centerY)
     {
         var tb = new TextBlock
         {
@@ -397,8 +397,8 @@ public partial class IslandMapView : UserControl
             }
         };
 
-        Canvas.SetLeft(tb, slot.X - 30);
-        Canvas.SetTop(tb, slot.Y + diameter / 2 + 2);
+        Canvas.SetLeft(tb, centerX - 30);
+        Canvas.SetTop(tb, centerY + diameter / 2 + 2);
         return tb;
     }
 
@@ -462,7 +462,7 @@ public partial class IslandMapView : UserControl
             RebuildSlots(vm);
     }
 
-    private static TextBlock BuildPlotTypeLabel(IslandSlotDefinition slot, Island.IslandPlot plot, double diameter)
+    private static TextBlock BuildPlotTypeLabel(Island.IslandPlot plot, double diameter, double centerX, double centerY)
     {
         return new TextBlock
         {
@@ -474,8 +474,8 @@ public partial class IslandMapView : UserControl
             IsHitTestVisible = false
         }.Also(tb =>
         {
-            Canvas.SetLeft(tb, slot.X - 30);
-            Canvas.SetTop(tb, slot.Y + diameter / 2 + 11);
+            Canvas.SetLeft(tb, centerX - 30);
+            Canvas.SetTop(tb, centerY + diameter / 2 + 11);
         });
     }
 
