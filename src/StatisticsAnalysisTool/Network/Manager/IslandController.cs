@@ -761,6 +761,32 @@ public partial class IslandController
             island.Name, plot.DisplayLabel, plotObjectId);
     }
 
+    // A pasture/breeding cycle is started by FEEDING the animal (op 77), not by planting — the grown animal
+    // persists across cycles, so there is no per-cycle seed-plant (code 45) to seed the timer the way a farm
+    // crop does. Feeding is that per-cycle trigger: stamp the fed plot tile's PlotPlantedAt = now so the same
+    // GetBaseCollectionHours countdown + status dots used by farms drive the pasture. Routed from the op-77
+    // request, which carries the fed plot's ObjectId (same id space as the collect requests / NewBuilding 45).
+    public void HandlePastureFeed(long plotObjectId)
+    {
+        if (plotObjectId < 0) return;
+        var island = FindCurrentIsland();
+        if (island == null) return;
+
+        var plot = ResolveFarmablePlotByObjectId(island, plotObjectId);
+        if (plot == null)
+        {
+            Log.Debug("[IslandController] Feed for unresolved pasture objId={ObjectId} — no cycle timer started", plotObjectId);
+            return;
+        }
+
+        if (!UpdatePlotTile(plot, plotObjectId, DateTime.UtcNow)) return;
+        island.UpdateModificationDate();
+        _ = SaveToFileAsync();
+        RefreshIslandStatusAsync(island);
+        Log.Information("[IslandController] Started pasture cycle on feed: island={Island}, plot={Plot}, objId={ObjectId}",
+            island.Name, plot.DisplayLabel, plotObjectId);
+    }
+
     // Removes the consumed-seed booking for the tile at a farmable object's world position (any crop), so a
     // replant on the same tile within this app run re-counts its seed. No-op when the position is unknown.
     private void EvictConsumedTileBooking(Island.Island island, long objectId)

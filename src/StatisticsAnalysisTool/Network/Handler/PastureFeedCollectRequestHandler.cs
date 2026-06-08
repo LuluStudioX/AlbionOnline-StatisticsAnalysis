@@ -9,7 +9,7 @@ public class PastureFeedCollectRequestHandler(TrackingController trackingControl
 {
     protected override Task OnActionAsync(FarmableCollectRequest value)
     {
-        trackingController.IslandController?.HandleFarmableCollect(value.PlotObjectId);
+        trackingController.IslandController?.HandlePastureFeed(value.PlotObjectId);
         return Task.CompletedTask;
     }
 }
