@@ -149,13 +149,14 @@ public partial class IslandController
     private string _sessionWorldMapDataType;
     private string _sessionSourceClusterIndex;
     private readonly object _consumedTilesLock = new();
-    // Tiles ("islandId|uniqueName|x|y") already booked as a consumed seed. Keyed by stable position, not
-    // object id: re-entering an island re-broadcasts every existing plant with a NEW object id, so an
-    // object-id dedup that reset on entry re-counted every plant on every visit. Position is stable across
-    // re-entries, and this set is deliberately NOT cleared on island change/entry so an already-handled
-    // island never re-books its existing plantings as freshly consumed. A collect evicts the tile's booking
-    // (EvictConsumedTileBooking) so a same-run replant on that position re-counts its new seed.
-    private readonly HashSet<string> _consumedPlantedTiles = [];
+    // Tile positions ("islandId|x|y") COLLECTED this app run and awaiting a replant. A seed is only "consumed"
+    // when you replant a tile you just harvested, so a plant (code 45) is booked as consumed ONLY when its
+    // position is in this set. A first-ever sighting is never here, so the zone-in burst that re-broadcasts
+    // every pre-existing plant — each carrying param-8 = server-now, indistinguishable from a real plant by
+    // timestamp alone — is correctly ignored. HandleFarmableCollect adds the position on collect; the matching
+    // replant removes it. Position is stable across the per-visit object-id churn; the set is island-scoped
+    // (keyed by island id) and deliberately persists for the app run.
+    private readonly HashSet<string> _collectedTilesAwaitingReplant = [];
     // Last seen quantity per laborer-loot inventory object (NewLaborerItem, code 32). Yield is the
     // positive growth between broadcasts; the first sighting is the baseline. Reset on island change.
     private readonly ConcurrentDictionary<long, int> _lastItemQty = new();
@@ -199,7 +200,7 @@ public partial class IslandController
         _sessionWorldMapDataType = null;
         _sessionSourceClusterIndex = null;
         _sessionHasPremium = false;
-        // Yield baselines reset per island session; the consumed-plant tile set deliberately persists so a
+        // Yield baselines reset per island session; the awaiting-replant tile set deliberately persists so a
         // re-joined, already-handled island does not re-book its existing plantings as freshly consumed.
         _lastItemQty.Clear();
         _lastJournalQty.Clear();
@@ -226,7 +227,7 @@ public partial class IslandController
         _sessionSourceClusterIndex = cluster.SourceClusterIndex;
         _sessionOwner = SettingsController.CurrentSettings.MainTrackingCharacterName
             ?? _trackingController?.EntityController?.LocalUserData?.Username;
-        // Only yield baselines reset on entry; _consumedPlantedTiles persists so re-joining an
+        // Only yield baselines reset on entry; _collectedTilesAwaitingReplant persists so re-joining an
         // already-handled island does not re-count its existing plantings as consumed.
         _lastItemQty.Clear();
         _lastJournalQty.Clear();
@@ -373,19 +374,6 @@ public partial class IslandController
         var isJustPlanted = e.PlantedAt.HasValue
             && (DateTime.UtcNow - e.PlantedAt.Value).TotalSeconds <= 30;
 
-        // Dedup by stable tile (island + plant + world position), NOT object id: each island re-entry
-        // re-broadcasts existing plants with fresh object ids, so an object-id key re-counted every plant
-        // on every visit. Position is constant across re-entries and the set persists for the app run, so
-        // an already-handled island never re-books its plants. (Computed unconditionally so the tile is
-        // marked known even for zone-in re-broadcasts of pre-existing plants.)
-        var isNewPlanting = false;
-        if (e.Position.HasValue)
-        {
-            var tileKey = string.Create(System.Globalization.CultureInfo.InvariantCulture,
-                $"{island.Id}|{e.UniqueName}|{e.Position.Value.X:0.##}|{e.Position.Value.Y:0.##}");
-            lock (_consumedTilesLock) isNewPlanting = _consumedPlantedTiles.Add(tileKey);
-        }
-
         if (!isJustPlanted) return;
 
         // Stamp this plot's timer at the observed plant time. Freshly-planted plots only ever send the
@@ -401,7 +389,17 @@ public partial class IslandController
             RefreshIslandStatusAsync(island);
         }
 
-        if (!isNewPlanting) return;
+        // Seed consumption is the replant of a tile harvested earlier this session. The just-planted check
+        // above passes on EVERY zone-in re-broadcast (param-8 = server-now there too), so it cannot tell a
+        // real replant from a pre-existing plant streaming in on entry — both look "just planted". Gate on a
+        // prior collect of this exact tile instead: only a position freed by HandleFarmableCollect counts when
+        // it is replanted, so the zone-in burst of pre-existing plants is never booked as consumed.
+        if (!e.Position.HasValue) return;
+        var replantKey = string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"{island.Id}|{e.Position.Value.X:0.##}|{e.Position.Value.Y:0.##}");
+        bool isReplantAfterCollect;
+        lock (_consumedTilesLock) isReplantAfterCollect = _collectedTilesAwaitingReplant.Remove(replantKey);
+        if (!isReplantAfterCollect) return;
 
         var item = ItemController.GetItemByUniqueName(e.UniqueName);
         if (item == null || item.Index <= 0) return;
@@ -414,7 +412,7 @@ public partial class IslandController
         island.UpdateModificationDate();
         _ = SaveToFileAsync();
         _yieldTracker.PushUpdate(island);
-        Log.Information("[IslandController] Recorded planted item as consumed: island={Island}, item={Item}, plotType={PlotType}",
+        Log.Information("[IslandController] Recorded replanted seed as consumed: island={Island}, item={Item}, plotType={PlotType}",
             island.Name, e.UniqueName, plotType);
     }
 
@@ -765,10 +763,10 @@ public partial class IslandController
             return;
         }
 
-        // Collecting frees the tile for a replant, so drop its consumed-seed booking: a same-run replant on
-        // this position then re-counts its new seed as consumed. (The booking is otherwise kept for the whole
-        // app run so re-entering an already-handled island never re-counts its existing plants.)
-        EvictConsumedTileBooking(island, plotObjectId);
+        // Collecting frees the tile for a replant, so mark its position as awaiting one: the next plant
+        // (code 45) on this position is then a real replant and counts its seed as consumed. Zone-in
+        // re-broadcasts of pre-existing plants never pass through here, so they stay uncounted.
+        MarkTileAwaitingReplant(island, plotObjectId);
 
         if (!UpdatePlotTile(plot, plotObjectId, null)) return;
         island.UpdateModificationDate();
@@ -804,23 +802,17 @@ public partial class IslandController
             island.Name, plot.DisplayLabel, plotObjectId);
     }
 
-    // Removes the consumed-seed booking for the tile at a farmable object's world position (any crop), so a
-    // replant on the same tile within this app run re-counts its seed. No-op when the position is unknown.
-    private void EvictConsumedTileBooking(Island.Island island, long objectId)
+    // Marks the tile at a farmable object's world position as awaiting a replant, so the next plant (code 45)
+    // on that position counts its seed as consumed. Keyed by stable position (the object id churns per visit).
+    // No-op when the position is unknown.
+    private void MarkTileAwaitingReplant(Island.Island island, long objectId)
     {
         if (island == null) return;
         if (!_farmablePositions.TryGetValue(objectId, out var pos)) return;
 
-        var prefix = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{island.Id}|");
-        var suffix = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"|{pos.X:0.##}|{pos.Y:0.##}");
-        lock (_consumedTilesLock)
-        {
-            var stale = _consumedPlantedTiles
-                .Where(k => k.StartsWith(prefix, StringComparison.Ordinal) && k.EndsWith(suffix, StringComparison.Ordinal))
-                .ToList();
-            foreach (var k in stale)
-                _consumedPlantedTiles.Remove(k);
-        }
+        var key = string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"{island.Id}|{pos.X:0.##}|{pos.Y:0.##}");
+        lock (_consumedTilesLock) _collectedTilesAwaitingReplant.Add(key);
     }
 
     // Record/clear one tile's planted time for its plot and refresh the plot's per-slot dots + aggregate timer.
