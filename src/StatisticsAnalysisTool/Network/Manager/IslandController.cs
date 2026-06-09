@@ -168,6 +168,15 @@ public partial class IslandController
     // 999 cap sentinel) fire outside any collect and would otherwise inflate yield (~73% of raw deltas).
     private long _lastLaborerCollectTicks;
     private static readonly TimeSpan LaborerCollectYieldWindow = TimeSpan.FromSeconds(5);
+    // Real collect growth lands in a tight band AROUND the 257 request — verified against captures, ~75%
+    // of it arrives up to ~1s BEFORE the 257 is logged, not after. A forward-only window dropped that
+    // growth (~30% under-count). So growth seen outside the forward window is buffered briefly and
+    // committed retroactively when a 257 arrives within this look-back; growth with no nearby collect
+    // (storage repaints / zone-in streaming) ages out of the buffer uncounted.
+    private static readonly TimeSpan LaborerCollectLookback = TimeSpan.FromSeconds(3);
+    private readonly record struct PendingYield(long Ticks, int ItemIndex, int Quantity);
+    private readonly object _pendingYieldLock = new();
+    private readonly List<PendingYield> _pendingYield = [];
     // Farmable plant ObjectId -> world position (from NewBuilding 45). Lets a collect request (op 73/74/76/77)
     // and FarmableObjectInfo (201) resolve the specific plot card via the layout's nearest slot, so timers are
     // set/cleared per plot instead of across every plot of the type (which caused the collect clear-storm).
@@ -195,6 +204,7 @@ public partial class IslandController
         _lastItemQty.Clear();
         _lastJournalQty.Clear();
         System.Threading.Volatile.Write(ref _lastLaborerCollectTicks, 0);
+        lock (_pendingYieldLock) _pendingYield.Clear();
         _farmablePositions.Clear();
         _plotTilePlanted.Clear();
         _collectionReadyWebhookSentThisSession = false;
@@ -1140,8 +1150,58 @@ public partial class IslandController
     // that follows over the next few seconds is real collected loot. Called from LaborerCollectRequestHandler.
     public void NotifyLaborerCollect(long laborerObjectId)
     {
-        System.Threading.Volatile.Write(ref _lastLaborerCollectTicks, DateTime.UtcNow.Ticks);
+        var nowTicks = DateTime.UtcNow.Ticks;
+        System.Threading.Volatile.Write(ref _lastLaborerCollectTicks, nowTicks);
+        FlushPendingYield(nowTicks);
         Log.Debug("[IslandController] Laborer collect request: objectId={ObjectId} — yield window opened", laborerObjectId);
+    }
+
+    // Growth seen outside the forward window is held here until a 257 confirms it (look-back). Trims stale
+    // entries on each add so an idle period (no collect) can't let the buffer grow unbounded.
+    private void BufferPendingYield(int itemIndex, int quantity)
+    {
+        if (quantity <= 0) return;
+        var nowTicks = DateTime.UtcNow.Ticks;
+        var cutoff = nowTicks - LaborerCollectLookback.Ticks;
+        lock (_pendingYieldLock)
+        {
+            _pendingYield.RemoveAll(p => p.Ticks < cutoff);
+            _pendingYield.Add(new PendingYield(nowTicks, itemIndex, quantity));
+        }
+    }
+
+    // A 257 just fired — commit buffered growth from the look-back window (real loot that streamed in just
+    // before the request) and drop the rest (uncorrelated repaints/streaming).
+    private void FlushPendingYield(long collectTicks)
+    {
+        var cutoff = collectTicks - LaborerCollectLookback.Ticks;
+        List<PendingYield> toCommit;
+        lock (_pendingYieldLock)
+        {
+            toCommit = _pendingYield.FindAll(p => p.Ticks >= cutoff);
+            _pendingYield.Clear();
+        }
+
+        foreach (var pending in toCommit)
+            RecordCollectedYield(pending.ItemIndex, pending.Quantity);
+    }
+
+    // Book collected laborer yield (resource or empty journal) against the current island.
+    private void RecordCollectedYield(int itemIndex, int quantity)
+    {
+        if (quantity <= 0) return;
+        var island = FindCurrentIsland();
+        if (island == null) return;
+
+        island.AddYield(itemIndex, quantity, PlotType.House);
+        island.TotalLootCollected += quantity;
+        island.UpdateModificationDate();
+        // Collecting fires this many times per second as each stack grows. Debounce the file save and
+        // UI push so we don't flood the disk and dispatcher (which was starving the yield/card refresh).
+        _yieldTracker.Schedule(island);
+
+        Log.Information("[IslandController] Recorded collected laborer yield: island={Island}, itemId={ItemId}, qty={Qty}",
+            island.Name, itemIndex, quantity);
     }
 
     // True while within LaborerCollectYieldWindow of the last collect request. Storage stacks (code 32/35)
@@ -1172,22 +1232,14 @@ public partial class IslandController
         var delta = item.Quantity - prevQty;
         if (delta <= 0) return; // no growth (or a stack rollover) — nothing collected
 
-        // Only count growth that follows a real collect request. Outside the window the broadcast is a
-        // storage repaint/stream/object-id reuse, not a collection (kept the baseline up to date above).
-        if (!InLaborerCollectWindow()) return;
-
-        var island = FindCurrentIsland();
-        if (island == null) return;
-
-        island.AddYield(item.ItemIndex, delta, PlotType.House);
-        island.TotalLootCollected += delta;
-        island.UpdateModificationDate();
-        // Collecting fires this many times per second as each stack grows. Debounce the file save and
-        // UI push so we don't flood the disk and dispatcher (which was starving the yield/card refresh).
-        _yieldTracker.Schedule(island);
-
-        Log.Information("[IslandController] Recorded collected laborer yield: island={Island}, itemId={ItemId}, qty={Qty}, objectId={ObjectId}",
-            island.Name, item.ItemIndex, delta, item.ObjectId);
+        // Count growth correlated with a real collect request. Inside the forward window book it now;
+        // otherwise hold it in the look-back buffer — a 257 arriving within LaborerCollectLookback will
+        // commit it (most collect growth lands just BEFORE the request). Uncorrelated growth (storage
+        // repaint / zone-in stream / object-id reuse) ages out of the buffer uncounted.
+        if (InLaborerCollectWindow())
+            RecordCollectedYield(item.ItemIndex, delta);
+        else
+            BufferPendingYield(item.ItemIndex, delta);
     }
 
     // NewJournalItem (code 35) broadcasts a laborer-journal stack's CURRENT quantity. EMPTY journals
@@ -1217,28 +1269,27 @@ public partial class IslandController
             var gained = item.Quantity - prevQty;
             if (gained <= 0) return;
 
-            // Empty journals only rise when laborers hand them back on collect — gate to the collect window
-            // so zone-in streaming / storage repaints don't book phantom collected journals.
-            if (!InLaborerCollectWindow()) return;
+            // Empty journals rise when laborers hand them back on collect. Same bidirectional correlation
+            // as resources: book inside the forward window, otherwise hold for a 257 look-back commit so
+            // growth arriving just before the request isn't dropped.
+            if (InLaborerCollectWindow())
+                RecordCollectedYield(item.ItemIndex, gained);
+            else
+                BufferPendingYield(item.ItemIndex, gained);
 
-            island.AddYield(item.ItemIndex, gained, PlotType.House);
-            island.TotalLootCollected += gained;
-            Log.Information("[IslandController] Recorded collected journal: island={Island}, itemId={ItemId}, qty={Qty}, objectId={ObjectId}",
-                island.Name, item.ItemIndex, gained, item.ObjectId);
-        }
-        else // full journal — consumed as it is spent
-        {
-            if (!hadPrev) return; // need a baseline before a drop can be measured
-            var spent = prevQty - item.Quantity;
-            if (spent <= 0) return;
-
-            island.AddConsumed(item.ItemIndex, spent, PlotType.House);
-            Log.Information("[IslandController] Recorded consumed journal: island={Island}, itemId={ItemId}, qty={Qty}, objectId={ObjectId}",
-                island.Name, item.ItemIndex, spent, item.ObjectId);
+            return;
         }
 
+        // full journal — consumed as it is spent
+        if (!hadPrev) return; // need a baseline before a drop can be measured
+        var spent = prevQty - item.Quantity;
+        if (spent <= 0) return;
+
+        island.AddConsumed(item.ItemIndex, spent, PlotType.House);
         island.UpdateModificationDate();
         _yieldTracker.Schedule(island);
+        Log.Information("[IslandController] Recorded consumed journal: island={Island}, itemId={ItemId}, qty={Qty}, objectId={ObjectId}",
+            island.Name, item.ItemIndex, spent, item.ObjectId);
     }
 
     private void TryAutoApplyFarmableConfig(Island.Island island, string farmableUniqueName)
