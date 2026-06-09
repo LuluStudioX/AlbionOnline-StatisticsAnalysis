@@ -48,7 +48,7 @@ public class FarmableObjectInfoEvent
         }
 
         if (elapsed100us is null or <= 0 || serverTicks is null or <= 0)
-            return null;
+            return TryResolvePlantedAtFromArrayForm(parameters);
 
         try
         {
@@ -66,6 +66,49 @@ public class FarmableObjectInfoEvent
         }
 
         return null;
+    }
+
+    // A plot planted in a PRIOR session re-broadcasts on zone-in without the scalar elapsed/now params —
+    // it carries per-tile arrays instead: param 11 = cycle-start ticks, param 10 = cycle duration (100µs).
+    // (Decoded from martlock.json: growing herb/farm/pasture tiles show param 10 = 792000000 = 22h, ready
+    // ~17h out; ready/idle tiles send duration 0.) Seed PlantedAt = cycle start, but only for a tile whose
+    // cycle is still running (ready/idle tiles resolve to a past ready time and stay untimed).
+    private static DateTime? TryResolvePlantedAtFromArrayForm(IReadOnlyDictionary<byte, object> parameters)
+    {
+        if (!TryGetFirstLong(parameters, 11, out var startTicks) || startTicks <= 0)
+            return null;
+        if (!TryGetFirstLong(parameters, 10, out var duration100us) || duration100us < 0)
+            return null;
+
+        try
+        {
+            var plantedAt = new DateTime(startTicks, DateTimeKind.Utc);
+            var readyAt = plantedAt.AddMilliseconds(duration100us / 10.0);
+            var now = DateTime.UtcNow;
+
+            if (readyAt > now && plantedAt < now && plantedAt > now.AddHours(-72))
+                return plantedAt;
+        }
+        catch
+        {
+            // invalid tick value
+        }
+
+        return null;
+    }
+
+    private static bool TryGetFirstLong(IReadOnlyDictionary<byte, object> parameters, byte key, out long value)
+    {
+        value = 0;
+        if (!parameters.TryGetValue(key, out var raw) || raw is not Array arr || arr.Length == 0)
+            return false;
+
+        var first = arr.GetValue(0).ObjectToLong();
+        if (first is null)
+            return false;
+
+        value = first.Value;
+        return true;
     }
 
     public DateTime? TryResolveActivityTimestampUtc()
