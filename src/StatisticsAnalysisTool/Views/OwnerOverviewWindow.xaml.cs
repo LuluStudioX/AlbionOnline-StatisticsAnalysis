@@ -156,7 +156,7 @@ public partial class OwnerOverviewWindow : Window
 
         var sent = await controller.SendWebhookManualAsync(ownerName);
         if (!sent)
-            MessageBox.Show("Webhook not configured or message empty.", "Send Webhook", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Webhook send failed. Check that the URL is configured and reachable (see log for details).", "Send Webhook", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     private void BtnCopyMessage_Click(object sender, RoutedEventArgs e)

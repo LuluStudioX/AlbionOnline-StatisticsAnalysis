@@ -179,9 +179,9 @@ public class IslandPlot : BaseViewModel
         {
             var n = ConfiguredLaborerCount;
             if (n == 0) return false;
-            if (n >= 1 && _laborer1Status != LaborerLiveStatus.Sent) return false;
-            if (n >= 2 && _laborer2Status != LaborerLiveStatus.Sent) return false;
-            if (n >= 3 && _laborer3Status != LaborerLiveStatus.Sent) return false;
+            if (n >= 1 && _laborer1Status != LaborerLiveStatus.OnJob) return false;
+            if (n >= 2 && _laborer2Status != LaborerLiveStatus.OnJob) return false;
+            if (n >= 3 && _laborer3Status != LaborerLiveStatus.OnJob) return false;
             return true;
         }
     }
@@ -211,7 +211,7 @@ public class IslandPlot : BaseViewModel
                 if (n == 0) return "none";
                 var statuses = new[] { _laborer1Status, _laborer2Status, _laborer3Status }.Take(n);
                 if (statuses.Any(s => s == LaborerLiveStatus.LootReady)) return "loot_ready";
-                if (statuses.All(s => s == LaborerLiveStatus.OnJob || s == LaborerLiveStatus.Sent)) return "on_job";
+                if (statuses.All(s => s == LaborerLiveStatus.OnJob)) return "on_job";
                 return "none";
             }
             if (!_plotType.HasCollectionTimer()) return "none";
@@ -347,7 +347,6 @@ public class IslandPlot : BaseViewModel
 
     private static string ToCode(LaborerLiveStatus s) => s switch
     {
-        LaborerLiveStatus.Sent => "sent",
         LaborerLiveStatus.LootReady => "loot_ready",
         LaborerLiveStatus.OnJob => "on_job",
         LaborerLiveStatus.Home => "home",
@@ -467,7 +466,7 @@ public class IslandPlot : BaseViewModel
             if (remaining > TimeSpan.Zero)
             {
                 timeRemaining = FormatRemaining(remaining);
-                return LaborerLiveStatus.Sent;
+                return LaborerLiveStatus.OnJob;
             }
             return LaborerLiveStatus.LootReady;
         }
@@ -530,7 +529,6 @@ public class IslandPlot : BaseViewModel
             configChanged = true;
 
         if (match.IsLootReady) return LaborerLiveStatus.LootReady;
-        if (match.IsOnJob && match.JustSentAt.HasValue) return LaborerLiveStatus.Sent;
         if (match.IsOnJob) return LaborerLiveStatus.OnJob;
         return LaborerLiveStatus.Home;
     }
@@ -623,6 +621,5 @@ public enum LaborerLiveStatus
     None,
     Home,
     LootReady,
-    OnJob,
-    Sent
+    OnJob
 }

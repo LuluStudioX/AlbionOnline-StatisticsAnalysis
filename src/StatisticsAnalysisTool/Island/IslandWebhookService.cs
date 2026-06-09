@@ -33,7 +33,6 @@ public sealed class IslandWebhookService
     public async Task<bool> SendAsync(string webhookUrl, string message)
     {
         if (string.IsNullOrWhiteSpace(webhookUrl) || string.IsNullOrEmpty(message)) return false;
-        await DiscordWebhookService.SendAsync(webhookUrl, message).ConfigureAwait(false);
-        return true;
+        return await DiscordWebhookService.SendAsync(webhookUrl, message).ConfigureAwait(false);
     }
 }

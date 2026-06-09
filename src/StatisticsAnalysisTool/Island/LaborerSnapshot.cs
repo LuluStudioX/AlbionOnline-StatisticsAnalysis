@@ -57,10 +57,6 @@ public class LaborerSnapshot
     // Used to distinguish "already on job when we arrived" from "just dispatched".
     public bool HasBeenSeenAsHome { get; private set; }
 
-    // Set when the laborer transitions from home → dispatched during the current visit.
-    // Cleared automatically when the laborer returns home.
-    public DateTime? JustSentAt { get; set; }
-
     public Guid? ActiveJobId { get; set; }
     public DateTime? JobDispatchTime { get; set; }
 
@@ -138,11 +134,10 @@ public class LaborerSnapshot
         if (!e.IsOnJob)
         {
             HasBeenSeenAsHome = true;
-            JustSentAt = null;
         }
 
         if (IsOnJob && !IsLootReady && string.IsNullOrEmpty(SentDetailSnapshot) && JobDispatchTime.HasValue)
-            SentDetailSnapshot = FormatSentElapsed(DateTime.UtcNow, JobDispatchTime.Value);
+            SentDetailSnapshot = FormatSentElapsed(DateTime.UtcNow, JobDispatchTime.Value.AddHours(-IslandConstants.LaborerBaseCycleHours));
 
         return IsOnJob != prevOnJob
             || IsLootReady != prevLootReady
@@ -164,7 +159,7 @@ public class LaborerSnapshot
         {
             HasActiveJob = true;
             if (string.IsNullOrEmpty(SentDetailSnapshot) && JobDispatchTime.HasValue)
-                SentDetailSnapshot = FormatSentElapsed(DateTime.UtcNow, JobDispatchTime.Value);
+                SentDetailSnapshot = FormatSentElapsed(DateTime.UtcNow, JobDispatchTime.Value.AddHours(-IslandConstants.LaborerBaseCycleHours));
         }
     }
 

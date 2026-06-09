@@ -361,7 +361,7 @@ public partial class IslandMapView : UserControl
         if (!string.IsNullOrEmpty(plotSentState))
         {
             if (plotSentState == "loot_ready") return new SolidColorBrush(Color.FromRgb(255, 190, 50));
-            if (plotSentState == "on_job" || plotSentState == "sent") return new SolidColorBrush(Color.FromRgb(80, 220, 80));
+            if (plotSentState == "on_job") return new SolidColorBrush(Color.FromRgb(80, 220, 80));
             return null;
         }
         // Fallback for non-house plots without plotSentState (farmables use dots directly)
@@ -369,7 +369,7 @@ public partial class IslandMapView : UserControl
             return null;
         if (dots.Any(d => d == "loot_ready"))
             return new SolidColorBrush(Color.FromRgb(255, 190, 50));
-        if (dots.Any(d => d == "on_job") || dots.Any(d => d == "sent"))
+        if (dots.Any(d => d == "on_job"))
             return new SolidColorBrush(Color.FromRgb(80, 220, 80));
         return null;
     }

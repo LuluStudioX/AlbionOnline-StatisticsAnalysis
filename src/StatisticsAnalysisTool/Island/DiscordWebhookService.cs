@@ -3,6 +3,7 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StatisticsAnalysisTool.Island;
@@ -14,10 +15,10 @@ public static class DiscordWebhookService
 
     private static readonly HttpClient _httpClient = new();
 
-    public static async Task SendAsync(string webhookUrl, string message)
+    public static async Task<bool> SendAsync(string webhookUrl, string message)
     {
         if (string.IsNullOrWhiteSpace(webhookUrl) || string.IsNullOrWhiteSpace(message))
-            return;
+            return false;
 
         try
         {
@@ -40,10 +41,23 @@ public static class DiscordWebhookService
             var response = await _httpClient.PostAsync(webhookUrl, content).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
                 Log.Warning("[DiscordWebhookService] Send failed: {StatusCode}", response.StatusCode);
+            return response.IsSuccessStatusCode;
         }
         catch (HttpRequestException ex)
         {
             Log.Warning(ex, "[DiscordWebhookService] Send exception");
+            return false;
+        }
+        catch (TaskCanceledException ex)
+        {
+            // Includes HttpClient timeout (TaskCanceledException wraps TimeoutException on .NET).
+            Log.Warning(ex, "[DiscordWebhookService] Send timed out");
+            return false;
+        }
+        catch (TimeoutException ex)
+        {
+            Log.Warning(ex, "[DiscordWebhookService] Send timed out");
+            return false;
         }
     }
 }

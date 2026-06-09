@@ -241,9 +241,6 @@
                             <Style TargetType="{x:Type Ellipse}">
                                 <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.6}"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding PlotSentState}" Value="sent">
-                                        <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/>
-                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding PlotSentState}" Value="on_job">
                                         <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/>
                                     </DataTrigger>
@@ -280,7 +277,6 @@
                                         <Style TargetType="{x:Type Ellipse}">
                                             <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.5}"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding}" Value="sent"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                                 <DataTrigger Binding="{Binding}" Value="loot_ready"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Yellow.1}"/></DataTrigger>
                                                 <DataTrigger Binding="{Binding}" Value="on_job"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                                 <DataTrigger Binding="{Binding}" Value="home"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.4}"/></DataTrigger>
@@ -301,7 +297,6 @@
                                     <Style TargetType="{x:Type Ellipse}">
                                         <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.4}"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Laborer1IndicatorState}" Value="sent"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                             <DataTrigger Binding="{Binding Laborer1IndicatorState}" Value="loot_ready"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Yellow.1}"/></DataTrigger>
                                             <DataTrigger Binding="{Binding Laborer1IndicatorState}" Value="on_job"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                         </Style.Triggers>
@@ -325,7 +320,6 @@
                                     <Style TargetType="{x:Type Ellipse}">
                                         <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.4}"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Laborer2IndicatorState}" Value="sent"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                             <DataTrigger Binding="{Binding Laborer2IndicatorState}" Value="loot_ready"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Yellow.1}"/></DataTrigger>
                                             <DataTrigger Binding="{Binding Laborer2IndicatorState}" Value="on_job"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                         </Style.Triggers>
@@ -349,7 +343,6 @@
                                     <Style TargetType="{x:Type Ellipse}">
                                         <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.4}"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Laborer3IndicatorState}" Value="sent"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                             <DataTrigger Binding="{Binding Laborer3IndicatorState}" Value="loot_ready"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Yellow.1}"/></DataTrigger>
                                             <DataTrigger Binding="{Binding Laborer3IndicatorState}" Value="on_job"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                         </Style.Triggers>
@@ -1296,7 +1289,6 @@
                                                         <Style TargetType="Ellipse">
                                                             <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.4}"/>
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer1IndicatorState}" Value="sent"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Blue.3}"/></DataTrigger>
                                                                 <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer1IndicatorState}" Value="loot_ready"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                                                 <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer1IndicatorState}" Value="on_job"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Yellow.1}"/></DataTrigger>
                                                             </Style.Triggers>
@@ -1312,7 +1304,6 @@
                                                         <Style TargetType="Ellipse">
                                                             <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.4}"/>
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer2IndicatorState}" Value="sent"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Blue.3}"/></DataTrigger>
                                                                 <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer2IndicatorState}" Value="loot_ready"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                                                 <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer2IndicatorState}" Value="on_job"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Yellow.1}"/></DataTrigger>
                                                             </Style.Triggers>
@@ -1328,7 +1319,6 @@
                                                         <Style TargetType="Ellipse">
                                                             <Setter Property="Fill" Value="{StaticResource SolidColorBrush.Text.4}"/>
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer3IndicatorState}" Value="sent"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Blue.3}"/></DataTrigger>
                                                                 <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer3IndicatorState}" Value="loot_ready"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Green.3}"/></DataTrigger>
                                                                 <DataTrigger Binding="{Binding IslandBindings.SelectedPlot.Laborer3IndicatorState}" Value="on_job"><Setter Property="Fill" Value="{StaticResource SolidColorBrush.Accent.Yellow.1}"/></DataTrigger>
                                                             </Style.Triggers>
@@ -2026,7 +2016,7 @@
                                            Foreground="{StaticResource SolidColorBrush.Text.1}" FontSize="12"/>
                                 <TextBlock Text="{Binding Translation.IslandManagementLedgerBalance, FallbackValue='  Balance: '}" Margin="12,0,0,0"
                                            Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="12"/>
-                                <TextBlock Text="{Binding IslandBindings.OwnerBalanceOwed, StringFormat=N0, FallbackValue='0'}"
+                                <TextBlock Text="{Binding IslandBindings.SelectedOwnerBalance, StringFormat=N0, FallbackValue='0'}"
                                            Foreground="{StaticResource SolidColorBrush.Accent.Yellow.1}"
                                            FontSize="12" FontWeight="SemiBold"/>
                                 <TextBlock Text="{Binding Translation.IslandManagementLedgerSilver, FallbackValue=' Silver'}"

@@ -536,7 +536,7 @@ public partial class IslandBindings : BaseViewModel
                     detail = !string.IsNullOrEmpty(s.SentDetailSnapshot)
                         ? s.SentDetailSnapshot
                         : (s.JobDispatchTime.HasValue
-                            ? LaborerSnapshot.FormatSentElapsed(DateTime.UtcNow, s.JobDispatchTime.Value)
+                            ? LaborerSnapshot.FormatSentElapsed(DateTime.UtcNow, s.JobDispatchTime.Value.AddHours(-IslandConstants.LaborerBaseCycleHours))
                             : string.Empty);
                 }
                 else
@@ -2105,6 +2105,7 @@ public class IslandYieldPricingRow : BaseViewModel
             if (string.IsNullOrEmpty(OverrideKey)) return;
             var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
             _prefs.PriceOverrides[OverrideKey] = current with { PriceSource = value };
+            _ = SettingsController.SaveSettingsAsync();
             OnPropertyChanged();
             OnPropertyChanged(nameof(EffectivePricePerUnit));
             OnPropertyChanged(nameof(TotalValue));
@@ -2121,6 +2122,7 @@ public class IslandYieldPricingRow : BaseViewModel
             if (string.IsNullOrEmpty(OverrideKey)) return;
             var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
             _prefs.PriceOverrides[OverrideKey] = current with { City = value };
+            _ = SettingsController.SaveSettingsAsync();
             OnPropertyChanged();
             OnPropertyChanged(nameof(EffectivePricePerUnit));
             OnPropertyChanged(nameof(TotalValue));
@@ -2137,6 +2139,7 @@ public class IslandYieldPricingRow : BaseViewModel
             if (string.IsNullOrEmpty(OverrideKey)) return;
             var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
             _prefs.PriceOverrides[OverrideKey] = current with { ManualValue = value };
+            _ = SettingsController.SaveSettingsAsync();
             OnPropertyChanged();
             OnPropertyChanged(nameof(ManualPriceText));
             OnPropertyChanged(nameof(EffectivePricePerUnit));
@@ -2207,6 +2210,7 @@ public class IslandConsumedPricingRow : BaseViewModel
             if (string.IsNullOrEmpty(OverrideKey)) return;
             var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
             _prefs.PriceOverrides[OverrideKey] = current with { PriceSource = value };
+            _ = SettingsController.SaveSettingsAsync();
             OnPropertyChanged();
             OnPropertyChanged(nameof(EffectivePricePerUnit));
             OnPropertyChanged(nameof(TotalValue));
@@ -2223,6 +2227,7 @@ public class IslandConsumedPricingRow : BaseViewModel
             if (string.IsNullOrEmpty(OverrideKey)) return;
             var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
             _prefs.PriceOverrides[OverrideKey] = current with { City = value };
+            _ = SettingsController.SaveSettingsAsync();
             OnPropertyChanged();
             OnPropertyChanged(nameof(EffectivePricePerUnit));
             OnPropertyChanged(nameof(TotalValue));
@@ -2239,6 +2244,7 @@ public class IslandConsumedPricingRow : BaseViewModel
             if (string.IsNullOrEmpty(OverrideKey)) return;
             var current = GetOverride() ?? new ItemPriceOverride(null, null, null);
             _prefs.PriceOverrides[OverrideKey] = current with { ManualValue = value };
+            _ = SettingsController.SaveSettingsAsync();
             OnPropertyChanged();
             OnPropertyChanged(nameof(ManualPriceText));
             OnPropertyChanged(nameof(EffectivePricePerUnit));
