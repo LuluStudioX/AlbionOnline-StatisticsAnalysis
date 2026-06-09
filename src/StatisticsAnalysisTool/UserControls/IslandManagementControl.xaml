@@ -720,6 +720,13 @@
 
                         <DockPanel Style="{StaticResource Island.Settings.Row}">
                             <CheckBox DockPanel.Dock="Left"
+                                      IsChecked="{Binding IslandBindings.Preferences.ShowSummarySection, Mode=TwoWay, FallbackValue=True}"
+                                      VerticalAlignment="Top" Margin="0,1,8,0"/>
+                            <TextBlock Text="{Binding Translation.IslandManagementSettingsSummarySection, FallbackValue='Summary section'}" Style="{StaticResource Island.Settings.Label}"/>
+                        </DockPanel>
+
+                        <DockPanel Style="{StaticResource Island.Settings.Row}">
+                            <CheckBox DockPanel.Dock="Left"
                                       IsChecked="{Binding IslandBindings.Preferences.ShowNotesSection, Mode=TwoWay, FallbackValue=True}"
                                       VerticalAlignment="Top" Margin="0,1,8,0"/>
                             <TextBlock Text="{Binding Translation.IslandManagementSettingsNotesSection, FallbackValue='Notes section'}" Style="{StaticResource Island.Settings.Label}"/>
@@ -958,6 +965,9 @@
                                             <Setter Property="Visibility" Value="Visible"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding PlotBreakdown.Count, FallbackValue=0}" Value="0">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding DataContext.IslandBindings.Preferences.ShowSummarySection, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=True}" Value="False">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
                                             </Style.Triggers>

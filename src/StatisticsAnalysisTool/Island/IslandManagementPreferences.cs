@@ -68,6 +68,13 @@ public class IslandManagementPreferences : INotifyPropertyChanged
         set { _showNotesSection = value; OnPropertyChanged(); }
     }
 
+    private bool _showSummarySection = true;
+    public bool ShowSummarySection
+    {
+        get => _showSummarySection;
+        set { _showSummarySection = value; OnPropertyChanged(); }
+    }
+
     private bool _showDiscordWebhookSection = true;
     public bool ShowDiscordWebhookSection
     {

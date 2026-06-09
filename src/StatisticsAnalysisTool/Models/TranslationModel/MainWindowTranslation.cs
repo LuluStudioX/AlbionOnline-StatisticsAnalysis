@@ -238,6 +238,7 @@ public class MainWindowTranslation
     public static string IslandManagementSettingsVisitDurationDesc => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_VISIT_DURATION_DESC");
     public static string IslandManagementSettingsVisibleSections => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_VISIBLE_SECTIONS");
     public static string IslandManagementSettingsNotesSection => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_NOTES_SECTION");
+    public static string IslandManagementSettingsSummarySection => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_SUMMARY_SECTION");
     public static string IslandManagementSettingsSortGroup => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_SORT_GROUP");
     public static string IslandManagementSettingsGroupBy => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_GROUP_BY");
     public static string IslandManagementSettingsSortBy => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_SORT_BY");

@@ -47447,6 +47447,15 @@
       ]
     },
     {
+      "tuid": "ISLAND_MANAGEMENT_SETTINGS_SUMMARY_SECTION",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Summary section"
+        }
+      ]
+    },
+    {
       "tuid": "ISLAND_MANAGEMENT_SETTINGS_SORT_GROUP",
       "tuv": [
         {
