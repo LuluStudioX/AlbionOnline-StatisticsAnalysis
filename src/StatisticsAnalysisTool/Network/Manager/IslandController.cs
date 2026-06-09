@@ -309,8 +309,13 @@ public partial class IslandController
                 if (island != null)
                 {
                     var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
-                    // Large-footprint plots (houses, workshops) must never resolve to the small S1/S2 slots.
-                    var requireLarge = anchorPlotType is not (PlotType.Farm or PlotType.HerbGarden or PlotType.Pasture);
+                    // Large-footprint plots (houses, workshops) must never resolve to the small S1/S2 slots, so
+                    // they require a large slot. Farm/herb/pasture plots can occupy ANY of the 18 slots
+                    // (including the S1/S2 small slots), so they match the nearest of all — never restrict them
+                    // to small-only, which collapsed every such plot onto slots 17/18.
+                    bool? requireLarge = anchorPlotType is PlotType.Farm or PlotType.HerbGarden or PlotType.Pasture
+                        ? null
+                        : true;
                     var slotIndex = layout?.WorldToNearestSlot(e.Position.Value.X, e.Position.Value.Y, requireLarge: requireLarge);
                     if (slotIndex.HasValue)
                     {
@@ -737,7 +742,9 @@ public partial class IslandController
         if (!_farmablePositions.TryGetValue(objectId, out var pos)) return null;
 
         var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
-        var slot = layout?.WorldToNearestSlot(pos.X, pos.Y, requireLarge: false);
+        // Farm/herb/pasture plots can sit on any slot (incl. the small S1/S2), so match the nearest of all —
+        // restricting to small-only mis-resolved every farmable to slots 17/18.
+        var slot = layout?.WorldToNearestSlot(pos.X, pos.Y, requireLarge: null);
         if (!slot.HasValue) return null;
 
         return island.Plots.FirstOrDefault(p => FarmPlotTypes.Contains(p.PlotType) && p.MapSlotIndex == slot.Value);
