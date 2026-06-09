@@ -1,17 +1,16 @@
 using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Models.BindingModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 public static class IslandMapping
 {
-    public static IslandDto ToDto(Island.Island isl) => new(
+    public static IslandDto ToDto(Island isl) => new(
         isl.Id.ToString(),
         isl.Name,
         isl.Owner,
@@ -44,10 +43,10 @@ public static class IslandMapping
         isl.MixedRegionAltActive
     );
 
-    public static Island.Island FromDto(IslandDto dto)
+    public static Island FromDto(IslandDto dto)
     {
         Enum.TryParse<IslandType>(dto.IslandType, out var islandType);
-        var isl = new Island.Island(dto.Name, dto.Owner, dto.Tier, dto.Biome, dto.HasPremium, dto.City, islandType);
+        var isl = new Island(dto.Name, dto.Owner, dto.Tier, dto.Biome, dto.HasPremium, dto.City, islandType);
 
         isl.LastPlantedAt = dto.LastPlantedAt;
         isl.CreatedDate = dto.CreatedDate;
@@ -110,7 +109,7 @@ public static class IslandMapping
         };
     }
 
-    public static IslandEntry ToEntry(Island.Island isl, int sortOrder)
+    public static IslandEntry ToEntry(Island isl, int sortOrder)
     {
         var (layout, imagePath) = IslandLayouts.ResolveForIsland(isl.IslandType, isl.City);
         var entry = new IslandEntry
@@ -224,7 +223,7 @@ public static class IslandMapping
             PlotType = plot.BuildingTypeName,
             Quantity = plot.Quantity,
             PlotSentState = plot.PlotSentState,
-            IsHouse = plot.PlotType == Island.PlotType.House,
+            IsHouse = plot.PlotType == PlotType.House,
             FarmableTypeLine = farmableTypeLine,
             FarmableCropIcon = cropIcon,
             FarmableCropTooltip = cropTooltip,
@@ -254,15 +253,15 @@ public static class IslandMapping
         _ => "empty"
     };
 
-    public static Island.Island NewIslandFromEntry(IslandEntry e)
+    public static Island NewIslandFromEntry(IslandEntry e)
     {
         var city = CityFactionToName(e.CityFaction, e.CityName);
-        var island = new Island.Island(e.Name, e.OwnerName, e.Tier, e.Biome, e.HasPremium, city);
+        var island = new Island(e.Name, e.OwnerName, e.Tier, e.Biome, e.HasPremium, city);
         island.TrackingEnabled = e.TrackingEnabled;
         return island;
     }
 
-    public static void ApplyEntryToIsland(IslandEntry e, Island.Island isl)
+    public static void ApplyEntryToIsland(IslandEntry e, Island isl)
     {
         isl.Name = e.Name;
         isl.Owner = e.OwnerName;

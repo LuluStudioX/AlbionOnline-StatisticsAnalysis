@@ -1,5 +1,6 @@
 ﻿using StatisticsAnalysisTool.EstimatedMarketValue;
 using StatisticsAnalysisTool.Network.Events;
+using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Network.Manager;
 using System.Threading.Tasks;
 

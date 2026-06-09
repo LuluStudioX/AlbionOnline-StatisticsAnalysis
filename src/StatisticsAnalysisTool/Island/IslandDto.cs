@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 public record IslandDto(
     string Id,

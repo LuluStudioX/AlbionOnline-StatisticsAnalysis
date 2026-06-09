@@ -1,9 +1,8 @@
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Views;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // UI confirm + transport for the owner collection-ready Discord notification. Keeps the WPF dialog and
 // the HTTP send out of IslandController — the controller decides WHEN to notify, builds the message, and

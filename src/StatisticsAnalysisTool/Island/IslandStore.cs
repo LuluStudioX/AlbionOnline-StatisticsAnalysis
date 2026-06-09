@@ -1,11 +1,10 @@
 using Serilog;
 using StatisticsAnalysisTool.Common;
-using StatisticsAnalysisTool.Island;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // Persistence for the island list: file load/save plus the one-time data heals (invalid house slots,
 // legacy plot-type migration) applied on load. Holds no live state — the controller owns the in-memory
@@ -15,7 +14,7 @@ public static class IslandStore
     private const string IslandsFileName = "Islands.json";
 
     // Returns the loaded islands and whether any were migrated (caller persists once when true).
-    public static async Task<(List<Island.Island> Islands, bool Migrated)> LoadAsync()
+    public static async Task<(List<Island> Islands, bool Migrated)> LoadAsync()
     {
         var path = AppDataPaths.UserDataFile(IslandsFileName);
         var loaded = await FileController.LoadAsync<List<IslandDto>>(path);
@@ -36,7 +35,7 @@ public static class IslandStore
     }
 
     // Caller snapshots the list under its lock and passes it in, so enumeration here is race-free.
-    public static async Task SaveAsync(IReadOnlyList<Island.Island> islands)
+    public static async Task SaveAsync(IReadOnlyList<Island> islands)
     {
         var dtos = islands.Select(IslandMapping.ToDto).ToList();
 
@@ -48,7 +47,7 @@ public static class IslandStore
     // Auto-heal slot assignments persisted by an earlier bug where houses could resolve onto the
     // small S1/S2 slots. A house is large-footprint, so a house plot pointing at a small slot is
     // invalid — null it so it re-resolves to a large slot on the next visit (no manual reset needed).
-    private static void SanitizeHouseSlotAssignments(Island.Island island)
+    private static void SanitizeHouseSlotAssignments(Island island)
     {
         if (island?.Plots == null) return;
         var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
@@ -70,7 +69,7 @@ public static class IslandStore
     // T*_FARM_*_SEED as Farm — so herb gardens (foxglove/agaric/etc.) were stored as Farm. Re-classify each
     // farmable plot by its configured crop/animal name so its type, slot assignment and yield bucketing
     // agree. Returns true if any plot type changed (caller persists once).
-    private static bool MigratePlotTypesFromConfiguration(Island.Island island)
+    private static bool MigratePlotTypesFromConfiguration(Island island)
     {
         if (island?.Plots == null) return false;
 

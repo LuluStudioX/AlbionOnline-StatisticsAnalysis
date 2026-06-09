@@ -1,8 +1,7 @@
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using System.Collections.Generic;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 public record IslandSessionSuggestion(
     string IslandName,

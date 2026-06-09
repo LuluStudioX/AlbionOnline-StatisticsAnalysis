@@ -1,6 +1,5 @@
 using Serilog;
 using StatisticsAnalysisTool.Common;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Views;
 using System;
 using System.Collections.Generic;
@@ -8,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 public partial class IslandController
 {
@@ -140,7 +139,7 @@ public partial class IslandController
                 .ToList();
     }
 
-    public IReadOnlyList<Island.Island> GetIslandsByOwner(string ownerName)
+    public IReadOnlyList<Island> GetIslandsByOwner(string ownerName)
     {
         if (string.IsNullOrWhiteSpace(ownerName)) return [];
         lock (_islandsLock)
@@ -166,7 +165,7 @@ public partial class IslandController
 
     public IReadOnlyList<OwnerLedgerEntry> GetLedgerForIsland(Guid islandId)
     {
-        Island.Island island;
+        Island island;
         lock (_islandsLock)
             island = _islands.FirstOrDefault(i => i.Id == islandId);
 
@@ -214,7 +213,7 @@ public partial class IslandController
         _ = SaveOwnerProfilesAsync();
     }
 
-    public void TryAutoPrefillPayout(Island.Island island)
+    public void TryAutoPrefillPayout(Island island)
     {
         var prefs = _mainWindowViewModel?.IslandBindings?.Preferences;
         if (prefs?.AutoPrefillPayouts != true) return;

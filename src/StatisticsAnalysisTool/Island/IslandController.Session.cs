@@ -4,7 +4,6 @@ using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Models.BindingModel;
 using StatisticsAnalysisTool.Models.NetworkModel;
 using StatisticsAnalysisTool.Network.Events;
@@ -18,7 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // Session/cluster identification, current-island resolution and session-suggestion application for IslandController.
 public partial class IslandController
@@ -57,7 +56,7 @@ public partial class IslandController
         }
     }
 
-    private Island.Island FindCurrentIsland()
+    private Island FindCurrentIsland()
     {
         var name = ClusterController.CurrentCluster?.InstanceName?.Trim();
         if (string.IsNullOrWhiteSpace(name)) return null;
@@ -69,7 +68,7 @@ public partial class IslandController
     }
 
     // Must be called with _islandsLock already held.
-    private Island.Island FindCurrentIslandNoLock(string name = null)
+    private Island FindCurrentIslandNoLock(string name = null)
     {
         name ??= ClusterController.CurrentCluster?.InstanceName?.Trim();
         if (string.IsNullOrWhiteSpace(name)) return null;
@@ -146,7 +145,7 @@ public partial class IslandController
         return null;
     }
 
-    private bool TryBackfillClusterIdentifiers(Island.Island island)
+    private bool TryBackfillClusterIdentifiers(Island island)
     {
         var changed = false;
         if (!string.IsNullOrWhiteSpace(_sessionSourceClusterIndex)
@@ -168,7 +167,7 @@ public partial class IslandController
     {
         var name = ClusterController.CurrentCluster?.InstanceName?.Trim();
 
-        Island.Island match;
+        Island match;
         lock (_islandsLock)
             match = FindCurrentIslandNoLock(name);
 
@@ -203,7 +202,7 @@ public partial class IslandController
 
     public void OnIslandManuallySelected(Guid islandId)
     {
-        Island.Island island;
+        Island island;
         lock (_islandsLock)
         {
             island = _islands.FirstOrDefault(i => i.Id == islandId);
@@ -224,7 +223,7 @@ public partial class IslandController
         Log.Information("[IslandController] Backfilled cluster identifiers on '{Name}' after manual selection.", island.Name);
     }
 
-    private static bool IsIslandInRoyalCity(Island.Island island)
+    private static bool IsIslandInRoyalCity(Island island)
     {
         if (island == null) return false;
         var city = island.City ?? string.Empty;
@@ -302,7 +301,7 @@ public partial class IslandController
                 && suggestion.DetectedPlotCounts.Count > 0)
             {
                 foreach (var (plotType, count) in suggestion.DetectedPlotCounts)
-                    matchedIsland.AddPlot(new Island.IslandPlot(plotType, count));
+                    matchedIsland.AddPlot(new IslandPlot(plotType, count));
 
                 matchedIsland.HasPremium = matchedIsland.HasPremium || suggestion.HasPremium;
                 plotsChanged = true;
@@ -332,7 +331,7 @@ public partial class IslandController
         await Task.CompletedTask;
     }
 
-    private Island.Island FindIslandForSuggestion(IslandSessionSuggestion suggestion)
+    private Island FindIslandForSuggestion(IslandSessionSuggestion suggestion)
     {
         lock (_islandsLock)
         {

@@ -4,7 +4,6 @@ using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Models.BindingModel;
 using StatisticsAnalysisTool.Models.NetworkModel;
 using StatisticsAnalysisTool.Network.Events;
@@ -18,7 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // Laborer loot/journal yield tracking (collect-window correlation) and yield clearing for IslandController.
 public partial class IslandController
@@ -185,7 +184,7 @@ public partial class IslandController
 
     public void ClearIslandYield(Guid islandId)
     {
-        Island.Island island;
+        Island island;
         lock (_islandsLock)
             island = _islands.FirstOrDefault(i => i.Id == islandId);
         if (island == null) return;
@@ -198,7 +197,7 @@ public partial class IslandController
 
     public void ClearAllYield(IEnumerable<Guid> islandIds)
     {
-        List<Island.Island> targets;
+        List<Island> targets;
         lock (_islandsLock)
             targets = _islands.Where(i => islandIds.Contains(i.Id)).ToList();
         if (targets.Count == 0) return;

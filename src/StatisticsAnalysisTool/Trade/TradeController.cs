@@ -1,5 +1,6 @@
 using Serilog;
 using StatisticsAnalysisTool.Cluster;
+using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Network.Manager;

@@ -4,7 +4,6 @@ using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Models.BindingModel;
 using StatisticsAnalysisTool.Models.NetworkModel;
 using StatisticsAnalysisTool.Network.Events;
@@ -18,7 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // Collection-ready webhook triggering and manual webhook sending for IslandController.
 public partial class IslandController
@@ -39,7 +38,7 @@ public partial class IslandController
 
         // Fire only when EVERY island of this owner is done this cycle — i.e. none still NeedsVisit
         // (ready/overdue, or never planted). Royal-city islands have no laborer cycle and are excluded.
-        List<Island.Island> ownerIslands;
+        List<Island> ownerIslands;
         lock (_islandsLock)
             ownerIslands = _islands
                 .Where(i => string.Equals(i.Owner?.Trim(), islandOwner, StringComparison.OrdinalIgnoreCase)

@@ -4,7 +4,6 @@ using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Models.BindingModel;
 using StatisticsAnalysisTool.Models.NetworkModel;
 using StatisticsAnalysisTool.Network.Events;
@@ -18,17 +17,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // Domain island list CRUD and JSON persistence for IslandController.
 public partial class IslandController
 {
-    public IReadOnlyList<Island.Island> Islands
+    public IReadOnlyList<Island> Islands
     {
         get { lock (_islandsLock) return _islands.ToList(); }
     }
 
-    public Guid? AddIsland(Island.Island island)
+    public Guid? AddIsland(Island island)
     {
         ArgumentNullException.ThrowIfNull(island);
         lock (_islandsLock)
@@ -69,7 +68,7 @@ public partial class IslandController
                 && string.Equals(i.City, city, StringComparison.OrdinalIgnoreCase));
     }
 
-    public void UpdateIsland(Island.Island island)
+    public void UpdateIsland(Island island)
     {
         ArgumentNullException.ThrowIfNull(island);
         lock (_islandsLock)
@@ -92,7 +91,7 @@ public partial class IslandController
         _ = SaveToFileAsync();
     }
 
-    public Island.Island GetById(Guid id)
+    public Island GetById(Guid id)
     {
         lock (_islandsLock)
             return _islands.FirstOrDefault(x => x.Id == id);
@@ -119,7 +118,7 @@ public partial class IslandController
 
     public async Task SaveToFileAsync()
     {
-        List<Island.Island> snapshot;
+        List<Island> snapshot;
         lock (_islandsLock)
             snapshot = _islands.ToList();
 

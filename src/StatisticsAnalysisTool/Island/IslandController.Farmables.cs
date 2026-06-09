@@ -4,7 +4,6 @@ using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Models.BindingModel;
 using StatisticsAnalysisTool.Models.NetworkModel;
 using StatisticsAnalysisTool.Network.Events;
@@ -18,7 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // Farmable plot handling: collect/feed/harvest, per-tile timers and farmable config auto-apply for IslandController.
 public partial class IslandController
@@ -26,7 +25,7 @@ public partial class IslandController
     // Resolve the specific farm/herb/pasture plot card a farmable ObjectId belongs to, via its cached world
     // position and the island layout's nearest small slot. Returns null when the position is unknown or no
     // matching plot owns that slot — callers then fall back to the per-type behaviour (no regression).
-    private IslandPlot ResolveFarmablePlotByObjectId(Island.Island island, long objectId)
+    private IslandPlot ResolveFarmablePlotByObjectId(Island island, long objectId)
     {
         if (island?.Plots == null || objectId < 0) return null;
         if (!_farmablePositions.TryGetValue(objectId, out var pos)) return null;
@@ -97,7 +96,7 @@ public partial class IslandController
     // Marks the tile at a farmable object's world position as awaiting a replant, so the next plant (code 45)
     // on that position counts its seed as consumed. Keyed by stable position (the object id churns per visit).
     // No-op when the position is unknown.
-    private void MarkTileAwaitingReplant(Island.Island island, long objectId)
+    private void MarkTileAwaitingReplant(Island island, long objectId)
     {
         if (island == null) return;
         if (!_farmablePositions.TryGetValue(objectId, out var pos)) return;
@@ -142,7 +141,7 @@ public partial class IslandController
 
     // Fallback (no per-plot resolution): stamp every farm-type plot. Returns whether anything changed so the
     // caller persists/refreshes only on a real change. Does not save itself.
-    private bool PersistPlotPlantedAt(Island.Island island, DateTime plantedAt)
+    private bool PersistPlotPlantedAt(Island island, DateTime plantedAt)
     {
         if (island?.Plots == null) return false;
         var changed = false;
@@ -155,7 +154,7 @@ public partial class IslandController
         return changed;
     }
 
-    private void CommitIslandPlant(Island.Island island)
+    private void CommitIslandPlant(Island island)
     {
         island.PlantAll();
         island.UpdateModificationDate();
@@ -341,7 +340,7 @@ public partial class IslandController
 
     }
 
-    private void TryAutoApplyFarmableConfig(Island.Island island, string farmableUniqueName)
+    private void TryAutoApplyFarmableConfig(Island island, string farmableUniqueName)
     {
         var info = PlotTypeExtensions.TryResolveFarmablePlotInfo(farmableUniqueName);
         if (info == null || string.IsNullOrWhiteSpace(info.ConfigKey)) return;
@@ -367,7 +366,7 @@ public partial class IslandController
             island.Name, info.PlotType, info.ConfigKey, info.DisplayName);
     }
 
-    private void TryAutoApplyFarmableConfigByPosition(Island.Island island, FarmablePlotInfo info, float wx, float wy)
+    private void TryAutoApplyFarmableConfigByPosition(Island island, FarmablePlotInfo info, float wx, float wy)
     {
         var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
         if (layout == null) return;
@@ -404,7 +403,7 @@ public partial class IslandController
 
     public void ResetSlotAssignments(Guid islandId)
     {
-        Island.Island island;
+        Island island;
         lock (_islandsLock)
             island = _islands.FirstOrDefault(i => i.Id == islandId);
         if (island == null) return;

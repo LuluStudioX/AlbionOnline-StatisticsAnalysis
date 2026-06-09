@@ -1,5 +1,4 @@
 using StatisticsAnalysisTool.Common;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -8,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // Debounced yield/consumed UI + disk flush. Collecting fires the per-stack growth handlers many times
 // per second; this coalesces them into one save + one in-place binding patch so the disk and dispatcher
@@ -20,7 +19,7 @@ public sealed class IslandYieldTracker
     private readonly Func<Task> _saveAsync;
 
     private volatile Timer _yieldFlushTimer;
-    private Island.Island _pendingYieldIsland;
+    private Island _pendingYieldIsland;
     private readonly object _yieldFlushLock = new();
 
     public IslandYieldTracker(MainWindowViewModel mainWindowViewModel, Func<Task> saveAsync)
@@ -29,7 +28,7 @@ public sealed class IslandYieldTracker
         _saveAsync = saveAsync ?? throw new ArgumentNullException(nameof(saveAsync));
     }
 
-    public void Schedule(Island.Island island)
+    public void Schedule(Island island)
     {
         lock (_yieldFlushLock)
         {
@@ -56,7 +55,7 @@ public sealed class IslandYieldTracker
 
     private void Flush()
     {
-        Island.Island island;
+        Island island;
         lock (_yieldFlushLock)
         {
             island = _pendingYieldIsland;
@@ -69,7 +68,7 @@ public sealed class IslandYieldTracker
 
     // Push an island's yield/consumed rows to the UI without debouncing — callers that record a single
     // yield/consumed change outside the per-stack collect storm use this for an immediate refresh.
-    public void PushUpdate(Island.Island island)
+    public void PushUpdate(Island island)
     {
         var bindings = _mainWindowViewModel?.IslandBindings;
         if (bindings == null) return;
@@ -93,7 +92,7 @@ public sealed class IslandYieldTracker
         });
     }
 
-    private static IReadOnlyList<string> ComputeYieldMismatches(Island.Island island)
+    private static IReadOnlyList<string> ComputeYieldMismatches(Island island)
     {
         var mismatches = new List<string>();
         if (island.ConsumedHistory.Count == 0) return mismatches;

@@ -1,11 +1,10 @@
 using Serilog;
-using StatisticsAnalysisTool.Island;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // House / laborer plot matching, slot assignment and de-duplication for IslandController.
 // Split from IslandController.cs to keep the main controller focused on session + event handling.
@@ -14,7 +13,7 @@ public partial class IslandController
     // Detects whether the mixed-use region's house sits at the TOP (alt) or BOTTOM (base) from its
     // real world position, so the small S1/S2 slots render on the opposite end. This replaces the
     // occupancy-only guess, which wrongly pushed S1/S2 down whenever the slot was occupied at all.
-    private void TryDetectMixedRegionPlacement(Island.Island island, LaborerSnapshot snapshot)
+    private void TryDetectMixedRegionPlacement(Island island, LaborerSnapshot snapshot)
     {
         if (!snapshot.WorldPosition.HasValue) return;
         var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
@@ -32,7 +31,7 @@ public partial class IslandController
 
     // Resolves a laborer's world position to the nearest LARGE map slot. Houses are large-footprint
     // plots, so the small S1/S2 slots are excluded — a house must never resolve onto them.
-    private static int? ResolveHouseSlot(Island.Island island, LaborerSnapshot snapshot)
+    private static int? ResolveHouseSlot(Island island, LaborerSnapshot snapshot)
     {
         if (!snapshot.WorldPosition.HasValue) return null;
         var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
@@ -45,7 +44,7 @@ public partial class IslandController
     // collected. Re-derive each name-matched plot's slot from its live laborers' world positions
     // (majority vote) and apply the corrected, collision-free assignment. Converges in one pass, then
     // makes no further changes (idempotent), so it is safe to run on every status push.
-    private void HealHouseMapSlots(Island.Island island,
+    private void HealHouseMapSlots(Island island,
         IReadOnlyDictionary<Guid, IReadOnlyDictionary<int, LaborerSnapshot>> assignments)
     {
         if (island?.Plots == null || assignments == null || assignments.Count == 0) return;
@@ -93,7 +92,7 @@ public partial class IslandController
         }
     }
 
-    private void TryAutoAssignHousePlotMapSlot(Island.Island island, LaborerSnapshot snapshot)
+    private void TryAutoAssignHousePlotMapSlot(Island island, LaborerSnapshot snapshot)
     {
         var slotIndex = ResolveHouseSlot(island, snapshot);
         if (!slotIndex.HasValue) return;
@@ -116,7 +115,7 @@ public partial class IslandController
     // Non-mutating lookup: the house plot owning this slot, else the first unassigned house plot.
     // The slot is committed by the caller only when an actual config write succeeds (avoids orphan
     // cards that carry a slot number but no laborer).
-    private static IslandPlot FindHousePlotBySlot(Island.Island island, int slotIndex)
+    private static IslandPlot FindHousePlotBySlot(Island island, int slotIndex)
     {
         var existing = island.Plots.FirstOrDefault(p =>
             p.PlotType == PlotType.House && p.MapSlotIndex == slotIndex);
@@ -126,7 +125,7 @@ public partial class IslandController
             p.PlotType == PlotType.House && !p.MapSlotIndex.HasValue);
     }
 
-    private bool TryEnsureHousePlotConfiguration(Island.Island island, LaborerSnapshot snapshot)
+    private bool TryEnsureHousePlotConfiguration(Island island, LaborerSnapshot snapshot)
     {
         if (island?.Plots == null || snapshot.BuildingTier <= 0 || string.IsNullOrWhiteSpace(snapshot.LaborerType))
             return false;
@@ -142,7 +141,7 @@ public partial class IslandController
         return TryEnrichHousePlotByTypeMatch(island, snapshot);
     }
 
-    private bool TryMatchHousePlotByWorldPosition(Island.Island island, LaborerSnapshot snapshot)
+    private bool TryMatchHousePlotByWorldPosition(Island island, LaborerSnapshot snapshot)
     {
         if (!snapshot.WorldPosition.HasValue)
             return false;
@@ -217,7 +216,7 @@ public partial class IslandController
         return true;
     }
 
-    private bool TryMatchHousePlotByLaborerName(Island.Island island, LaborerSnapshot snapshot)
+    private bool TryMatchHousePlotByLaborerName(Island island, LaborerSnapshot snapshot)
     {
         if (string.IsNullOrWhiteSpace(snapshot.FullName))
             return false;
@@ -256,7 +255,7 @@ public partial class IslandController
         return true;
     }
 
-    private bool TryEnrichHousePlotByTypeMatch(Island.Island island, LaborerSnapshot snapshot)
+    private bool TryEnrichHousePlotByTypeMatch(Island island, LaborerSnapshot snapshot)
     {
         try
         {
@@ -342,7 +341,7 @@ public partial class IslandController
         return false;
     }
 
-    private static bool IsLaborerNameInAnyOtherHousePlot(Island.Island island, IslandPlot excludePlot, string fullName)
+    private static bool IsLaborerNameInAnyOtherHousePlot(Island island, IslandPlot excludePlot, string fullName)
     {
         if (string.IsNullOrWhiteSpace(fullName)) return false;
         var normalized = LaborerConfigHelper.NormalizeLaborerFullName(fullName);
@@ -362,7 +361,7 @@ public partial class IslandController
 
     // Removes fullName from all house plots OTHER than authorityPlot.
     // Returns true if any config was changed.
-    private static bool PurgeDuplicateLaborerName(Island.Island island, IslandPlot authorityPlot, string fullName)
+    private static bool PurgeDuplicateLaborerName(Island island, IslandPlot authorityPlot, string fullName)
     {
         if (string.IsNullOrWhiteSpace(fullName)) return false;
         var normalized = LaborerConfigHelper.NormalizeLaborerFullName(fullName);
@@ -450,7 +449,7 @@ public partial class IslandController
     // yet (a manual placeholder). Returns false when no such slot exists, the laborer already owns a
     // slot here, or the name lives in another house plot. Each laborer claims one empty-name slot;
     // the written name then prevents the next same-type laborer from reusing it.
-    private static bool TryFillLiveNameOntoSeedSlot(Island.Island island, IslandPlot plot, LaborerSnapshot snapshot)
+    private static bool TryFillLiveNameOntoSeedSlot(Island island, IslandPlot plot, LaborerSnapshot snapshot)
     {
         if (string.IsNullOrWhiteSpace(snapshot.FullName) || string.IsNullOrWhiteSpace(snapshot.LaborerType))
             return false;

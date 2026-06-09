@@ -1,5 +1,6 @@
 using Serilog;
 using StatisticsAnalysisTool.Common;
+using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.DamageMeter;
 using StatisticsAnalysisTool.Enumerations;
 using StatisticsAnalysisTool.GameFileData;

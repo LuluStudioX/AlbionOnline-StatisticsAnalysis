@@ -4,7 +4,6 @@ using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Models.BindingModel;
 using StatisticsAnalysisTool.Models.NetworkModel;
 using StatisticsAnalysisTool.Network.Events;
@@ -18,7 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 // Live-status projection to the island bindings (push/refresh) for IslandController.
 public partial class IslandController
@@ -39,7 +38,7 @@ public partial class IslandController
     {
         var snapshots = GetCurrentSnapshots();
 
-        List<Island.Island> islandsCopy;
+        List<Island> islandsCopy;
         Guid? sessionIslandId;
         lock (_islandsLock)
         {
@@ -64,7 +63,7 @@ public partial class IslandController
                 }
             }
 
-            islandsCopy = new List<Island.Island>(_islands);
+            islandsCopy = new List<Island>(_islands);
         }
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
@@ -79,7 +78,7 @@ public partial class IslandController
     {
         var snapshots = GetCurrentSnapshots();
 
-        List<Island.Island> islandsCopy;
+        List<Island> islandsCopy;
         Guid? sessionIslandId;
         lock (_islandsLock)
         {
@@ -111,7 +110,7 @@ public partial class IslandController
                 }
             }
 
-            islandsCopy = new List<Island.Island>(_islands);
+            islandsCopy = new List<Island>(_islands);
         }
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
@@ -126,13 +125,13 @@ public partial class IslandController
     private void RefreshBindingsAsync()
     {
         List<IslandEntry> entries;
-        List<Island.Island> islandsCopy;
+        List<Island> islandsCopy;
         var snapshots = GetCurrentSnapshots();
         Guid? sessionIslandId;
         lock (_islandsLock)
         {
             entries = _islands.Select((isl, i) => IslandMapping.ToEntry(isl, i)).ToList();
-            islandsCopy = new List<Island.Island>(_islands);
+            islandsCopy = new List<Island>(_islands);
             sessionIslandId = FindCurrentIslandNoLock()?.Id;
         }
 
@@ -147,7 +146,7 @@ public partial class IslandController
 
     // Refreshes only one island's live status in the bindings — no collection rebuild.
     // Use this when only one island's data changed (timer, plot config, laborer state).
-    private void RefreshIslandStatusAsync(Island.Island island)
+    private void RefreshIslandStatusAsync(Island island)
     {
         var snapshots = GetCurrentSnapshots();
         var islandSnapshot = island;

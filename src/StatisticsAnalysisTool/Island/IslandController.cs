@@ -1,10 +1,10 @@
 using Serilog;
 using StatisticsAnalysisTool.Cluster;
+using StatisticsAnalysisTool.Network.Manager;
 using StatisticsAnalysisTool.Common;
 using StatisticsAnalysisTool.GameFileData;
 using StatisticsAnalysisTool.Common.UserSettings;
 using StatisticsAnalysisTool.Enumerations;
-using StatisticsAnalysisTool.Island;
 using StatisticsAnalysisTool.Models.BindingModel;
 using StatisticsAnalysisTool.Models.NetworkModel;
 using StatisticsAnalysisTool.Network.Events;
@@ -18,7 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace StatisticsAnalysisTool.Network.Manager;
+namespace StatisticsAnalysisTool.Island;
 
 public partial class IslandController
 {
@@ -29,7 +29,7 @@ public partial class IslandController
     private readonly IslandYieldTracker _yieldTracker;
     private readonly IslandWebhookService _webhookService = new();
     private TrackingController _trackingController;
-    private readonly List<Island.Island> _islands = [];
+    private readonly List<Island> _islands = [];
     private readonly object _islandsLock = new();
 
     private readonly ConcurrentDictionary<long, LaborerSnapshot> _snapshots = new();
