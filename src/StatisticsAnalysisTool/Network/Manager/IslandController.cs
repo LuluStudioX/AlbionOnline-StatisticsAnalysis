@@ -1288,15 +1288,18 @@ public partial class IslandController
 
         var dict = LaborerConfigHelper.ParseConfiguration(slotPlot.Configuration);
         var existing = dict.GetValueOrDefault(info.ConfigKey, string.Empty);
-        if (!string.IsNullOrWhiteSpace(existing)) return;
+        // Replace when the freshly-detected plant differs (e.g. chickens swapped for calves). Code 45
+        // re-broadcasts every plant on each island visit, so this also self-heals stale stored types.
+        // Skip only when it already matches, so re-broadcasts don't churn saves.
+        if (string.Equals(existing, info.DisplayName, StringComparison.OrdinalIgnoreCase)) return;
 
         dict[info.ConfigKey] = info.DisplayName;
         slotPlot.Configuration = LaborerConfigHelper.BuildConfiguration(dict);
         island.UpdateModificationDate();
         _ = SaveToFileAsync();
         RefreshIslandStatusAsync(island);
-        Log.Information("[IslandController] Position-matched farmable config: island={Island}, plotType={PlotType}, slot={Slot}, key={Key}, value={Value}",
-            island.Name, info.PlotType, slotIndex.Value, info.ConfigKey, info.DisplayName);
+        Log.Information("[IslandController] Position-matched farmable config: island={Island}, plotType={PlotType}, slot={Slot}, key={Key}, {Old} -> {New}",
+            island.Name, info.PlotType, slotIndex.Value, info.ConfigKey, string.IsNullOrEmpty(existing) ? "(empty)" : existing, info.DisplayName);
     }
 
     private void UpdateLastSnapshotCache()

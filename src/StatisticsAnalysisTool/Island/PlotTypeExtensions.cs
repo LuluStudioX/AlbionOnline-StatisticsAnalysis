@@ -49,11 +49,6 @@ public static class PlotTypeExtensions
 
     public static double GetBaseCollectionHours(this PlotType plotType, string configuration = "")
     {
-        if (plotType == PlotType.Pasture && IsMilkCyclePastureConfiguration(configuration))
-        {
-            return IslandConstants.LaborerBaseCycleHours;
-        }
-
         var configuredObjectName = GetConfiguredObjectName(plotType, configuration);
         if (!string.IsNullOrWhiteSpace(configuredObjectName) && TryResolveGrowHoursFromFarmableData(configuredObjectName, out var resolvedHours))
         {
@@ -258,22 +253,6 @@ public static class PlotTypeExtensions
         }
 
         return false;
-    }
-
-    private static bool IsMilkCyclePastureConfiguration(string configuration)
-    {
-        if (string.IsNullOrWhiteSpace(configuration))
-        {
-            return false;
-        }
-
-        var lower = configuration.ToLowerInvariant();
-        return lower.Contains("(milk)")
-            || lower.Contains("calf")
-            || lower.Contains("cow")
-            || lower.Contains("goat")
-            || lower.Contains("kid")
-            || lower.Contains("sheep");
     }
 
     public static System.Collections.Generic.Dictionary<string, int> ParseConfiguredObjectCounts(PlotType plotType, string configuration, int defaultQuantity = 1)

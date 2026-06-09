@@ -83,13 +83,13 @@ internal static class FarmablePlotData
 
                 FarmableItemByUniqueName[farmable.UniqueName] = farmable;
 
-                var growSeconds = GetGrowTimeSeconds(farmable);
-                if (growSeconds <= 0 || indexed == null)
+                var cycleSeconds = GetCollectionCycleSeconds(farmable);
+                if (cycleSeconds <= 0 || indexed == null)
                 {
                     continue;
                 }
 
-                var growHours = growSeconds / 3600d;
+                var growHours = cycleSeconds / 3600d;
                 var names = new[]
                 {
                     indexed.LocalizedName,
@@ -226,6 +226,20 @@ internal static class FarmablePlotData
             DisplayName = displayName,
             UniqueName = uniqueName
         };
+    }
+
+    // The island collection-timer cycle length. Confirmed from packet capture: the code-201 elapsed
+    // counter is capped at activefarmcyclelengthseconds, so that field — not @growtime — is the real
+    // per-cycle duration the server uses. @growtime is the longer baby->grown maturation (~2x) and is
+    // wrong for the collection countdown. Falls back to @growtime only when the cycle field is absent.
+    internal static double GetCollectionCycleSeconds(FarmableItem farmable)
+    {
+        if (TryParseSeconds(farmable?.ActiveFarmCycleLengthSeconds, out var cycleSeconds) && cycleSeconds > 0)
+        {
+            return cycleSeconds;
+        }
+
+        return GetGrowTimeSeconds(farmable);
     }
 
     internal static double GetGrowTimeSeconds(FarmableItem farmable)
