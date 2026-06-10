@@ -1,112 +1,155 @@
 using FluentAssertions;
 using NUnit.Framework;
 using StatisticsAnalysisTool.Island;
+using StatisticsAnalysisTool.Network;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace StatisticsAnalysisTool.UnitTests.IslandManagement;
 
+// G10/G11: every island handler must bind the documented game wire code. Several handlers bind via
+// (int)EventCodes.X, which only works while the enum ordinal equals the wire code — assert that here so
+// inserting an enum member above code 201 (which would shift the ordinals) fails loudly.
 [TestFixture]
-public class OwnerProfileBalanceTests
+public class IslandHandlerWireCodeTests
+{
+    // These handlers bind via (int)EventCodes.X, which only works because the enum ordinal happens to equal
+    // the wire code. Inserting an enum member above any of them shifts the ordinals and silently breaks the
+    // binding — this guard fails loudly if that happens.
+    [TestCase(EventCodes.NewJournalItem, 35)]
+    [TestCase(EventCodes.NewBuilding, 45)]
+    [TestCase(EventCodes.LaborerObjectInfo, 56)]
+    [TestCase(EventCodes.LaborerObjectJobInfo, 57)]
+    [TestCase(EventCodes.FarmableObjectInfo, 201)]
+    public void OrdinalBoundEventCode_OrdinalEqualsWireCode(EventCodes code, int expectedWireCode)
+    {
+        ((int) code).Should().Be(expectedWireCode,
+            "this handler binds (int)EventCodes.{0}; if the ordinal drifts from the wire code the handler silently stops receiving packets", code);
+    }
+
+    // These two handlers DO NOT trust the ordinal — they hardcode the wire literal in their base(...) ctor
+    // precisely because the enum ordinal differs from the wire code. Document that divergence so nobody
+    // "fixes" the handlers to use (int)EventCodes.X (which would bind the wrong code).
+    [TestCase(EventCodes.NewLaborerItem, 32, 36)]
+    [TestCase(EventCodes.ActionOnBuildingFinished, 60, 66)]
+    public void LiteralBoundEventCode_OrdinalDiffersFromWireCode(EventCodes code, int wireCode, int ordinal)
+    {
+        ((int) code).Should().Be(ordinal, "the enum ordinal is the value the (int) cast would yield");
+        ordinal.Should().NotBe(wireCode, "the handler must hardcode the wire literal {0}, not bind (int)EventCodes.{1} (= {2})", wireCode, code, ordinal);
+    }
+}
+
+// Regression for the PlotTypeExtensions fixes: the pasture extended-cycle (52h) detection must match the
+// PARSED AnimalType token exactly, not a Contains on the whole config blob.
+[TestFixture]
+public class PastureCycleHoursTests
+{
+    private static string PastureConfig(string animal) => $"AnimalType: {animal}";
+
+    [TestCase("Ox")]
+    [TestCase("Horse")]
+    [TestCase("Foal")]
+    public void GetBaseCollectionHours_ExtendedCycleAnimal_Returns52h(string animal)
+    {
+        PlotType.Pasture.GetBaseCollectionHours(PastureConfig(animal)).Should().Be(52.0);
+    }
+
+    [TestCase("Cow")]
+    [TestCase("Goat")]
+    [TestCase("Chicken")]
+    public void GetBaseCollectionHours_BaseCycleAnimal_Returns22h(string animal)
+    {
+        PlotType.Pasture.GetBaseCollectionHours(PastureConfig(animal)).Should().Be(22.0);
+    }
+
+    [Test]
+    public void GetBaseCollectionHours_AnimalNameMerelyContainingOx_DoesNotTrip52hCycle()
+    {
+        // "Oxtongue" contains "Ox" but is not the Ox animal — the old Contains check wrongly returned 52h.
+        PlotType.Pasture.GetBaseCollectionHours(PastureConfig("Oxtongue")).Should().Be(22.0);
+    }
+}
+
+// Regression for F1: FormatSentElapsed must be fed the dispatch START time, not the future return time,
+// or it always reports "just now". The production call sites pass ReadyAtUtc - cycle as the start.
+[TestFixture]
+public class FormatSentElapsedTests
 {
     [Test]
-    public void OwnerBalance_OpeningBalanceOnly_EqualsOpeningBalance()
+    public void FormatSentElapsed_DispatchStartTwoHoursAgo_RendersSentAgo()
     {
-        var profile = new OwnerProfile { OpeningBalance = 500m };
+        var start = DateTime.UtcNow.AddHours(-2);
+        var text = LaborerSnapshot.FormatSentElapsed(DateTime.UtcNow, start);
 
-        var earned = 0m;
-        var withdrawn = 0m;
-        var balance = profile.OpeningBalance + earned - withdrawn;
-
-        balance.Should().Be(500m);
+        text.Should().StartWith("Sent ");
+        text.Should().Contain("2h");
+        text.Should().NotBe("just now");
     }
 
     [Test]
-    public void OwnerBalance_WithCycleRecordsAndWithdrawals_ComputesCorrectly()
+    public void FormatSentElapsed_FutureReturnTimeFedDirectly_IsTheBug_ProducesJustNow()
     {
-        var profile = new OwnerProfile
+        // Demonstrates why the start time (not the future return) must be passed: a future timestamp
+        // yields a negative elapsed → "just now". The production code now subtracts the cycle first.
+        var futureReturn = DateTime.UtcNow.AddHours(20);
+        LaborerSnapshot.FormatSentElapsed(DateTime.UtcNow, futureReturn).Should().Be("just now");
+    }
+}
+
+// Regression for G5: the dead "Sent" laborer tier was retired — a dispatched house laborer renders the
+// same ("on_job") whether resolved live or from persisted config, so the on/off-island states agree.
+[TestFixture]
+public class SentTierRetiredTests
+{
+    [Test]
+    public void OfflineDispatchedLaborer_AggregateIsOnJob_NeverSent()
+    {
+        // Two configured laborers: slot 1 dispatched (future return), slot 2 not — so AllLaborersSent is
+        // false and the per-slot indicator is observable rather than blanked.
+        var plot = new IslandPlot(PlotType.House, 1);
+        var dict = new Dictionary<string, string>
         {
-            OpeningBalance = 100m,
-            CycleHistory = new List<OwnerCycleRecord>
-            {
-                new() { EarnedAmount = 300m },
-                new() { EarnedAmount = 200m }
-            },
-            Withdrawals = new List<OwnerWithdrawalEntry>
-            {
-                new() { Amount = 150m }
-            }
+            [LaborerConfigHelper.LaborerKey(1)] = "Metalworker",
+            [LaborerConfigHelper.DispatchTimeKey(1)] = LaborerConfigHelper.FormatUtc(DateTime.UtcNow.AddHours(2)),
+            [LaborerConfigHelper.LaborerKey(2)] = "Woodworker"
         };
+        plot.Configuration = LaborerConfigHelper.BuildConfiguration(dict);
 
-        var earned = 0m;
-        foreach (var c in profile.CycleHistory) earned += c.EarnedAmount;
-        var withdrawn = 0m;
-        foreach (var w in profile.Withdrawals) withdrawn += w.Amount;
+        plot.UpdateLaborerStatuses([]); // offline path (no live snapshots)
 
-        var balance = profile.OpeningBalance + earned - withdrawn;
-
-        balance.Should().Be(450m);
+        // The retired Sent tier must never appear — a dispatched laborer is on_job, never "sent".
+        plot.Laborer1IndicatorState.Should().Be("on_job", "the retired Sent tier must resolve to on_job");
+        plot.Laborer1IndicatorState.Should().NotBe("sent");
     }
 
     [Test]
-    public void OwnerBalance_MultipleWithdrawals_SubtractsAll()
+    public void LaborerLiveStatus_HasNoSentMember()
     {
-        var profile = new OwnerProfile
-        {
-            OpeningBalance = 0m,
-            CycleHistory = new List<OwnerCycleRecord>
-            {
-                new() { EarnedAmount = 1000m }
-            },
-            Withdrawals = new List<OwnerWithdrawalEntry>
-            {
-                new() { Amount = 300m },
-                new() { Amount = 200m },
-                new() { Amount = 100m }
-            }
-        };
+        Enum.GetNames(typeof(LaborerLiveStatus)).Should().NotContain("Sent");
+    }
+}
 
-        var earned = profile.CycleHistory[0].EarnedAmount;
-        var withdrawn = 600m;
-        var balance = profile.OpeningBalance + earned - withdrawn;
+// Regression for G8b: WorldToNearestSlot must reject an off-grid position rather than snap it to a far slot.
+[TestFixture]
+public class SlotDistanceCutoffTests
+{
+    [Test]
+    public void WorldToNearestSlot_FarOffGridPosition_ReturnsNull()
+    {
+        var layout = IslandLayouts.Get(IslandLayouts.PlayerStandard);
 
-        balance.Should().Be(400m);
+        // A wildly out-of-range world position projects far from every slot center (> 50px) → no match.
+        layout.WorldToNearestSlot(100000f, 100000f).Should().BeNull();
     }
 
     [Test]
-    public void RecordPayment_AddsWithdrawalEntry()
+    public void WorldToNearestSlot_OnSlotPosition_StillMatches()
     {
-        var profile = new OwnerProfile
-        {
-            OpeningBalance = 500m,
-            Withdrawals = new List<OwnerWithdrawalEntry>()
-        };
+        var layout = IslandLayouts.Get(IslandLayouts.PlayerStandard);
 
-        var entry = new OwnerWithdrawalEntry { Amount = 200m, Notes = "Weekly payout", Timestamp = DateTime.UtcNow };
-        profile.Withdrawals.Add(entry);
-
-        profile.Withdrawals.Should().HaveCount(1);
-        profile.Withdrawals[0].Amount.Should().Be(200m);
-        profile.Withdrawals[0].Notes.Should().Be("Weekly payout");
-    }
-
-    [Test]
-    public void AddCycleRecord_IncreasesEarnings()
-    {
-        var profile = new OwnerProfile
-        {
-            OpeningBalance = 0m,
-            CycleHistory = new List<OwnerCycleRecord>()
-        };
-
-        profile.CycleHistory.Add(new OwnerCycleRecord { EarnedAmount = 750m, Notes = "Island cycle 1" });
-        profile.CycleHistory.Add(new OwnerCycleRecord { EarnedAmount = 250m, Notes = "Island cycle 2" });
-
-        var totalEarned = 0m;
-        foreach (var r in profile.CycleHistory) totalEarned += r.EarnedAmount;
-
-        totalEarned.Should().Be(1000m);
-        profile.CycleHistory.Should().HaveCount(2);
+        // The calibrated position over slot 5 is within the cutoff and still resolves.
+        layout.WorldToNearestSlot(143.8f, 136f).Should().Be(5);
     }
 }
 
