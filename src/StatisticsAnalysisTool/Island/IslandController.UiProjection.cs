@@ -59,7 +59,7 @@ public partial class IslandController
                 if (anyChanged)
                 {
                     sessionIsland.UpdateModificationDate();
-                    _ = SaveToFileAsync();
+                    RequestSaveToFile();
                 }
             }
 
@@ -106,7 +106,7 @@ public partial class IslandController
                 if (anyChanged)
                 {
                     isl.UpdateModificationDate();
-                    _ = SaveToFileAsync();
+                    RequestSaveToFile();
                 }
             }
 

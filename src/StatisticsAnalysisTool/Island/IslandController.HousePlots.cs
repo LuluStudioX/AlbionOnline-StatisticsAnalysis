@@ -24,7 +24,7 @@ public partial class IslandController
 
         island.MixedRegionAltActive = alt.Value;
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         RefreshBindingsAsync();
         Log.Information("[IslandController] Mixed-region placement detected: island={Island}, altActive={Alt}", island.Name, alt.Value);
     }
@@ -88,7 +88,7 @@ public partial class IslandController
         if (changed)
         {
             island.UpdateModificationDate();
-            _ = SaveToFileAsync();
+            RequestSaveToFile();
         }
     }
 
@@ -107,7 +107,7 @@ public partial class IslandController
 
         unassigned.MapSlotIndex = slotIndex.Value;
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         Log.Information("[IslandController] Auto-assigned house map slot {Slot} from laborer world pos", slotIndex.Value);
         RefreshIslandStatusAsync(island);
     }
@@ -166,7 +166,7 @@ public partial class IslandController
                 slotPlot.MapSlotIndex = slotIndex.Value; // commit slot only after a successful write
                 PurgeDuplicateLaborerName(island, slotPlot, snapshot.FullName);
                 island.UpdateModificationDate();
-                _ = SaveToFileAsync();
+                RequestSaveToFile();
                 RefreshIslandStatusAsync(island);
                 Log.Information("[IslandController] Position-matched house on live detection: island={Island}, laborer={Laborer}, type={Type}, tier=T{Tier}, slot={Slot}",
                     island.Name, snapshot.FullName, snapshot.LaborerType, snapshot.BuildingTier, slotIndex.Value);
@@ -183,7 +183,7 @@ public partial class IslandController
             slotPlot.MapSlotIndex = slotIndex.Value;
             PurgeDuplicateLaborerName(island, slotPlot, snapshot.FullName);
             island.UpdateModificationDate();
-            _ = SaveToFileAsync();
+            RequestSaveToFile();
             RefreshIslandStatusAsync(island);
             Log.Information("[IslandController] Stamped live name on seed slot at position-matched house: island={Island}, laborer={Laborer}, type={Type}, tier=T{Tier}, slot={Slot}",
                 island.Name, snapshot.FullName, snapshot.LaborerType, snapshot.BuildingTier, slotIndex.Value);
@@ -199,7 +199,7 @@ public partial class IslandController
                 slotPlot.MapSlotIndex = slotIndex.Value; // commit slot only after a successful write
                 PurgeDuplicateLaborerName(island, slotPlot, snapshot.FullName);
                 island.UpdateModificationDate();
-                _ = SaveToFileAsync();
+                RequestSaveToFile();
                 RefreshIslandStatusAsync(island);
                 Log.Information("[IslandController] Laborer swap detected at position-matched house: island={Island}, laborer={Laborer}, type={Type}, tier=T{Tier}, slot={Slot}",
                     island.Name, snapshot.FullName, snapshot.LaborerType, snapshot.BuildingTier, slotIndex.Value);
@@ -210,7 +210,7 @@ public partial class IslandController
             if (PurgeDuplicateLaborerName(island, slotPlot, snapshot.FullName))
             {
                 island.UpdateModificationDate();
-                _ = SaveToFileAsync();
+                RequestSaveToFile();
             }
         }
         return true;
@@ -244,7 +244,7 @@ public partial class IslandController
         if (changed)
         {
             island.UpdateModificationDate();
-            _ = SaveToFileAsync();
+            RequestSaveToFile();
             // Full binding rebuild needed when slot was re-assigned so cards re-sort and labels update.
             if (slotAssigned)
                 RefreshBindingsAsync();
@@ -300,7 +300,7 @@ public partial class IslandController
                         plot.Configuration = LaborerConfigHelper.BuildConfiguration(config);
                         PurgeDuplicateLaborerName(island, plot, snapshot.FullName);
                         island.UpdateModificationDate();
-                        _ = SaveToFileAsync();
+                        RequestSaveToFile();
                         RefreshIslandStatusAsync(island);
                         Log.Information("[IslandController] Enriched house plot config from type-match: island={Island}, laborer={Laborer}, slot={Slot}",
                             island.Name, snapshot.FullName, slot);
@@ -311,7 +311,7 @@ public partial class IslandController
                         if (PurgeDuplicateLaborerName(island, plot, snapshot.FullName))
                         {
                             island.UpdateModificationDate();
-                            _ = SaveToFileAsync();
+                            RequestSaveToFile();
                         }
                     }
                     return true; // type (and tier) matched — this snapshot belongs to this plot

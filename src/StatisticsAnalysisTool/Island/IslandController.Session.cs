@@ -52,7 +52,7 @@ public partial class IslandController
                 island.WorldMapDataType = _sessionWorldMapDataType;
             }
             island.UpdateModificationDate();
-            _ = SaveToFileAsync();
+            RequestSaveToFile();
         }
     }
 
@@ -177,7 +177,7 @@ public partial class IslandController
         if (TryBackfillClusterIdentifiers(match))
         {
             match.UpdateModificationDate();
-            _ = SaveToFileAsync();
+            RequestSaveToFile();
             Log.Information("[IslandController] Backfilled cluster identifiers on '{Name}' after auto-select.", match.Name);
         }
 
@@ -219,7 +219,7 @@ public partial class IslandController
         if (!TryBackfillClusterIdentifiers(island)) return;
 
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         Log.Information("[IslandController] Backfilled cluster identifiers on '{Name}' after manual selection.", island.Name);
     }
 

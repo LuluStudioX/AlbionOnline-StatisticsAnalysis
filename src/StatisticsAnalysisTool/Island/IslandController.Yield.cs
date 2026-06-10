@@ -191,7 +191,7 @@ public partial class IslandController
 
         island.ClearYield();
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         _yieldTracker.PushUpdate(island);
     }
 
@@ -208,6 +208,6 @@ public partial class IslandController
             island.UpdateModificationDate();
             _yieldTracker.PushUpdate(island);
         }
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
     }
 }

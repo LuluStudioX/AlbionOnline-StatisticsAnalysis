@@ -44,7 +44,7 @@ public partial class IslandController
         }
 
         RefreshBindingsAsync();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         return island.Id;
     }
 
@@ -79,7 +79,7 @@ public partial class IslandController
         }
 
         RefreshBindingsAsync();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
     }
 
     public void RemoveIsland(Guid id)
@@ -88,7 +88,7 @@ public partial class IslandController
             _islands.RemoveAll(x => x.Id == id);
 
         RefreshBindingsAsync();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
     }
 
     public Island GetById(Guid id)
@@ -123,5 +123,20 @@ public partial class IslandController
             snapshot = _islands.ToList();
 
         await IslandStore.SaveAsync(snapshot);
+    }
+
+    // Debounced, coalescing island writer for the fire-and-forget CRUD/push/yield paths. Bursts collapse
+    // into a single write that snapshots the list at fire time, so a slower older snapshot can never
+    // overwrite a newer one. Mirrors the laborer push debounce (PushLiveStatusToBindings).
+    private void RequestSaveToFile()
+    {
+        if (_saveDebounceTimer != null)
+        {
+            _saveDebounceTimer.Change(SaveDebounceMs, Timeout.Infinite);
+            return;
+        }
+        var t = new System.Threading.Timer(_ => _ = SaveToFileAsync(), null, SaveDebounceMs, Timeout.Infinite);
+        if (Interlocked.CompareExchange(ref _saveDebounceTimer, t, null) != null)
+            t.Dispose();
     }
 }

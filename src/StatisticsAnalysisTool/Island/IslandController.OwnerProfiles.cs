@@ -122,7 +122,26 @@ public partial class IslandController
         }
     }
 
+    // Non-inserting lookup for read paths. Returns false (and null) when no profile exists yet, so
+    // reading a ledger/balance for an unknown owner can never create + persist a phantom profile (G4).
+    public bool TryGetProfile(string ownerName, out OwnerProfile profile)
+    {
+        profile = null;
+        if (string.IsNullOrWhiteSpace(ownerName)) return false;
+        lock (_ownerProfilesLock)
+            return _ownerProfiles.TryGetValue(ownerName, out profile);
+    }
+
+    // Read-only profile lookup — never inserts. Use for any pure read; use GetOrCreateOwnerProfile only
+    // on an explicit user-initiated write.
     public OwnerProfile GetOwnerProfile(string ownerName)
+    {
+        TryGetProfile(ownerName, out var profile);
+        return profile;
+    }
+
+    // Creating lookup for explicit user-initiated writes (setters, payment, cycle records).
+    public OwnerProfile GetOrCreateOwnerProfile(string ownerName)
     {
         if (string.IsNullOrWhiteSpace(ownerName)) return null;
         return GetOrCreateProfile(ownerName);

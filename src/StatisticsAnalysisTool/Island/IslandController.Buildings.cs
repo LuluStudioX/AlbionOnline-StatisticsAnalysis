@@ -99,7 +99,7 @@ public partial class IslandController
                             {
                                 matchedPlot.MapSlotIndex = slotIndex.Value;
                                 island.UpdateModificationDate();
-                                _ = SaveToFileAsync();
+                                RequestSaveToFile();
                                 Log.Information("[IslandController] Auto-assigned slot {Slot} to {Type} plot via world pos ({X},{Y})",
                                     slotIndex.Value, anchorPlotType, e.Position.Value.X, e.Position.Value.Y);
                                 RefreshIslandStatusAsync(island);
@@ -154,7 +154,7 @@ public partial class IslandController
             && UpdatePlotTile(plantedPlot, e.ObjectId, e.PlantedAt.Value))
         {
             island.UpdateModificationDate();
-            _ = SaveToFileAsync();
+            RequestSaveToFile();
             RefreshIslandStatusAsync(island);
         }
 
@@ -179,7 +179,7 @@ public partial class IslandController
             ?? (IsFarmableSeed(e.UniqueName) ? PlotType.HerbGarden : PlotType.Pasture);
         island.AddConsumed(item.Index, 1, plotType);
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         _yieldTracker.PushUpdate(island);
         Log.Information("[IslandController] Recorded replanted seed as consumed: island={Island}, item={Item}, plotType={PlotType}",
             island.Name, e.UniqueName, plotType);

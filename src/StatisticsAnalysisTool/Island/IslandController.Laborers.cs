@@ -52,7 +52,7 @@ public partial class IslandController
         {
             currentIsland.TotalLaborersSent++;
             currentIsland.UpdateModificationDate();
-            _ = SaveToFileAsync();
+            RequestSaveToFile();
             RefreshIslandStatusAsync(currentIsland);
         }
 
@@ -99,7 +99,7 @@ public partial class IslandController
         island.LastPlantedAt = cycleStartUtc;
         island.LastHandledAt = DateTime.UtcNow;
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         RefreshIslandStatusAsync(island);
         TryAutoPrefillPayout(island);
         Log.Information("[IslandController] Auto-started island timer from laborer cycle: island={Island}, laborer={Laborer}, ready={ReadyUtc:O}, cycleStart={CycleStartUtc:O}",

@@ -42,6 +42,11 @@ public partial class IslandController
     private volatile System.Threading.Timer _pushDebounceTimer;
     private const int PushDebounceMs = 200;
 
+    // Single debounced island writer. CRUD/push/yield paths request a save; bursts coalesce into one
+    // snapshot-at-fire-time write so a slower older snapshot can never overwrite a newer one (G3).
+    private volatile System.Threading.Timer _saveDebounceTimer;
+    private const int SaveDebounceMs = 300;
+
     // Farmable state-change dedup keyed by ObjectId.
     private readonly ConcurrentDictionary<long, string> _farmableSignatures = new();
 
@@ -92,6 +97,8 @@ public partial class IslandController
         _transitionTimer = null;
         _pushDebounceTimer?.Dispose();
         _pushDebounceTimer = null;
+        _saveDebounceTimer?.Dispose();
+        _saveDebounceTimer = null;
         _yieldTracker.StopFlushTimer();
     }
 

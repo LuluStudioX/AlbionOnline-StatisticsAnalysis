@@ -61,7 +61,7 @@ public partial class IslandController
 
         if (!UpdatePlotTile(plot, plotObjectId, null)) return;
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         RefreshIslandStatusAsync(island);
         Log.Information("[IslandController] Cleared plot tile on collect: island={Island}, plot={Plot}, objId={ObjectId}",
             island.Name, plot.DisplayLabel, plotObjectId);
@@ -87,7 +87,7 @@ public partial class IslandController
 
         if (!UpdatePlotTile(plot, plotObjectId, DateTime.UtcNow)) return;
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         RefreshIslandStatusAsync(island);
         Log.Information("[IslandController] Started pasture cycle on feed: island={Island}, plot={Plot}, objId={ObjectId}",
             island.Name, plot.DisplayLabel, plotObjectId);
@@ -158,7 +158,7 @@ public partial class IslandController
     {
         island.PlantAll();
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         RefreshIslandStatusAsync(island);
         TryAutoPrefillPayout(island);
     }
@@ -192,7 +192,7 @@ public partial class IslandController
                 island.Name, uniqueName, quantity);
         }
 
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         _yieldTracker.PushUpdate(island);
     }
 
@@ -246,7 +246,7 @@ public partial class IslandController
         // Timer clearing is per-plot via the collect REQUEST (HandleFarmableCollect) — not here. The response
         // fires once per item and carries no plot id, so clearing by type here re-wiped freshly-replanted
         // plots on every harvest (the collect clear-storm). Yield recording only.
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         _yieldTracker.PushUpdate(island);
     }
 
@@ -307,7 +307,7 @@ public partial class IslandController
             {
                 island.LastPlantedAt = e.PlantedAt.Value;
                 island.UpdateModificationDate();
-                _ = SaveToFileAsync();
+                RequestSaveToFile();
                 RefreshIslandStatusAsync(island);
                 Log.Information("[IslandController] Updated plot timer from FarmableObjectInfo: island={Island}, objectId={ObjectId}, plot={Plot}, plantedAt={PlantedAt:O}",
                     island.Name, e.ObjectId, plot?.DisplayLabel ?? "(per-type)", e.PlantedAt.Value);
@@ -360,7 +360,7 @@ public partial class IslandController
         existing[info.ConfigKey] = info.DisplayName;
         target.Configuration = LaborerConfigHelper.BuildConfiguration(existing);
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         RefreshIslandStatusAsync(island);
         Log.Information("[IslandController] Auto-applied farmable config: island={Island}, plotType={PlotType}, key={Key}, value={Value}",
             island.Name, info.PlotType, info.ConfigKey, info.DisplayName);
@@ -395,7 +395,7 @@ public partial class IslandController
         dict[info.ConfigKey] = info.DisplayName;
         slotPlot.Configuration = LaborerConfigHelper.BuildConfiguration(dict);
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         RefreshIslandStatusAsync(island);
         Log.Information("[IslandController] Position-matched farmable config: island={Island}, plotType={PlotType}, slot={Slot}, key={Key}, {Old} -> {New}",
             island.Name, info.PlotType, slotIndex.Value, info.ConfigKey, string.IsNullOrEmpty(existing) ? "(empty)" : existing, info.DisplayName);
@@ -412,7 +412,7 @@ public partial class IslandController
             plot.MapSlotIndex = null;
 
         island.UpdateModificationDate();
-        _ = SaveToFileAsync();
+        RequestSaveToFile();
         Log.Information("[IslandController] Slot assignments reset for island {Name} — will re-assign on next visit", island.Name);
         RefreshBindingsAsync();
     }

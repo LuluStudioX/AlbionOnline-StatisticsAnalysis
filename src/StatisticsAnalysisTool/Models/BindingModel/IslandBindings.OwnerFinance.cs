@@ -93,8 +93,15 @@ public partial class IslandBindings
     private IslandController GetController() =>
         ServiceLocator.Resolve<TrackingController>()?.IslandController;
 
-    private OwnerProfile GetOrCreateProfile(string ownerName) =>
+    // Read-only profile access for getters: never creates a profile in the controller. Returns a throwaway
+    // empty profile on miss so callers can read default values without spawning a phantom owner (G4).
+    private OwnerProfile ReadProfile(string ownerName) =>
         GetController()?.GetOwnerProfile(ownerName) ?? new OwnerProfile();
+
+    // Creating profile access for setters/explicit writes: hits the controller's GetOrCreateOwnerProfile so
+    // the mutation lands on the persisted instance. Returns a throwaway only when no controller is available.
+    private OwnerProfile GetOrCreateProfile(string ownerName) =>
+        GetController()?.GetOrCreateOwnerProfile(ownerName) ?? new OwnerProfile();
 
     private IEnumerable<Island.Island> GetSelectedOwnerDomainIslands()
     {
@@ -195,7 +202,7 @@ public partial class IslandBindings
         get
         {
             return GetEffectiveOwnerNames()
-                .Sum(n => GetOrCreateProfile(n).CycleHistory?.Sum(c => c.EarnedAmount) ?? 0);
+                .Sum(n => ReadProfile(n).CycleHistory?.Sum(c => c.EarnedAmount) ?? 0);
         }
     }
 
@@ -204,13 +211,13 @@ public partial class IslandBindings
         get
         {
             return GetEffectiveOwnerNames()
-                .Sum(n => GetOrCreateProfile(n).Withdrawals?.Sum(w => w.Amount) ?? 0);
+                .Sum(n => ReadProfile(n).Withdrawals?.Sum(w => w.Amount) ?? 0);
         }
     }
 
     public decimal SelectedOwnerOpeningBalance
     {
-        get => GetEffectiveOwnerNames().Sum(n => GetOrCreateProfile(n).OpeningBalance);
+        get => GetEffectiveOwnerNames().Sum(n => ReadProfile(n).OpeningBalance);
         set
         {
             var name = EffectiveOwnerName;
@@ -244,7 +251,7 @@ public partial class IslandBindings
         get
         {
             var name = EffectiveOwnerName;
-            return string.IsNullOrWhiteSpace(name) ? 0 : GetOrCreateProfile(name).DefaultPayPerIsland;
+            return string.IsNullOrWhiteSpace(name) ? 0 : ReadProfile(name).DefaultPayPerIsland;
         }
         set
         {
@@ -261,7 +268,7 @@ public partial class IslandBindings
         get
         {
             var name = EffectiveOwnerName;
-            return string.IsNullOrWhiteSpace(name) ? DayOfWeek.Sunday : GetOrCreateProfile(name).PayoutDayOfWeek;
+            return string.IsNullOrWhiteSpace(name) ? DayOfWeek.Sunday : ReadProfile(name).PayoutDayOfWeek;
         }
         set
         {
@@ -294,7 +301,7 @@ public partial class IslandBindings
         get
         {
             var name = EffectiveOwnerName;
-            return string.IsNullOrWhiteSpace(name) ? OwnerEngagementType.Unpaid : GetOrCreateProfile(name).EngagementType;
+            return string.IsNullOrWhiteSpace(name) ? OwnerEngagementType.Unpaid : ReadProfile(name).EngagementType;
         }
         set
         {
@@ -316,7 +323,7 @@ public partial class IslandBindings
     private void RefreshManagerResponsibilityItems()
     {
         var name = EffectiveOwnerName;
-        var current = string.IsNullOrWhiteSpace(name) ? ManagerResponsibility.None : GetOrCreateProfile(name).ManagerResponsibilities;
+        var current = string.IsNullOrWhiteSpace(name) ? ManagerResponsibility.None : ReadProfile(name).ManagerResponsibilities;
         _managerResponsibilityItems.Clear();
         foreach (var flag in new[] { ManagerResponsibility.HandlesRefills, ManagerResponsibility.NotifyLowResources, ManagerResponsibility.RequestsMaterials })
         {
@@ -344,7 +351,7 @@ public partial class IslandBindings
         get
         {
             var name = EffectiveOwnerName;
-            return string.IsNullOrWhiteSpace(name) ? string.Empty : GetOrCreateProfile(name).Notes;
+            return string.IsNullOrWhiteSpace(name) ? string.Empty : ReadProfile(name).Notes;
         }
         set
         {
@@ -361,7 +368,7 @@ public partial class IslandBindings
         get
         {
             var name = EffectiveOwnerName;
-            return string.IsNullOrWhiteSpace(name) ? string.Empty : GetOrCreateProfile(name).WebhookUrl;
+            return string.IsNullOrWhiteSpace(name) ? string.Empty : ReadProfile(name).WebhookUrl;
         }
         set
         {
@@ -379,7 +386,7 @@ public partial class IslandBindings
         {
             var today = DateTime.Today;
             return GetEffectiveOwnerNames()
-                .Sum(n => GetOrCreateProfile(n).CycleHistory?
+                .Sum(n => ReadProfile(n).CycleHistory?
                     .Where(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands)
                     .Sum(c => c.EarnedAmount) ?? 0);
         }
@@ -391,7 +398,7 @@ public partial class IslandBindings
         {
             var today = DateTime.Today;
             return GetEffectiveOwnerNames()
-                .Sum(n => GetOrCreateProfile(n).CycleHistory?
+                .Sum(n => ReadProfile(n).CycleHistory?
                     .Where(c => c.Date.Date == today)
                     .Sum(c => c.IslandCount) ?? 0);
         }
@@ -406,7 +413,7 @@ public partial class IslandBindings
         {
             var today = DateTime.Today;
             return GetEffectiveOwnerNames()
-                .Sum(n => GetOrCreateProfile(n).CycleHistory?
+                .Sum(n => ReadProfile(n).CycleHistory?
                     .Where(c => c.Date.Date == today && c.RecordType != CycleRecordType.Islands)
                     .Sum(c => c.EarnedAmount) ?? 0);
         }
@@ -418,7 +425,7 @@ public partial class IslandBindings
         {
             var today = DateTime.Today;
             return GetEffectiveOwnerNames()
-                .SelectMany(n => GetOrCreateProfile(n).CycleHistory?
+                .SelectMany(n => ReadProfile(n).CycleHistory?
                     .Where(c => c.Date.Date == today && c.RecordType != CycleRecordType.Islands)
                     .Select(c => string.IsNullOrWhiteSpace(c.Notes)
                         ? c.RecordType.ToString()
@@ -463,7 +470,7 @@ public partial class IslandBindings
 
         var today = DateTime.Today;
         var islandNotes = GetEffectiveOwnerNames()
-            .SelectMany(n => GetOrCreateProfile(n).CycleHistory?
+            .SelectMany(n => ReadProfile(n).CycleHistory?
                 .Where(c => c.Date.Date == today
                     && c.RecordType == CycleRecordType.Islands
                     && !string.IsNullOrWhiteSpace(c.Notes))
@@ -638,7 +645,7 @@ public partial class IslandBindings
             if (Preferences?.UseDailyPayoutMode == true) return DateTime.Today;
             var name = EffectiveOwnerName;
             if (string.IsNullOrWhiteSpace(name)) return DateTime.Today;
-            var profile = GetOrCreateProfile(name);
+            var profile = ReadProfile(name);
             var lastPayout = profile.Withdrawals?
                 .Select(w => w.Timestamp.ToLocalTime().Date)
                 .OrderByDescending(d => d).FirstOrDefault();
@@ -652,7 +659,7 @@ public partial class IslandBindings
         {
             var name = EffectiveOwnerName;
             if (string.IsNullOrWhiteSpace(name)) return 0;
-            var profile = GetOrCreateProfile(name);
+            var profile = ReadProfile(name);
             if (Preferences?.UseDailyPayoutMode == true)
                 return profile.CycleHistory?.Where(c => c.Date.Date == DateTime.Today).Sum(c => c.EarnedAmount) ?? 0;
             var weekStart = GetCurrentCalendarWeekStart();
@@ -687,12 +694,12 @@ public partial class IslandBindings
         var currentWeekStart = GetCurrentCalendarWeekStart();
 
         var allHistory = names
-            .SelectMany(n => GetOrCreateProfile(n).CycleHistory ?? Enumerable.Empty<OwnerCycleRecord>())
+            .SelectMany(n => ReadProfile(n).CycleHistory ?? Enumerable.Empty<OwnerCycleRecord>())
             .Where(c => c.Date.Date < currentWeekStart)
             .ToList();
 
         var allWithdrawals = names
-            .SelectMany(n => GetOrCreateProfile(n).Withdrawals ?? Enumerable.Empty<OwnerWithdrawalEntry>())
+            .SelectMany(n => ReadProfile(n).Withdrawals ?? Enumerable.Empty<OwnerWithdrawalEntry>())
             .Where(w => w.Timestamp.ToLocalTime().Date < currentWeekStart)
             .ToList();
 
@@ -770,7 +777,7 @@ public partial class IslandBindings
 
     public OwnerProfile SelectedOwnerProfile => string.IsNullOrWhiteSpace(EffectiveOwnerName)
         ? null
-        : GetOrCreateProfile(EffectiveOwnerName);
+        : ReadProfile(EffectiveOwnerName);
 
     public IReadOnlyList<OwnerLedgerEntry> SelectedOwnerLedger
     {
@@ -778,7 +785,7 @@ public partial class IslandBindings
         {
             var name = EffectiveOwnerName;
             if (string.IsNullOrWhiteSpace(name)) return Array.Empty<OwnerLedgerEntry>();
-            var profile = GetOrCreateProfile(name);
+            var profile = ReadProfile(name);
             var entries = new List<OwnerLedgerEntry>();
             foreach (var c in profile.CycleHistory ?? Enumerable.Empty<OwnerCycleRecord>())
             {
@@ -940,7 +947,7 @@ public partial class IslandBindings
         if (string.IsNullOrWhiteSpace(name))
             return (new Dictionary<DateTime, double>(), new Dictionary<DateTime, double>(), []);
 
-        var profile = GetOrCreateProfile(name);
+        var profile = ReadProfile(name);
         var earnedByDay = (profile.CycleHistory ?? new List<OwnerCycleRecord>())
             .GroupBy(c => c.Date.ToLocalTime().Date)
             .ToDictionary(g => g.Key, g => g.Sum(c => (double)c.EarnedAmount));
@@ -1382,7 +1389,7 @@ public partial class IslandBindings
     {
         var name = EffectiveOwnerName;
         if (string.IsNullOrWhiteSpace(name)) return;
-        var profile = GetOrCreateProfile(name);
+        var profile = ReadProfile(name);
         if (isCycle)
         {
             var item = profile.CycleHistory?.FirstOrDefault(c => c.Id == entryId);
@@ -1410,14 +1417,14 @@ public partial class IslandBindings
     {
         var name = EffectiveOwnerName;
         if (string.IsNullOrWhiteSpace(name)) return null;
-        return GetOrCreateProfile(name).CycleHistory?.FirstOrDefault(c => c.Id == entryId);
+        return ReadProfile(name).CycleHistory?.FirstOrDefault(c => c.Id == entryId);
     }
 
     public OwnerWithdrawalEntry GetWithdrawalRecord(Guid entryId)
     {
         var name = EffectiveOwnerName;
         if (string.IsNullOrWhiteSpace(name)) return null;
-        return GetOrCreateProfile(name).Withdrawals?.FirstOrDefault(w => w.Id == entryId);
+        return ReadProfile(name).Withdrawals?.FirstOrDefault(w => w.Id == entryId);
     }
 
     public void UpdateLedgerWithdrawalEntry(OwnerWithdrawalEntry updated)
