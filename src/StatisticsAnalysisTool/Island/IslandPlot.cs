@@ -192,13 +192,13 @@ public class IslandPlot : BaseViewModel
         + (string.IsNullOrWhiteSpace(Laborer3Line) ? 0 : 1);
 
     [System.Text.Json.Serialization.JsonIgnore]
-    public string Laborer1IndicatorState => AllLaborersSent ? "none" : ToCode(_laborer1Status);
+    public string Laborer1IndicatorState => ToCode(_laborer1Status);
 
     [System.Text.Json.Serialization.JsonIgnore]
-    public string Laborer2IndicatorState => AllLaborersSent ? "none" : ToCode(_laborer2Status);
+    public string Laborer2IndicatorState => ToCode(_laborer2Status);
 
     [System.Text.Json.Serialization.JsonIgnore]
-    public string Laborer3IndicatorState => AllLaborersSent ? "none" : ToCode(_laborer3Status);
+    public string Laborer3IndicatorState => ToCode(_laborer3Status);
 
     [System.Text.Json.Serialization.JsonIgnore]
     public string PlotSentState
@@ -288,12 +288,11 @@ public class IslandPlot : BaseViewModel
             if (n <= 0) return [];
             if (PlotType == PlotType.House)
             {
-                var sent = AllLaborersSent;
                 var count = ConfiguredLaborerCount;
                 var dots = new List<string>(3);
-                if (count >= 1) dots.Add(sent ? "none" : ToCode(_laborer1Status));
-                if (count >= 2) dots.Add(sent ? "none" : ToCode(_laborer2Status));
-                if (count >= 3) dots.Add(sent ? "none" : ToCode(_laborer3Status));
+                if (count >= 1) dots.Add(ToCode(_laborer1Status));
+                if (count >= 2) dots.Add(ToCode(_laborer2Status));
+                if (count >= 3) dots.Add(ToCode(_laborer3Status));
                 return dots;
             }
             if (_plotType.HasCollectionTimer())
@@ -358,7 +357,7 @@ public class IslandPlot : BaseViewModel
     /// <see cref="IslandLaborerResolver"/> so a laborer can never light more than one card.
     /// Null/empty when the island has no live snapshots (offline path uses stored config state).
     /// </param>
-    public bool UpdateLaborerStatuses(IReadOnlyList<LaborerSnapshot> snapshots, DateTime? islandLastPlantedAt = null,
+    public bool UpdateLaborerStatuses(IReadOnlyList<LaborerSnapshot> snapshots, DateTime? islandLastCycleStartAt = null,
         IReadOnlyDictionary<int, LaborerSnapshot> slotAssignments = null)
     {
         var dict = LaborerConfigHelper.ParseConfiguration(_configuration);
@@ -371,9 +370,9 @@ public class IslandPlot : BaseViewModel
         var prevT2 = _laborer2TimeRemaining;
         var prevT3 = _laborer3TimeRemaining;
 
-        _laborer1Status = ResolveSlotStatus(1, snapshots, slotAssignments, dict, out var t1, ref configChanged, islandLastPlantedAt);
-        _laborer2Status = ResolveSlotStatus(2, snapshots, slotAssignments, dict, out var t2, ref configChanged, islandLastPlantedAt);
-        _laborer3Status = ResolveSlotStatus(3, snapshots, slotAssignments, dict, out var t3, ref configChanged, islandLastPlantedAt);
+        _laborer1Status = ResolveSlotStatus(1, snapshots, slotAssignments, dict, out var t1, ref configChanged, islandLastCycleStartAt);
+        _laborer2Status = ResolveSlotStatus(2, snapshots, slotAssignments, dict, out var t2, ref configChanged, islandLastCycleStartAt);
+        _laborer3Status = ResolveSlotStatus(3, snapshots, slotAssignments, dict, out var t3, ref configChanged, islandLastCycleStartAt);
         _laborer1TimeRemaining = t1;
         _laborer2TimeRemaining = t2;
         _laborer3TimeRemaining = t3;
@@ -414,26 +413,28 @@ public class IslandPlot : BaseViewModel
         Dictionary<string, string> dict,
         out string timeRemaining,
         ref bool configChanged,
-        DateTime? islandLastPlantedAt)
+        DateTime? islandLastCycleStartAt)
     {
         timeRemaining = string.Empty;
         if (PlotType != PlotType.House) return LaborerLiveStatus.None;
 
         // No live snapshots for this island — fall back to stored dispatch/loot-ready state.
         if (snapshots == null || snapshots.Count == 0)
-            return MatchStatusOffline(slot, dict, islandLastPlantedAt, out timeRemaining);
+            return MatchStatusOffline(slot, dict, islandLastCycleStartAt, out timeRemaining);
 
         // Live: render only the snapshot the island-wide resolver assigned to this slot.
         if (slotAssignments != null && slotAssignments.TryGetValue(slot, out var match) && match != null)
             return RenderLiveStatus(slot, match, dict, out timeRemaining, ref configChanged);
 
-        return LaborerLiveStatus.None;
+        // Snapshots present but this slot wasn't matched (resolver miss / not yet broadcast): keep the
+        // persisted state instead of flashing Home, so a known Loot Ready survives the live handoff.
+        return MatchStatusOffline(slot, dict, islandLastCycleStartAt, out timeRemaining);
     }
 
     private LaborerLiveStatus MatchStatusOffline(
         int slot,
         Dictionary<string, string> dict,
-        DateTime? islandLastPlantedAt,
+        DateTime? islandLastCycleStartAt,
         out string timeRemaining)
     {
         timeRemaining = string.Empty;
@@ -449,16 +450,6 @@ public class IslandPlot : BaseViewModel
             // the cycle — use it directly. Adding the cycle again double-counts (~44h instead of ~22h).
             readyAtUtc = parsedDispatch.ToUniversalTime();
         }
-        else if (islandLastPlantedAt.HasValue
-            && dict.TryGetValue(LaborerConfigHelper.LaborerKey(slot), out var slotLaborerType)
-            && !string.IsNullOrWhiteSpace(slotLaborerType)
-            && !string.Equals(slotLaborerType, LaborerConfigHelper.NoneValue, StringComparison.OrdinalIgnoreCase))
-        {
-            // No per-slot DispatchTime — island-level LastPlantedAt is a cycle START, so add the cycle.
-            var jobDurationHours = _plotType.GetBaseCollectionHours(_configuration);
-            if (jobDurationHours <= 0) jobDurationHours = IslandConstants.LaborerBaseCycleHours;
-            readyAtUtc = islandLastPlantedAt.Value.ToUniversalTime().AddHours(jobDurationHours);
-        }
 
         if (readyAtUtc.HasValue)
         {
@@ -468,7 +459,11 @@ public class IslandPlot : BaseViewModel
                 timeRemaining = FormatRemaining(remaining);
                 return LaborerLiveStatus.OnJob;
             }
-            return LaborerLiveStatus.LootReady;
+            // Loot stays collectable for a fixed window after the return; only after it lapses uncollected
+            // (e.g. a long break with no collection) does the laborer revert to idle/home.
+            if (DateTime.UtcNow < readyAtUtc.Value.AddHours(IslandConstants.LaborerLootExpiryHours))
+                return LaborerLiveStatus.LootReady;
+            return LaborerLiveStatus.Home;
         }
 
         // Legacy fallback: configs saved before the anchor change only stored a derived loot-ready bool.
@@ -503,24 +498,26 @@ public class IslandPlot : BaseViewModel
         // separate derived flag to store or keep in sync. The anchor is present iff the laborer has an active
         // job (on-job OR loot-ready) and is cleared when home so offline state can never go stale.
         var readyAt = match.ReadyAtUtc;
-        if (readyAt.HasValue)
+        if (!readyAt.HasValue)
         {
-            if (match.IsOnJob)
-            {
-                var remaining = readyAt.Value - DateTime.UtcNow;
-                if (remaining > TimeSpan.Zero)
-                    timeRemaining = FormatRemaining(remaining);
-            }
-
-            var newDispatch = LaborerConfigHelper.FormatUtc(readyAt.Value);
-            if (!dict.TryGetValue(LaborerConfigHelper.DispatchTimeKey(slot), out var existing) || existing != newDispatch)
-            {
-                dict[LaborerConfigHelper.DispatchTimeKey(slot)] = newDispatch;
-                configChanged = true;
-            }
+            // Fresh/incomplete snapshot — the job packets (56 param 8 / 57) haven't arrived yet on this
+            // visit. Don't flash Home or wipe the stored anchor: keep rendering the persisted state (Loot
+            // Ready / On Job until the loot expires) so the zone-in "yellow → grey" flicker can't happen.
+            // A real new job overwrites the anchor below once its ReadyAtUtc arrives.
+            return MatchStatusOffline(slot, dict, null, out timeRemaining);
         }
-        else if (dict.Remove(LaborerConfigHelper.DispatchTimeKey(slot)))
+
+        if (match.IsOnJob)
         {
+            var remaining = readyAt.Value - DateTime.UtcNow;
+            if (remaining > TimeSpan.Zero)
+                timeRemaining = FormatRemaining(remaining);
+        }
+
+        var newDispatch = LaborerConfigHelper.FormatUtc(readyAt.Value);
+        if (!dict.TryGetValue(LaborerConfigHelper.DispatchTimeKey(slot), out var existing) || existing != newDispatch)
+        {
+            dict[LaborerConfigHelper.DispatchTimeKey(slot)] = newDispatch;
             configChanged = true;
         }
 
