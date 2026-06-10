@@ -133,15 +133,25 @@ public sealed class IslandLayoutDefinition
         return GetEffectivePosition(slot, plotList, mixedAltActive);
     }
 
-public int? WorldToNearestSlot(float wx, float wy, bool? requireLarge = null)
+    // Maximum pixel distance (squared) a projected world position may sit from a slot center and still
+    // match it. Beyond this an off-grid position (laborer standing between plots / bad calibration) returns
+    // no match rather than snapping to a far slot (G8b). 50px at the 1024px layout resolution.
+    private const double MaxSlotMatchDistanceSquared = 50.0 * 50.0;
+
+    public int? WorldToNearestSlot(float wx, float wy, bool? requireLarge = null)
     {
+        // Guild islands have no calibrated WorldTransform yet, so position-based matching is unavailable
+        // for them — return null (callers fall back to non-positional matching) instead of crashing (G8a).
         if (WorldTransform is not { } t || Slots is not { Count: > 0 }) return null;
         var px = t.A * wx + t.B * wy + t.C;
         var py = t.D * wx + t.E * wy + t.F;
         var candidates = requireLarge.HasValue
             ? Slots.Where(s => s.IsLarge == requireLarge.Value).ToList()
             : (IEnumerable<IslandSlotDefinition>) Slots;
-        return candidates.MinBy(s => Math.Pow(s.X - px, 2) + Math.Pow(s.Y - py, 2))?.SlotIndex;
+        var nearest = candidates.MinBy(s => Math.Pow(s.X - px, 2) + Math.Pow(s.Y - py, 2));
+        if (nearest == null) return null;
+        var distSquared = Math.Pow(nearest.X - px, 2) + Math.Pow(nearest.Y - py, 2);
+        return distSquared <= MaxSlotMatchDistanceSquared ? nearest.SlotIndex : null;
     }
 }
 

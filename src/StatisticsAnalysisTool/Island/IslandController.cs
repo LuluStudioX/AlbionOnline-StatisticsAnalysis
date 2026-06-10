@@ -170,6 +170,11 @@ public partial class IslandController
     // two overlapping same-ObjectId broadcasts can't both measure their delta off the same stale baseline
     // and double-count the growth (G6d).
     private readonly object _yieldQtyLock = new();
+
+    // Islands already warned that position-based slot matching is unavailable (no calibrated layout, e.g.
+    // guild islands) — keeps the warning to once per island instead of every status push (G8a).
+    private readonly object _positionMatchWarnedLock = new();
+    private readonly HashSet<Guid> _positionMatchWarnedIslandIds = [];
     // Last seen quantity per laborer-loot inventory object (NewLaborerItem, code 32). Yield is the
     // positive growth between broadcasts; the first sighting is the baseline. Reset on island change.
     private readonly ConcurrentDictionary<long, int> _lastItemQty = new();

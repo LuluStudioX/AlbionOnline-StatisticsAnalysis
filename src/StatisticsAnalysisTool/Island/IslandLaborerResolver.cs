@@ -13,13 +13,22 @@ namespace StatisticsAnalysisTool.Island;
 /// </summary>
 public static class IslandLaborerResolver
 {
+    /// <param name="positionAffinity">
+    /// Optional per-(plot, snapshot) distance score (smaller = closer). When supplied, ties among several
+    /// identical un-named same-type laborers are broken by preferring the snapshot physically nearest the
+    /// plot's slot, so a laborer can't bind the wrong house's card (G8c). Null disables the tiebreak and
+    /// falls back to greedy-by-detection-order.
+    /// </param>
     public static IReadOnlyDictionary<Guid, IReadOnlyDictionary<int, LaborerSnapshot>> Resolve(
         IReadOnlyList<IslandPlot> housePlots,
-        IReadOnlyList<LaborerSnapshot> snapshots)
+        IReadOnlyList<LaborerSnapshot> snapshots,
+        Func<IslandPlot, LaborerSnapshot, double?> positionAffinity = null)
     {
         var result = new Dictionary<Guid, IReadOnlyDictionary<int, LaborerSnapshot>>();
         if (housePlots == null || housePlots.Count == 0 || snapshots == null || snapshots.Count == 0)
             return result;
+
+        var plotById = housePlots.ToDictionary(p => p.Id);
 
         // Flatten every configured house slot into a candidate keyed by (plotId, slot).
         var slots = new List<SlotKey>();
@@ -72,9 +81,9 @@ public static class IslandLaborerResolver
         foreach (var s in slots.Where(s => !assigned.ContainsKey((s.PlotId, s.Slot))
                                         && !string.IsNullOrWhiteSpace(s.Type) && s.Tier.HasValue))
         {
-            var snap = ordered.FirstOrDefault(x => !claimed.Contains(x)
-                && string.Equals(LaborerConfigHelper.NormalizeLaborerType(x.LaborerType), s.Type, StringComparison.OrdinalIgnoreCase)
-                && x.BuildingTier == s.Tier.Value);
+            var snap = PickCandidate(s, ordered, claimed, plotById, positionAffinity,
+                x => string.Equals(LaborerConfigHelper.NormalizeLaborerType(x.LaborerType), s.Type, StringComparison.OrdinalIgnoreCase)
+                     && x.BuildingTier == s.Tier.Value);
             if (snap != null)
             {
                 claimed.Add(snap);
@@ -86,8 +95,8 @@ public static class IslandLaborerResolver
         foreach (var s in slots.Where(s => !assigned.ContainsKey((s.PlotId, s.Slot))
                                         && !string.IsNullOrWhiteSpace(s.Type)))
         {
-            var snap = ordered.FirstOrDefault(x => !claimed.Contains(x)
-                && string.Equals(LaborerConfigHelper.NormalizeLaborerType(x.LaborerType), s.Type, StringComparison.OrdinalIgnoreCase));
+            var snap = PickCandidate(s, ordered, claimed, plotById, positionAffinity,
+                x => string.Equals(LaborerConfigHelper.NormalizeLaborerType(x.LaborerType), s.Type, StringComparison.OrdinalIgnoreCase));
             if (snap != null)
             {
                 claimed.Add(snap);
@@ -99,6 +108,38 @@ public static class IslandLaborerResolver
             result[grp.Key] = grp.ToDictionary(kv => kv.Key.Slot, kv => kv.Value);
 
         return result;
+    }
+
+    // Selects the snapshot for a slot among unclaimed type-matching candidates. With a position-affinity
+    // scorer and a known plot, prefers the physically nearest candidate (G8c); otherwise keeps the original
+    // greedy-by-detection-order pick (ordered is already sorted newest-first).
+    private static LaborerSnapshot PickCandidate(
+        SlotKey s,
+        List<LaborerSnapshot> ordered,
+        HashSet<LaborerSnapshot> claimed,
+        Dictionary<Guid, IslandPlot> plotById,
+        Func<IslandPlot, LaborerSnapshot, double?> positionAffinity,
+        Func<LaborerSnapshot, bool> typeMatch)
+    {
+        var candidates = ordered.Where(x => !claimed.Contains(x) && typeMatch(x)).ToList();
+        if (candidates.Count == 0) return null;
+        if (candidates.Count == 1 || positionAffinity == null || !plotById.TryGetValue(s.PlotId, out var plot))
+            return candidates[0];
+
+        LaborerSnapshot best = null;
+        var bestScore = double.MaxValue;
+        foreach (var c in candidates)
+        {
+            var score = positionAffinity(plot, c);
+            if (!score.HasValue) continue;
+            if (score.Value < bestScore)
+            {
+                bestScore = score.Value;
+                best = c;
+            }
+        }
+        // No candidate had a usable position score — fall back to the greedy newest-first pick.
+        return best ?? candidates[0];
     }
 
     private readonly record struct SlotKey(Guid PlotId, int Slot, string Name, string Type, int? Tier);

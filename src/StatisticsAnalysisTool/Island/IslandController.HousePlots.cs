@@ -31,11 +31,49 @@ public partial class IslandController
 
     // Resolves a laborer's world position to the nearest LARGE map slot. Houses are large-footprint
     // plots, so the small S1/S2 slots are excluded — a house must never resolve onto them.
-    private static int? ResolveHouseSlot(Island island, LaborerSnapshot snapshot)
+    private int? ResolveHouseSlot(Island island, LaborerSnapshot snapshot)
     {
         if (!snapshot.WorldPosition.HasValue) return null;
         var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
-        return layout?.WorldToNearestSlot(snapshot.WorldPosition.Value.X, snapshot.WorldPosition.Value.Y, requireLarge: true);
+        if (layout == null)
+        {
+            WarnPositionMatchUnavailableOnce(island);
+            return null;
+        }
+        return layout.WorldToNearestSlot(snapshot.WorldPosition.Value.X, snapshot.WorldPosition.Value.Y, requireLarge: true);
+    }
+
+    // Guild islands have no calibrated layout yet, so laborer position → slot matching is disabled for them.
+    // Warn once per island so the silent null is visible without spamming on every status push (G8a).
+    private void WarnPositionMatchUnavailableOnce(Island island)
+    {
+        if (island == null) return;
+        lock (_positionMatchWarnedLock)
+        {
+            if (!_positionMatchWarnedIslandIds.Add(island.Id)) return;
+        }
+        Log.Warning("[IslandController] Position-based slot matching unavailable for island '{Name}' " +
+                    "(no calibrated layout — guild islands not yet supported); using non-positional matching.",
+            island.Name);
+    }
+
+    // Builds a per-(plot, snapshot) distance scorer for the resolver's tie-break (G8c): the squared pixel
+    // distance between the snapshot's projected world position and the plot's assigned map-slot center.
+    // Returns null when the island has no calibrated layout, so the resolver keeps its greedy fallback.
+    private static Func<IslandPlot, LaborerSnapshot, double?> BuildPositionAffinity(Island island)
+    {
+        var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
+        if (layout?.WorldTransform is not { } t) return null;
+
+        return (plot, snap) =>
+        {
+            if (plot?.MapSlotIndex is not { } slotIndex || snap?.WorldPosition is not { } pos) return null;
+            var slot = layout.GetSlot(slotIndex);
+            if (slot == null) return null;
+            var px = t.A * pos.X + t.B * pos.Y + t.C;
+            var py = t.D * pos.X + t.E * pos.Y + t.F;
+            return Math.Pow(slot.X - px, 2) + Math.Pow(slot.Y - py, 2);
+        };
     }
 
     // A house plot's MapSlotIndex (its physical-position number, used by the map AND the "#N" card label)
@@ -49,7 +87,11 @@ public partial class IslandController
     {
         if (island?.Plots == null || assignments == null || assignments.Count == 0) return;
         var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
-        if (layout == null) return;
+        if (layout == null)
+        {
+            WarnPositionMatchUnavailableOnce(island);
+            return;
+        }
 
         var desired = new Dictionary<Guid, int>();
         foreach (var (plotId, slotMap) in assignments)

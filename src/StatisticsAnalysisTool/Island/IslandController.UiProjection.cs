@@ -48,7 +48,8 @@ public partial class IslandController
             if (sessionIsland?.Plots != null)
             {
                 var assignments = IslandLaborerResolver.Resolve(
-                    sessionIsland.Plots.Where(p => p.PlotType == PlotType.House).ToList(), snapshots);
+                    sessionIsland.Plots.Where(p => p.PlotType == PlotType.House).ToList(), snapshots,
+                    BuildPositionAffinity(sessionIsland));
                 HealHouseMapSlots(sessionIsland, assignments);
                 var anyChanged = false;
                 foreach (var p in sessionIsland.Plots)
@@ -93,7 +94,8 @@ public partial class IslandController
                 if (islSnapshots.Count > 0)
                 {
                     assignments = IslandLaborerResolver.Resolve(
-                        isl.Plots.Where(p => p.PlotType == PlotType.House).ToList(), islSnapshots);
+                        isl.Plots.Where(p => p.PlotType == PlotType.House).ToList(), islSnapshots,
+                        BuildPositionAffinity(isl));
                     HealHouseMapSlots(isl, assignments);
                 }
                 var anyChanged = false;
