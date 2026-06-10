@@ -124,16 +124,16 @@ public partial class IslandBindings
     public int SelectedOwnerIslandCount => GetSelectedOwnerDomainIslands().Count();
 
     public int SelectedOwnerDoneTodayCount => GetSelectedOwnerDomainIslands()
-        .Count(i => i.LastPlantedAt.HasValue &&
-                    i.LastPlantedAt.Value.ToUniversalTime() >= DateTime.UtcNow.AddHours(-22));
+        .Count(i => i.LastCycleStartAt.HasValue &&
+                    i.LastCycleStartAt.Value.ToUniversalTime() >= DateTime.UtcNow.AddHours(-22));
 
     public int SelectedOwnerLeftTodayCount => Math.Max(0, SelectedOwnerIslandCount - SelectedOwnerDoneTodayCount);
 
     // --- Global handling-time stats (used in main status bar, across all islands) ---
 
     private static bool IsDoneThisCycle(Island.Island isl)
-        => isl.LastPlantedAt.HasValue &&
-           isl.LastPlantedAt.Value.ToUniversalTime() >= DateTime.UtcNow.AddHours(-22);
+        => isl.LastCycleStartAt.HasValue &&
+           isl.LastCycleStartAt.Value.ToUniversalTime() >= DateTime.UtcNow.AddHours(-22);
 
     private int GetEffectiveVisitMinutes(Island.Island isl)
         => isl.VisitDurationMinutes ?? Preferences.DefaultVisitDurationMinutes;
@@ -238,8 +238,8 @@ public partial class IslandBindings
             var controller = GetController();
             if (controller == null) return 0;
             return GetSelectedOwnerDomainIslands()
-                .Where(i => i.LastPlantedAt.HasValue &&
-                            i.LastPlantedAt.Value.ToUniversalTime() >= DateTime.UtcNow.AddHours(-22))
+                .Where(i => i.LastCycleStartAt.HasValue &&
+                            i.LastCycleStartAt.Value.ToUniversalTime() >= DateTime.UtcNow.AddHours(-22))
                 .Sum(i => GetEffectiveIslandPay(i, controller.GetOwnerProfile(i.Owner?.Trim() ?? string.Empty)));
         }
     }
@@ -1599,13 +1599,13 @@ public partial class IslandBindings
         controller.UpdateIsland(island);
     }
 
-    public void CommitPlantAll(Guid islandId)
+    public void CommitStartAllCycles(Guid islandId)
     {
         var controller = GetController();
         if (controller == null) return;
         var island = controller.GetById(islandId);
         if (island == null) return;
-        island.PlantAll();
+        island.StartAllCycles();
         controller.UpdateIsland(island);
     }
 }

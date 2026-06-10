@@ -190,12 +190,12 @@ public partial class IslandManagementControl : UserControl
         vm.IslandBindings.MoveIsland(dragged, target);
     }
 
-    private void PlantAllButton_Click(object sender, RoutedEventArgs e)
+    private void StartAllCyclesButton_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm) return;
         var islandId = vm.IslandBindings.SelectedIsland?.IslandId;
         if (islandId == null) return;
-        vm.IslandBindings.CommitPlantAll(islandId.Value);
+        vm.IslandBindings.CommitStartAllCycles(islandId.Value);
     }
 
     private IslandEntry GetIslandEntryUnderPoint(System.Windows.Point point)

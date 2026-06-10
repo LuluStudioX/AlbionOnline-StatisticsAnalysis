@@ -46916,11 +46916,11 @@
       ]
     },
     {
-      "tuid": "ISLAND_MANAGEMENT_PLANT_ALL",
+      "tuid": "ISLAND_MANAGEMENT_START_ALL_CYCLES",
       "tuv": [
         {
           "lang": "en-US",
-          "seg": "Plant All"
+          "seg": "Start All Cycles"
         }
       ]
     },

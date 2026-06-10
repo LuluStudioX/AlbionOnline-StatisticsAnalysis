@@ -19,7 +19,7 @@ public static class IslandMapping
         isl.Biome,
         isl.HasPremium,
         isl.IslandType.ToString(),
-        isl.LastPlantedAt,
+        isl.LastCycleStartAt,
         isl.CreatedDate,
         isl.LastModifiedDate,
         isl.ManagementPayOverride,
@@ -47,7 +47,7 @@ public static class IslandMapping
         Enum.TryParse<IslandType>(dto.IslandType, out var islandType);
         var isl = new Island(dto.Name, dto.Owner, dto.Tier, dto.Biome, dto.HasPremium, dto.City, islandType);
 
-        isl.LastPlantedAt = dto.LastPlantedAt;
+        isl.LastCycleStartAt = dto.LastCycleStartAt;
         isl.CreatedDate = dto.CreatedDate;
         isl.LastModifiedDate = dto.LastModifiedDate;
         isl.ManagementPayOverride = dto.ManagementPayOverride;

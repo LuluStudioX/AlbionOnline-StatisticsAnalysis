@@ -36,7 +36,7 @@ public class Island : BaseViewModel
     private bool _trackingEnabled = true;
     private DateTime _createdDate;
     private DateTime _lastModifiedDate;
-    private DateTime? _lastPlantedAt;
+    private DateTime? _lastCycleStartAt;
     private ObservableCollection<string> _kennelAnimals = new ObservableCollection<string>();
     private ObservableCollection<string> _mountsTaken = new ObservableCollection<string>();
     private bool _collectionReadyNotificationSent;
@@ -286,12 +286,12 @@ public class Island : BaseViewModel
         }
     }
 
-    public DateTime? LastPlantedAt
+    public DateTime? LastCycleStartAt
     {
-        get => _lastPlantedAt;
+        get => _lastCycleStartAt;
         set
         {
-            _lastPlantedAt = value;
+            _lastCycleStartAt = value;
             _collectionReadyNotificationSent = false;
             OnPropertyChanged();
             OnPropertyChanged(nameof(NextCollectionReadyAt));
@@ -301,12 +301,12 @@ public class Island : BaseViewModel
             OnPropertyChanged(nameof(IsCollectionReady));
             OnPropertyChanged(nameof(NeedsVisit));
             OnPropertyChanged(nameof(CollectionStatusState));
-            OnPropertyChanged(nameof(LastPlantedAtText));
+            OnPropertyChanged(nameof(LastCycleStartAtText));
         }
     }
 
     [JsonIgnore]
-    public bool NeedsVisit => IsCollectionReady || !_lastPlantedAt.HasValue;
+    public bool NeedsVisit => IsCollectionReady || !_lastCycleStartAt.HasValue;
 
     [JsonIgnore]
     public bool DoneToday
@@ -413,12 +413,12 @@ public class Island : BaseViewModel
     {
         get
         {
-            if (_lastPlantedAt == null) return null;
-            DateTime baseUtc = _lastPlantedAt.Value.Kind switch
+            if (_lastCycleStartAt == null) return null;
+            DateTime baseUtc = _lastCycleStartAt.Value.Kind switch
             {
-                DateTimeKind.Utc => _lastPlantedAt.Value,
-                DateTimeKind.Local => _lastPlantedAt.Value.ToUniversalTime(),
-                _ => DateTime.SpecifyKind(_lastPlantedAt.Value, DateTimeKind.Local).ToUniversalTime()
+                DateTimeKind.Utc => _lastCycleStartAt.Value,
+                DateTimeKind.Local => _lastCycleStartAt.Value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(_lastCycleStartAt.Value, DateTimeKind.Local).ToUniversalTime()
             };
 
             return baseUtc.AddHours(MaxCollectionHours);
@@ -454,15 +454,15 @@ public class Island : BaseViewModel
                 if (earliest.HasValue) return earliest.Value;
             }
 
-            // Fallback: island-level LastPlantedAt + shortest cycle.
-            if (_lastPlantedAt == null) return null;
+            // Fallback: island-level LastCycleStartAt + shortest cycle.
+            if (_lastCycleStartAt == null) return null;
             var fallbackHours = FirstCollectionHours;
             if (fallbackHours <= 0) return null;
-            DateTime baseUtc = _lastPlantedAt.Value.Kind switch
+            DateTime baseUtc = _lastCycleStartAt.Value.Kind switch
             {
-                DateTimeKind.Utc => _lastPlantedAt.Value,
-                DateTimeKind.Local => _lastPlantedAt.Value.ToUniversalTime(),
-                _ => DateTime.SpecifyKind(_lastPlantedAt.Value, DateTimeKind.Local).ToUniversalTime()
+                DateTimeKind.Utc => _lastCycleStartAt.Value,
+                DateTimeKind.Local => _lastCycleStartAt.Value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(_lastCycleStartAt.Value, DateTimeKind.Local).ToUniversalTime()
             };
             return baseUtc.AddHours(fallbackHours);
         }
@@ -509,9 +509,9 @@ public class Island : BaseViewModel
     }
 
     [JsonIgnore]
-    public string LastPlantedAtText
-        => _lastPlantedAt.HasValue
-            ? $"Planted: {_lastPlantedAt.Value.ToLocalTime():yyyy-MM-dd HH:mm}"
+    public string LastCycleStartAtText
+        => _lastCycleStartAt.HasValue
+            ? $"Planted: {_lastCycleStartAt.Value.ToLocalTime():yyyy-MM-dd HH:mm}"
             : string.Empty;
 
     public DateTime CreatedDate
@@ -650,10 +650,10 @@ public class Island : BaseViewModel
         LastModifiedDate = DateTime.UtcNow;
     }
 
-    public void PlantAll()
+    public void StartAllCycles()
     {
         var now = DateTime.UtcNow;
-        LastPlantedAt = now;
+        LastCycleStartAt = now;
         LastHandledAt = now;
         if (Plots != null)
         {
@@ -722,7 +722,12 @@ public class Island : BaseViewModel
 
         lock (_yieldLock)
         {
-            var existing = YieldHistory.FirstOrDefault(e => e.ItemIndex == itemIndex && e.SourcePlot == source);
+            // Bucket per local day so the day-by-day yield chart attributes each day's collections correctly.
+            // Without the date in the key, every collect of an (item, plot) folds onto the first-seen row and
+            // its frozen timestamp, dumping the all-time total onto the day the item was first collected.
+            var today = DateTime.Now.Date;
+            var existing = YieldHistory.FirstOrDefault(e =>
+                e.ItemIndex == itemIndex && e.SourcePlot == source && e.CollectedAt.ToLocalTime().Date == today);
             if (existing != null)
                 existing.Quantity += quantity;
             else
@@ -743,7 +748,11 @@ public class Island : BaseViewModel
 
         lock (_yieldLock)
         {
-            var existing = ConsumedHistory.FirstOrDefault(e => e.ItemIndex == itemIndex && e.SourcePlot == source);
+            // Bucket per local day (see AddYield) so the chart splits consumption by day instead of folding
+            // it all onto the first-seen row's timestamp.
+            var today = DateTime.Now.Date;
+            var existing = ConsumedHistory.FirstOrDefault(e =>
+                e.ItemIndex == itemIndex && e.SourcePlot == source && e.ConsumedAt.ToLocalTime().Date == today);
             if (existing != null)
                 existing.Quantity += quantity;
             else

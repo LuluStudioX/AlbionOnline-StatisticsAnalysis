@@ -200,7 +200,7 @@ public class MainWindowTranslation
     public static string IslandManagementPlotCount => LocalizationController.Translation("ISLAND_MANAGEMENT_PLOT_COUNT");
     public static string IslandManagementLaborersSent => LocalizationController.Translation("ISLAND_MANAGEMENT_LABORERS_SENT");
     public static string IslandManagementLootCollected => LocalizationController.Translation("ISLAND_MANAGEMENT_LOOT_COLLECTED");
-    public static string IslandManagementPlantAll => LocalizationController.Translation("ISLAND_MANAGEMENT_PLANT_ALL");
+    public static string IslandManagementStartAllCycles => LocalizationController.Translation("ISLAND_MANAGEMENT_START_ALL_CYCLES");
     public static string IslandManagementAddPlot => LocalizationController.Translation("ISLAND_MANAGEMENT_ADD_PLOT");
     public static string IslandManagementEditPlot => LocalizationController.Translation("ISLAND_MANAGEMENT_EDIT_PLOT");
     public static string IslandManagementDeletePlot => LocalizationController.Translation("ISLAND_MANAGEMENT_DELETE_PLOT");

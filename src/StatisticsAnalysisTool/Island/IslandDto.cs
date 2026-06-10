@@ -13,7 +13,7 @@ public record IslandDto(
     string Biome,
     bool HasPremium,
     string IslandType,
-    DateTime? LastPlantedAt,
+    DateTime? LastCycleStartAt,
     DateTime CreatedDate,
     DateTime LastModifiedDate,
     decimal? ManagementPayOverride,

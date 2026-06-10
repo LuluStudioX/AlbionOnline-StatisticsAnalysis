@@ -390,7 +390,7 @@ public class IslandCollectionStatusTests
     {
         var island = new Island.Island("TestIsland", "Owner", 3);
         island.Plots.Add(new IslandPlot(PlotType.House, 1));
-        island.LastPlantedAt = DateTime.UtcNow;
+        island.LastCycleStartAt = DateTime.UtcNow;
 
         island.IsCollectionReady.Should().BeFalse();
         island.NeedsVisit.Should().BeFalse();
@@ -401,7 +401,7 @@ public class IslandCollectionStatusTests
     {
         var island = new Island.Island("TestIsland", "Owner", 3);
         island.Plots.Add(new IslandPlot(PlotType.House, 1));
-        island.LastPlantedAt = DateTime.UtcNow.AddHours(-30);
+        island.LastCycleStartAt = DateTime.UtcNow.AddHours(-30);
 
         island.IsCollectionReady.Should().BeTrue();
         island.NeedsVisit.Should().BeTrue();
@@ -421,7 +421,7 @@ public class IslandCollectionStatusTests
     {
         var island = new Island.Island("TestIsland", "Owner", 3);
         island.Plots.Add(new IslandPlot(PlotType.House, 1));
-        island.LastPlantedAt = DateTime.UtcNow;
+        island.LastCycleStartAt = DateTime.UtcNow;
         island.LastHandledAt = DateTime.UtcNow;
 
         island.CollectionStatusState.Should().Be("planted");
@@ -432,7 +432,7 @@ public class IslandCollectionStatusTests
     {
         var island = new Island.Island("TestIsland", "Owner", 3);
         island.Plots.Add(new IslandPlot(PlotType.House, 1));
-        island.LastPlantedAt = DateTime.UtcNow.AddHours(-30);
+        island.LastCycleStartAt = DateTime.UtcNow.AddHours(-30);
 
         island.CollectionStatusState.Should().Be("ready");
     }
