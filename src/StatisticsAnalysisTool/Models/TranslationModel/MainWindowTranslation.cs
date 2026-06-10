@@ -296,6 +296,7 @@ public class MainWindowTranslation
     public static string IslandManagementPaymentTitle => LocalizationController.Translation("ISLAND_MANAGEMENT_PAYMENT_TITLE");
     public static string IslandManagementPaymentAssignToIsland => LocalizationController.Translation("ISLAND_MANAGEMENT_PAYMENT_ASSIGN_TO_ISLAND");
     public static string IslandManagementPaymentNotesOptional => LocalizationController.Translation("ISLAND_MANAGEMENT_PAYMENT_NOTES_OPTIONAL");
+    public static string IslandManagementPaymentPaidForWeek => LocalizationController.Translation("ISLAND_MANAGEMENT_PAYMENT_PAID_FOR_WEEK");
     public static string IslandManagementPaymentSkip => LocalizationController.Translation("ISLAND_MANAGEMENT_PAYMENT_SKIP");
     public static string IslandManagementPaymentRecord => LocalizationController.Translation("ISLAND_MANAGEMENT_PAYMENT_RECORD");
     // Validation messages

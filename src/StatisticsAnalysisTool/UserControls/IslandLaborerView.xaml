@@ -44,10 +44,10 @@
                 <fa5:ImageAwesome Icon="Solid_Briefcase"
                                   Foreground="{StaticResource SolidColorBrush.Text.4}"
                                   Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                <TextBlock Text="No laborers detected"
+                <TextBlock x:Name="NoLaborersTitle" Text="No laborers detected"
                            Foreground="{StaticResource SolidColorBrush.Text.4}"
                            FontSize="13" FontStyle="Italic" HorizontalAlignment="Center"/>
-                <TextBlock Text="Visit an island with laborers to populate this view"
+                <TextBlock x:Name="NoLaborersHint" Text="Visit an island with laborers to populate this view"
                            Foreground="{StaticResource SolidColorBrush.Text.4}"
                            FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0"/>
             </StackPanel>

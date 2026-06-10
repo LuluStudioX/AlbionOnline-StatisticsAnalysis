@@ -18,7 +18,6 @@ public record IslandDto(
     DateTime LastModifiedDate,
     decimal? ManagementPayOverride,
     int? VisitDurationMinutes,
-    string Notes,
     List<IslandPlotDto> Plots,
     string LayoutId = "",
     Dictionary<int, string> SlotLabels = null,

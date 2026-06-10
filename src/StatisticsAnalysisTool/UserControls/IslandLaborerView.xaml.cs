@@ -16,6 +16,8 @@ public partial class IslandLaborerView : UserControl
     public IslandLaborerView()
     {
         InitializeComponent();
+        NoLaborersTitle.Text = LocalizationController.Translation("ISLAND_MANAGEMENT_NO_LABORERS_DETECTED");
+        NoLaborersHint.Text = LocalizationController.Translation("ISLAND_MANAGEMENT_NO_LABORERS_HINT");
         Loaded += (_, _) => RefreshFromViewModel();
     }
 

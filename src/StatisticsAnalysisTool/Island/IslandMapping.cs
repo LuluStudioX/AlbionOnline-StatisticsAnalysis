@@ -24,7 +24,6 @@ public static class IslandMapping
         isl.LastModifiedDate,
         isl.ManagementPayOverride,
         isl.VisitDurationMinutes,
-        null,
         isl.Plots?.Select(ToPlotDto).ToList() ?? [],
         isl.LayoutId,
         isl.SlotLabels?.Count > 0 ? new Dictionary<int, string>(isl.SlotLabels) : null,

@@ -74,7 +74,7 @@
                       SelectionChanged="IslandComboBox_SelectionChanged"/>
 
             <!-- Paid for week -->
-            <TextBlock x:Name="PaidForWeekLabel" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4" Text="Paid for week starting (Monday)"/>
+            <TextBlock x:Name="PaidForWeekLabel" Foreground="{StaticResource SolidColorBrush.Text.3}" FontSize="11" Margin="0,0,0,4" Text="{x:Static translation:MainWindowTranslation.IslandManagementPaymentPaidForWeek}"/>
             <DatePicker x:Name="PaidForWeekPicker" Height="28" FontSize="12" Margin="0,0,0,14"
                         Background="{StaticResource SolidColorBrush.Background.2}"
                         Foreground="{StaticResource SolidColorBrush.Text.1}"/>

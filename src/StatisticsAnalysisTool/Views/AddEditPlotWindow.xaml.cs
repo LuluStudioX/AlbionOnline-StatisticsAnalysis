@@ -204,12 +204,15 @@ public partial class AddEditPlotWindow : Window
         if (InfoText == null) return;
         var pt = GetSelectedPlotType();
         var hours = pt.GetBaseCollectionHours();
-        var baseHint = hours > 0 ? $"{pt.GetDisplayName()} — {hours:0.#}h base cycle. {pt.GetPremiumEffectSummary()}" : pt.GetDisplayName();
+        var baseHint = hours > 0
+            ? string.Format(LocalizationController.Translation("ISLAND_MANAGEMENT_PLOT_BASE_CYCLE_HINT"),
+                pt.GetDisplayName(), hours.ToString("0.#"), pt.GetPremiumEffectSummary())
+            : pt.GetDisplayName();
 
         var qty = int.TryParse(QuantityTextBox?.Text, out var q) ? q : 1;
         var shouldExpand = IslandPlotHelper.ShouldExpand(new IslandPlot(pt, qty));
         if (shouldExpand && qty > 1)
-            InfoText.Text = $"{baseHint}\nQuantity {qty} → will be split into {qty} individual plots.";
+            InfoText.Text = string.Format(LocalizationController.Translation("ISLAND_MANAGEMENT_PLOT_QUANTITY_SPLIT_HINT"), baseHint, qty);
         else
             InfoText.Text = baseHint;
     }

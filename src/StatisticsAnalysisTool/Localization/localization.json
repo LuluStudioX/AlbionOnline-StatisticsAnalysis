@@ -47933,6 +47933,87 @@
       ]
     },
     {
+      "tuid": "ISLAND_MANAGEMENT_NO_LABORERS_DETECTED",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "No laborers detected"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_NO_LABORERS_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Visit an island with laborers to populate this view"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_SLOT_PREFIX",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Slot"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_CLEAR_ASSIGNMENT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Clear assignment ({0})"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_DELETE_PLOT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Delete plot (#{0} {1})"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_MAP_SLOT_UNASSIGNED_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Slot unassigned — drag a plot here"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PLOT_BASE_CYCLE_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "{0} — {1}h base cycle. {2}"
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PLOT_QUANTITY_SPLIT_HINT",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "{0}\nQuantity {1} → will be split into {1} individual plots."
+        }
+      ]
+    },
+    {
+      "tuid": "ISLAND_MANAGEMENT_PAYMENT_PAID_FOR_WEEK",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "Paid for week starting (Monday)"
+        }
+      ]
+    },
+    {
       "tuid": "ISLAND_MANAGEMENT_DELETE_CONFIRM",
       "tuv": [
         {

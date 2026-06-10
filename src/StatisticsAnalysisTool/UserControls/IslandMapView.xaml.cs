@@ -280,7 +280,7 @@ public partial class IslandMapView : UserControl
                     Stroke = new SolidColorBrush(Color.FromArgb(80, 180, 180, 180)),
                     StrokeThickness = 1.0,
                     IsHitTestVisible = false,
-                    ToolTip = $"Slot {IslandLayouts.FormatSlotLabel(slot.SlotIndex)}: {LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_CONSUMED")}"
+                    ToolTip = $"{LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_SLOT_PREFIX")} {IslandLayouts.FormatSlotLabel(slot.SlotIndex)}: {LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_CONSUMED")}"
                 };
                 var (cX, cY) = IslandLayoutDefinition.GetEffectivePosition(slot, plots, domainIsland?.MixedRegionAltActive);
                 Canvas.SetLeft(consumedEllipse, cX - SlotDiameterSmall / 2);
@@ -350,8 +350,8 @@ public partial class IslandMapView : UserControl
             StrokeThickness = 1.0,
             Cursor = Cursors.Hand,
             ToolTip = assignedPlot != null
-                ? $"Slot {IslandLayouts.FormatSlotLabel(slot.SlotIndex)}: {assignedPlot.BuildingTypeName}"
-                : $"Slot {IslandLayouts.FormatSlotLabel(slot.SlotIndex)}: {LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_UNASSIGNED")}"
+                ? $"{LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_SLOT_PREFIX")} {IslandLayouts.FormatSlotLabel(slot.SlotIndex)}: {assignedPlot.BuildingTypeName}"
+                : $"{LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_SLOT_PREFIX")} {IslandLayouts.FormatSlotLabel(slot.SlotIndex)}: {LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_UNASSIGNED")}"
         };
     }
 
@@ -585,7 +585,7 @@ public partial class IslandMapView : UserControl
 
         if (assigned != null)
         {
-            var clearItem = new MenuItem { Header = $"Clear assignment ({assigned.PlotType.GetDisplayName()})" };
+            var clearItem = new MenuItem { Header = string.Format(LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_CLEAR_ASSIGNMENT"), assigned.PlotType.GetDisplayName()) };
             clearItem.Click += (_, _) =>
             {
                 assigned.MapSlotIndex = null;
@@ -598,7 +598,7 @@ public partial class IslandMapView : UserControl
             };
             menu.Items.Add(clearItem);
 
-            var deleteItem = new MenuItem { Header = $"Delete plot (#{assigned.PlotNumber} {assigned.PlotType.GetDisplayName()})" };
+            var deleteItem = new MenuItem { Header = string.Format(LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_DELETE_PLOT"), assigned.PlotNumber, assigned.PlotType.GetDisplayName()) };
             deleteItem.Click += (_, _) =>
             {
                 island.RemovePlot(assigned);
@@ -613,7 +613,7 @@ public partial class IslandMapView : UserControl
         }
         else
         {
-            var empty = new MenuItem { Header = "Slot unassigned — drag a plot here", IsEnabled = false };
+            var empty = new MenuItem { Header = LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_SLOT_UNASSIGNED_HINT"), IsEnabled = false };
             menu.Items.Add(empty);
         }
 
