@@ -57,25 +57,6 @@ public partial class IslandController
             island.Name);
     }
 
-    // Builds a per-(plot, snapshot) distance scorer for the resolver's tie-break (G8c): the squared pixel
-    // distance between the snapshot's projected world position and the plot's assigned map-slot center.
-    // Returns null when the island has no calibrated layout, so the resolver keeps its greedy fallback.
-    private static Func<IslandPlot, LaborerSnapshot, double?> BuildPositionAffinity(Island island)
-    {
-        var (layout, _) = IslandLayouts.ResolveForIsland(island.IslandType, island.City);
-        if (layout?.WorldTransform is not { } t) return null;
-
-        return (plot, snap) =>
-        {
-            if (plot?.MapSlotIndex is not { } slotIndex || snap?.WorldPosition is not { } pos) return null;
-            var slot = layout.GetSlot(slotIndex);
-            if (slot == null) return null;
-            var px = t.A * pos.X + t.B * pos.Y + t.C;
-            var py = t.D * pos.X + t.E * pos.Y + t.F;
-            return Math.Pow(slot.X - px, 2) + Math.Pow(slot.Y - py, 2);
-        };
-    }
-
     // A house plot's MapSlotIndex (its physical-position number, used by the map AND the "#N" card label)
     // can desync from where its laborers actually stand — seeding/recalibration left stored values as a
     // permutation of the true slots, so the same physical house showed a different number than the one

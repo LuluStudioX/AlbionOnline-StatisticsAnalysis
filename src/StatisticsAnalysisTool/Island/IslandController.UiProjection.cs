@@ -48,14 +48,13 @@ public partial class IslandController
             if (sessionIsland?.Plots != null)
             {
                 var assignments = IslandLaborerResolver.Resolve(
-                    sessionIsland.Plots.Where(p => p.PlotType == PlotType.House).ToList(), snapshots,
-                    BuildPositionAffinity(sessionIsland));
+                    sessionIsland.Plots.Where(p => p.PlotType == PlotType.House).ToList(), snapshots);
                 HealHouseMapSlots(sessionIsland, assignments);
                 var anyChanged = false;
                 foreach (var p in sessionIsland.Plots)
                 {
                     assignments.TryGetValue(p.Id, out var slotMap);
-                    if (p.UpdateLaborerStatuses(snapshots, sessionIsland.LastPlantedAt, slotMap)) anyChanged = true;
+                    if (p.UpdateLaborerStatuses(snapshots, sessionIsland.LastCycleStartAt, slotMap)) anyChanged = true;
                 }
                 if (anyChanged)
                 {
@@ -94,8 +93,7 @@ public partial class IslandController
                 if (islSnapshots.Count > 0)
                 {
                     assignments = IslandLaborerResolver.Resolve(
-                        isl.Plots.Where(p => p.PlotType == PlotType.House).ToList(), islSnapshots,
-                        BuildPositionAffinity(isl));
+                        isl.Plots.Where(p => p.PlotType == PlotType.House).ToList(), islSnapshots);
                     HealHouseMapSlots(isl, assignments);
                 }
                 var anyChanged = false;
@@ -103,7 +101,7 @@ public partial class IslandController
                 {
                     IReadOnlyDictionary<int, LaborerSnapshot> slotMap = null;
                     assignments?.TryGetValue(p.Id, out slotMap);
-                    if (p.UpdateLaborerStatuses(islSnapshots, isl.LastPlantedAt, slotMap)) anyChanged = true;
+                    if (p.UpdateLaborerStatuses(islSnapshots, isl.LastCycleStartAt, slotMap)) anyChanged = true;
                 }
                 if (anyChanged)
                 {
