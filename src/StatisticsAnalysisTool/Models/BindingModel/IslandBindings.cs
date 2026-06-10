@@ -1727,11 +1727,19 @@ public class IslandEntry : BaseViewModel
         OnPropertyChanged(nameof(HasYieldMismatch));
     }
 
+    // Raw per-collection history (un-collapsed). The day-by-day chart buckets each collection by its own
+    // LOCAL date from this; _yieldItems/_consumedItems collapse to one row per item at min(date) for the
+    // tile display, which would otherwise pile an item's whole all-time total onto its first-seen day.
+    private IReadOnlyList<IslandYieldEntry> _yieldHistory = Array.Empty<IslandYieldEntry>();
+    private IReadOnlyList<IslandConsumedEntry> _consumedHistory = Array.Empty<IslandConsumedEntry>();
+
     // Update the bound yield list IN PLACE (patch quantities, add new rows, drop gone ones) instead of
     // replacing the ObservableCollection. Replacing it reset the bound ItemsControl on every collect
     // tick, which flashed the whole Collected/Consumed panel blank before repopulating.
     public void UpdateYieldItems(IReadOnlyList<IslandYieldEntry> source)
     {
+        _yieldHistory = source.ToList();
+
         // Collapse to one row per item: the same crop can be booked under more than one SourcePlot
         // (harvest plot-type attribution varies per packet), which would otherwise show as duplicate tiles.
         var merged = source
@@ -1779,6 +1787,8 @@ public class IslandEntry : BaseViewModel
 
     public void UpdateConsumedItems(IReadOnlyList<IslandConsumedEntry> source)
     {
+        _consumedHistory = source.ToList();
+
         // Collapse to one row per item (see UpdateYieldItems): the same item can be booked under more than
         // one SourcePlot across consume paths, which would otherwise show as duplicate tiles.
         var merged = source
@@ -1832,11 +1842,11 @@ public class IslandEntry : BaseViewModel
             return;
         }
 
-        var yieldByDay = _yieldItems
-            .GroupBy(e => e.CollectedAt.Date)
+        var yieldByDay = _yieldHistory
+            .GroupBy(e => e.CollectedAt.ToLocalTime().Date)
             .ToDictionary(g => g.Key, g => g.Sum(e => e.TotalAvgEstMarketValue));
-        var consumedByDay = _consumedItems
-            .GroupBy(e => e.ConsumedAt.Date)
+        var consumedByDay = _consumedHistory
+            .GroupBy(e => e.ConsumedAt.ToLocalTime().Date)
             .ToDictionary(g => g.Key, g => g.Sum(e => e.TotalAvgEstMarketValue));
 
         var allDates = yieldByDay.Keys.Union(consumedByDay.Keys).OrderBy(d => d).ToList();
