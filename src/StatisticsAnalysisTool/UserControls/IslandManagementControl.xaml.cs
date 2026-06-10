@@ -210,15 +210,6 @@ public partial class IslandManagementControl : UserControl
         return null;
     }
 
-    // ── Ledger tab ────────────────────────────────────────────────────────────
-
-    private void AddCycleRecord_Click(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel vm) return;
-        vm.IslandBindings.TryRecordCycle(out _);
-        vm.IslandBindings.RefreshCurrentIslandLedger();
-    }
-
     // ── Yield tab ─────────────────────────────────────────────────────────────
 
     private void BtnClearIslandYield_Click(object sender, RoutedEventArgs e)

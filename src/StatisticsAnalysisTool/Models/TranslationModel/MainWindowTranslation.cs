@@ -190,7 +190,6 @@ public class MainWindowTranslation
     public static string IslandManagementLiveStatusHint => LocalizationController.Translation("ISLAND_MANAGEMENT_LIVE_STATUS_HINT");
     public static string IslandManagementLaborers => LocalizationController.Translation("ISLAND_MANAGEMENT_LABORERS");
     public static string IslandManagementMap => LocalizationController.Translation("ISLAND_MANAGEMENT_MAP");
-    public static string IslandManagementLedger => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER");
     public static string IslandManagementTier => LocalizationController.Translation("ISLAND_MANAGEMENT_TIER");
     public static string IslandManagementBiome => LocalizationController.Translation("ISLAND_MANAGEMENT_BIOME");
     public static string IslandManagementCity => LocalizationController.Translation("ISLAND_MANAGEMENT_CITY");
@@ -243,18 +242,6 @@ public class MainWindowTranslation
     public static string IslandManagementSettingsGroupBy => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_GROUP_BY");
     public static string IslandManagementSettingsSortBy => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_SORT_BY");
     public static string IslandManagementSettingsDragHint => LocalizationController.Translation("ISLAND_MANAGEMENT_SETTINGS_DRAG_HINT");
-    public static string IslandManagementLedgerOwner => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_OWNER");
-    public static string IslandManagementLedgerBalance => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_BALANCE");
-    public static string IslandManagementLedgerSilver => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_SILVER");
-    public static string IslandManagementLedgerDate => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_DATE");
-    public static string IslandManagementLedgerType => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_TYPE");
-    public static string IslandManagementLedgerIslands => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_ISLANDS");
-    public static string IslandManagementLedgerAmount => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_AMOUNT");
-    public static string IslandManagementLedgerNotes => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_NOTES");
-    public static string IslandManagementLedgerAmountLabel => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_AMOUNT_LABEL");
-    public static string IslandManagementLedgerIslandCountTooltip => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_ISLAND_COUNT_TOOLTIP");
-    public static string IslandManagementLedgerNotesLabel => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_NOTES_LABEL");
-    public static string IslandManagementLedgerAddRecord => LocalizationController.Translation("ISLAND_MANAGEMENT_LEDGER_ADD_RECORD");
     public static string IslandManagementRentBadge => LocalizationController.Translation("ISLAND_MANAGEMENT_RENT_BADGE");
     // Map view
     public static string IslandManagementMapUnassigned => LocalizationController.Translation("ISLAND_MANAGEMENT_MAP_UNASSIGNED");

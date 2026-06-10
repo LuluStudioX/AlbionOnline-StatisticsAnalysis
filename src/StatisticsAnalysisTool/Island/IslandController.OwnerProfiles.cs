@@ -189,48 +189,6 @@ public partial class IslandController
         _ = SaveOwnerProfilesAsync();
     }
 
-    public IReadOnlyList<OwnerLedgerEntry> GetLedgerForIsland(Guid islandId)
-    {
-        Island island;
-        lock (_islandsLock)
-            island = _islands.FirstOrDefault(i => i.Id == islandId);
-
-        if (island == null) return Array.Empty<OwnerLedgerEntry>();
-
-        var profile = GetOwnerProfile(island.Owner);
-        if (profile == null) return Array.Empty<OwnerLedgerEntry>();
-
-        var entries = new List<OwnerLedgerEntry>();
-
-        foreach (var record in profile.CycleHistory.OrderByDescending(r => r.Date))
-        {
-            entries.Add(new OwnerLedgerEntry
-            {
-                Id = record.Id,
-                Date = record.Date,
-                Type = "Cycle",
-                IslandCount = record.IslandCount,
-                Amount = record.EarnedAmount,
-                Notes = record.Notes,
-                Outcomes = record.Outcomes?.AsReadOnly() ?? new List<IslandOutcomeEntry>().AsReadOnly()
-            });
-        }
-
-        foreach (var withdrawal in profile.Withdrawals.OrderByDescending(w => w.Timestamp))
-        {
-            entries.Add(new OwnerLedgerEntry
-            {
-                Id = withdrawal.Id,
-                Date = withdrawal.Timestamp,
-                Type = "Payment",
-                Amount = -withdrawal.Amount,
-                Notes = withdrawal.Notes
-            });
-        }
-
-        return entries.OrderByDescending(e => e.Date).ToList().AsReadOnly();
-    }
-
     public void AddCycleRecord(string ownerName, OwnerCycleRecord record)
     {
         if (string.IsNullOrEmpty(ownerName)) return;

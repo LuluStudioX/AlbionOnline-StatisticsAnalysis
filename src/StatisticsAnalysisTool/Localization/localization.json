@@ -47141,15 +47141,6 @@
       ]
     },
     {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Ledger"
-        }
-      ]
-    },
-    {
       "tuid": "ISLAND_MANAGEMENT_PLOT_COUNT",
       "tuv": [
         {
@@ -47488,114 +47479,6 @@
         {
           "lang": "en-US",
           "seg": "Drag ≡ handles on cards to reorder"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_OWNER",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Owner: "
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_BALANCE",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "  Balance: "
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_SILVER",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": " Silver"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_DATE",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Date"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_TYPE",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Type"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_ISLANDS",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Islands"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_AMOUNT",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Amount"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_NOTES",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Notes"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_AMOUNT_LABEL",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Amount:"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_ISLAND_COUNT_TOOLTIP",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Island count"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_NOTES_LABEL",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Notes:"
-        }
-      ]
-    },
-    {
-      "tuid": "ISLAND_MANAGEMENT_LEDGER_ADD_RECORD",
-      "tuv": [
-        {
-          "lang": "en-US",
-          "seg": "Add Record"
         }
       ]
     },
