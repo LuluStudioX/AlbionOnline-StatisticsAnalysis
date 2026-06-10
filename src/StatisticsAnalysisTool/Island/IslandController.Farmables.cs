@@ -329,7 +329,7 @@ public partial class IslandController
                 var recentlyPlanted = island.LastPlantedAt.HasValue
                     && (DateTime.UtcNow - island.LastPlantedAt.Value.ToUniversalTime()).TotalHours <= 26;
 
-                if (!cycleRunning && !recentlyPlanted && !IsIslandInRoyalCity(island))
+                if (!cycleRunning && !recentlyPlanted)
                 {
                     CommitIslandPlant(island);
                     Log.Information("[IslandController] Auto-started island cycle from farmable activity: island={Island}, objectId={ObjectId}, activityAge={ActivityAge:N1}s",

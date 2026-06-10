@@ -223,15 +223,6 @@ public partial class IslandController
         Log.Information("[IslandController] Backfilled cluster identifiers on '{Name}' after manual selection.", island.Name);
     }
 
-    private static bool IsIslandInRoyalCity(Island island)
-    {
-        if (island == null) return false;
-        var city = island.City ?? string.Empty;
-        var biome = island.Biome ?? string.Empty;
-        return city.IndexOf("royal", StringComparison.OrdinalIgnoreCase) >= 0
-               || biome.IndexOf("royal", StringComparison.OrdinalIgnoreCase) >= 0;
-    }
-
     public IslandSessionSuggestion BuildSessionSuggestion()
     {
         if (string.IsNullOrWhiteSpace(_sessionIslandName) && _sessionBuildingCounts.IsEmpty)

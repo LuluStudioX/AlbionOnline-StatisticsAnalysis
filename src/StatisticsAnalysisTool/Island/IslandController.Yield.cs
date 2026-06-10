@@ -115,8 +115,13 @@ public partial class IslandController
         // appear exactly once, so a baseline-only rule never counts them — which is what keeps merely
         // viewing a laborer from inflating yield. Real storage stacks carry an entry-load baseline and
         // grow as loot is deposited, so only their growth is counted.
-        var hadPrev = _lastItemQty.TryGetValue(item.ObjectId, out var prevQty);
-        _lastItemQty[item.ObjectId] = item.Quantity;
+        bool hadPrev;
+        int prevQty;
+        lock (_yieldQtyLock)
+        {
+            hadPrev = _lastItemQty.TryGetValue(item.ObjectId, out prevQty);
+            _lastItemQty[item.ObjectId] = item.Quantity;
+        }
         if (!hadPrev) return; // first sighting — baseline only (covers preview objects and pre-existing stock)
 
         var delta = item.Quantity - prevQty;
@@ -145,8 +150,13 @@ public partial class IslandController
         var isFull = name.EndsWith("_FULL", StringComparison.OrdinalIgnoreCase);
         if (!isEmpty && !isFull) return;
 
-        var hadPrev = _lastJournalQty.TryGetValue(item.ObjectId, out var prevQty);
-        _lastJournalQty[item.ObjectId] = item.Quantity;
+        bool hadPrev;
+        int prevQty;
+        lock (_yieldQtyLock)
+        {
+            hadPrev = _lastJournalQty.TryGetValue(item.ObjectId, out prevQty);
+            _lastJournalQty[item.ObjectId] = item.Quantity;
+        }
 
         var island = FindCurrentIsland();
         if (island == null) return;

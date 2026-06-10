@@ -90,12 +90,6 @@ public partial class IslandController
             || island.LastPlantedAt.Value.AddHours(IslandConstants.LaborerBaseCycleHours) <= DateTime.UtcNow;
         if (!shouldUpdate) return;
 
-        if (IsIslandInRoyalCity(island))
-        {
-            Log.Debug("[IslandController] Skipped auto-start for island in royal city (laborer): {Island}", island.Name);
-            return;
-        }
-
         island.LastPlantedAt = cycleStartUtc;
         island.LastHandledAt = DateTime.UtcNow;
         island.UpdateModificationDate();
@@ -161,8 +155,8 @@ public partial class IslandController
 
         lock (_lastSnapshotLock)
         {
-            if (!string.IsNullOrWhiteSpace(_lastSnapshotIslandName)
-                && string.Equals(_lastSnapshotIslandName, island.Name?.Trim(), StringComparison.OrdinalIgnoreCase)
+            if (_lastSnapshotIslandId != Guid.Empty
+                && _lastSnapshotIslandId == island.Id
                 && (DateTime.UtcNow - _lastSnapshotUtc) <= TimeSpan.FromMinutes(5)
                 && _lastSnapshotList.Count > 0)
             {
@@ -180,7 +174,7 @@ public partial class IslandController
 
         lock (_lastSnapshotLock)
         {
-            _lastSnapshotIslandName = island.Name?.Trim() ?? string.Empty;
+            _lastSnapshotIslandId = island.Id;
             _lastSnapshotUtc = DateTime.UtcNow;
             lock (_snapshotOrderLock)
                 _lastSnapshotList = new List<LaborerSnapshot>(_snapshotsByOrder);

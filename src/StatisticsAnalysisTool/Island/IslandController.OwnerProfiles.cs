@@ -13,6 +13,10 @@ public partial class IslandController
 {
     private const string OwnerProfilesFileName = "OwnerProfiles.json";
 
+    // Guards the two session-scoped tracking collections below, which are touched from network-thread
+    // push paths; without it concurrent updates can corrupt the dictionary/hashset.
+    private readonly object _sessionTrackingLock = new();
+
     // Tracks which islands have been auto-prefilled today (keyed by owner name).
     // Resets when the UTC date rolls over to prevent double-counting within one cycle.
     private readonly Dictionary<string, (DateTime Date, HashSet<Guid> IslandIds)> _autoPrefillDailyTracker
@@ -25,12 +29,15 @@ public partial class IslandController
     private bool TryClaimAutoPrefillSlot(string ownerName, Guid islandId)
     {
         var today = DateTime.UtcNow.Date;
-        if (!_autoPrefillDailyTracker.TryGetValue(ownerName, out var entry) || entry.Date != today)
+        lock (_sessionTrackingLock)
         {
-            entry = (today, new HashSet<Guid>());
-            _autoPrefillDailyTracker[ownerName] = entry;
+            if (!_autoPrefillDailyTracker.TryGetValue(ownerName, out var entry) || entry.Date != today)
+            {
+                entry = (today, new HashSet<Guid>());
+                _autoPrefillDailyTracker[ownerName] = entry;
+            }
+            return entry.IslandIds.Add(islandId);
         }
-        return entry.IslandIds.Add(islandId);
     }
     private readonly object _ownerProfilesLock = new();
     private Dictionary<string, OwnerProfile> _ownerProfiles = new(StringComparer.OrdinalIgnoreCase);
@@ -322,17 +329,21 @@ public partial class IslandController
     private void TryShowPaymentReadyDialog(string ownerName)
     {
         if (string.IsNullOrWhiteSpace(ownerName)) return;
-        if (!_paymentDialogShownThisSessionForOwners.Add(ownerName)) return;
+        lock (_sessionTrackingLock)
+            if (!_paymentDialogShownThisSessionForOwners.Add(ownerName)) return;
 
         var totalIslands = GetIslandsByOwner(ownerName).Count();
         if (totalIslands == 0) return;
 
-        if (!_autoPrefillDailyTracker.TryGetValue(ownerName, out var entry)
-            || entry.Date != DateTime.UtcNow.Date
-            || entry.IslandIds.Count < totalIslands)
+        lock (_sessionTrackingLock)
         {
-            _paymentDialogShownThisSessionForOwners.Remove(ownerName);
-            return;
+            if (!_autoPrefillDailyTracker.TryGetValue(ownerName, out var entry)
+                || entry.Date != DateTime.UtcNow.Date
+                || entry.IslandIds.Count < totalIslands)
+            {
+                _paymentDialogShownThisSessionForOwners.Remove(ownerName);
+                return;
+            }
         }
 
         Log.Information("[IslandController] All {Count} islands done for owner {Owner} — opening payment dialog", totalIslands, ownerName);

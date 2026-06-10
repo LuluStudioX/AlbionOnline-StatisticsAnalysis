@@ -36,7 +36,9 @@ public partial class IslandController
     private readonly List<LaborerSnapshot> _snapshotsByOrder = new();
     private readonly object _snapshotOrderLock = new();
     private long _detectionCounter;
-    private bool _collectionReadyWebhookSentThisSession;
+    // 0 = not yet sent this session, 1 = sent. Guarded with Interlocked so two push threads can't both
+    // observe "not sent" and both fire the owner collection-ready webhook (G6a).
+    private int _collectionReadyWebhookSentThisSession;
     private System.Windows.Threading.DispatcherTimer _countdownTimer;
     private System.Windows.Threading.DispatcherTimer _transitionTimer;
     private volatile System.Threading.Timer _pushDebounceTimer;
@@ -52,7 +54,9 @@ public partial class IslandController
 
     // 5-min snapshot cache so UI stays populated briefly after loot collection
     private readonly object _lastSnapshotLock = new();
-    private string _lastSnapshotIslandName = string.Empty;
+    // Keyed by the island's stable Id, not its user-editable Name — two islands the user named identically
+    // must not cross-serve each other's cached laborers within the 5-min window (C3).
+    private Guid _lastSnapshotIslandId = Guid.Empty;
     private DateTime _lastSnapshotUtc = DateTime.MinValue;
     private List<LaborerSnapshot> _lastSnapshotList = new();
 
@@ -162,6 +166,10 @@ public partial class IslandController
     // replant removes it. Position is stable across the per-visit object-id churn; the set is island-scoped
     // (keyed by island id) and deliberately persists for the app run.
     private readonly HashSet<string> _collectedTilesAwaitingReplant = [];
+    // Serializes the read-baseline/compute-delta/update-baseline RMW on the two yield qty maps below, so
+    // two overlapping same-ObjectId broadcasts can't both measure their delta off the same stale baseline
+    // and double-count the growth (G6d).
+    private readonly object _yieldQtyLock = new();
     // Last seen quantity per laborer-loot inventory object (NewLaborerItem, code 32). Yield is the
     // positive growth between broadcasts; the first sighting is the baseline. Reset on island change.
     private readonly ConcurrentDictionary<long, int> _lastItemQty = new();
@@ -213,12 +221,12 @@ public partial class IslandController
         lock (_pendingYieldLock) _pendingYield.Clear();
         _farmablePositions.Clear();
         _plotTilePlanted.Clear();
-        _collectionReadyWebhookSentThisSession = false;
+        Interlocked.Exchange(ref _collectionReadyWebhookSentThisSession, 0);
         Interlocked.Exchange(ref _detectionCounter, 0);
         lock (_lastSnapshotLock)
         {
             _lastSnapshotList.Clear();
-            _lastSnapshotIslandName = string.Empty;
+            _lastSnapshotIslandId = Guid.Empty;
             _lastSnapshotUtc = DateTime.MinValue;
         }
         ExecutePushAllIslandsStatus();

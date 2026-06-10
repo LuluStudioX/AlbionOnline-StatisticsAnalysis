@@ -24,7 +24,7 @@ public partial class IslandController
 {
     private void TryTriggerCollectionReadyWebhook()
     {
-        if (_collectionReadyWebhookSentThisSession) return;
+        if (Volatile.Read(ref _collectionReadyWebhookSentThisSession) != 0) return;
         var prefs = _mainWindowViewModel?.IslandBindings?.Preferences;
         if (prefs?.AutoNotifyOwnerWhenAllDone != true) return;
 
@@ -37,12 +37,11 @@ public partial class IslandController
         if (string.IsNullOrWhiteSpace(islandOwner)) return;
 
         // Fire only when EVERY island of this owner is done this cycle — i.e. none still NeedsVisit
-        // (ready/overdue, or never planted). Royal-city islands have no laborer cycle and are excluded.
+        // (ready/overdue, or never planted).
         List<Island> ownerIslands;
         lock (_islandsLock)
             ownerIslands = _islands
-                .Where(i => string.Equals(i.Owner?.Trim(), islandOwner, StringComparison.OrdinalIgnoreCase)
-                            && !IsIslandInRoyalCity(i))
+                .Where(i => string.Equals(i.Owner?.Trim(), islandOwner, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
         if (ownerIslands.Count == 0) return;
@@ -54,7 +53,8 @@ public partial class IslandController
             return;
         }
 
-        _collectionReadyWebhookSentThisSession = true;
+        // Atomic claim: if another push thread already flipped the flag, abort so we send exactly once.
+        if (Interlocked.CompareExchange(ref _collectionReadyWebhookSentThisSession, 1, 0) != 0) return;
         Log.Information("[IslandController] All {Count} islands done for owner {Owner} — triggering collection-ready webhook.",
             ownerIslands.Count, islandOwner);
         _ = TrySendCollectionReadyWebhookAsync(islandOwner);
@@ -114,7 +114,10 @@ public partial class IslandController
             }
         }
         _ = SaveOwnerProfilesAsync();
-        _mainWindowViewModel?.IslandBindings?.RefreshOwnerOverview();
+        // RefreshOwnerOverview touches UI bindings — marshal to the dispatcher (this runs on the webhook
+        // async path, off the UI thread). Every other call site already does this (G6b).
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+            _mainWindowViewModel?.IslandBindings?.RefreshOwnerOverview());
     }
 
     public async Task<bool> SendWebhookManualAsync(string ownerName)
