@@ -224,6 +224,7 @@ public partial class IslandBindings
             if (string.IsNullOrWhiteSpace(name)) return;
             GetOrCreateProfile(name).OpeningBalance = value;
             OnPropertyChanged();
+            SaveOwnerProfile();
             RefreshOwnerOverview();
         }
     }
@@ -259,6 +260,7 @@ public partial class IslandBindings
             if (string.IsNullOrWhiteSpace(name)) return;
             GetOrCreateProfile(name).DefaultPayPerIsland = value < 0 ? 0 : value;
             OnPropertyChanged();
+            SaveOwnerProfile();
             RefreshOwnerOverview();
         }
     }
@@ -276,6 +278,7 @@ public partial class IslandBindings
             if (string.IsNullOrWhiteSpace(name)) return;
             GetOrCreateProfile(name).PayoutDayOfWeek = value;
             OnPropertyChanged();
+            SaveOwnerProfile();
             RefreshOwnerOverview();
         }
     }

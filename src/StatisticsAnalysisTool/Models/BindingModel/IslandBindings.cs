@@ -257,6 +257,7 @@ public partial class IslandBindings : BaseViewModel
         {
             _gridSplitterPosition = value;
             SettingsController.CurrentSettings.IslandManagementGridSplitterPosition = _gridSplitterPosition.Value;
+            _ = SettingsController.SaveSettingsAsync();
             OnPropertyChanged();
         }
     }

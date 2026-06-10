@@ -160,8 +160,25 @@ public partial class AddEditIslandWindow : Window
             ShowError(LocalizationController.Translation("ISLAND_MANAGEMENT_VALIDATION_SELECT_CITY"));
             return false;
         }
+        if (IsDuplicateName())
+        {
+            ShowError(LocalizationController.Translation("ISLAND_MANAGEMENT_VALIDATION_DUPLICATE_NAME"));
+            return false;
+        }
         ValidationErrorPanel.Visibility = Visibility.Collapsed;
         return true;
+    }
+
+    // Rejects a name+city that already belongs to another island. On edit the island being edited is
+    // excluded by its id, so re-saving it (or editing unrelated fields) is not flagged as its own duplicate.
+    private bool IsDuplicateName()
+    {
+        var controller = Common.ServiceLocator.Resolve<Network.Manager.TrackingController>()?.IslandController;
+        if (controller == null) return false;
+
+        var name = NameTextBox.Text.Trim();
+        var cityName = (CityComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? string.Empty;
+        return controller.IslandExists(name, cityName, _existingIsland?.IslandId);
     }
 
     private void ShowError(string message)

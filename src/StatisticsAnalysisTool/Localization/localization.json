@@ -47924,6 +47924,15 @@
       ]
     },
     {
+      "tuid": "ISLAND_MANAGEMENT_VALIDATION_DUPLICATE_NAME",
+      "tuv": [
+        {
+          "lang": "en-US",
+          "seg": "An island with this name already exists in this city."
+        }
+      ]
+    },
+    {
       "tuid": "ISLAND_MANAGEMENT_DELETE_CONFIRM",
       "tuv": [
         {

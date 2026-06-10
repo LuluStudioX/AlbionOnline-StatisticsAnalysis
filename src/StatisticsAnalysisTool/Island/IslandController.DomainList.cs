@@ -60,11 +60,16 @@ public partial class IslandController
         });
     }
 
-    public bool IslandExists(string name, string city)
+    public bool IslandExists(string name, string city) => IslandExists(name, city, null);
+
+    // Overload that ignores one island by id — used by the edit path so renaming an island to its own
+    // current name (or editing other fields) isn't flagged as a duplicate of itself.
+    public bool IslandExists(string name, string city, Guid? excludeId)
     {
         lock (_islandsLock)
             return _islands.Any(i =>
-                string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase)
+                (!excludeId.HasValue || i.Id != excludeId.Value)
+                && string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(i.City, city, StringComparison.OrdinalIgnoreCase));
     }
 

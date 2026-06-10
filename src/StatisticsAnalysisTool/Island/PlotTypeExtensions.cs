@@ -38,15 +38,6 @@ public static class PlotTypeExtensions
         };
     }
 
-    public static int GetMaxQuantity(this PlotType plotType)
-    {
-        return plotType switch
-        {
-            PlotType.House => 99,
-            _ => 99
-        };
-    }
-
     public static double GetBaseCollectionHours(this PlotType plotType, string configuration = "")
     {
         var configuredObjectName = GetConfiguredObjectName(plotType, configuration);
@@ -60,13 +51,24 @@ public static class PlotTypeExtensions
             PlotType.Farm => IslandConstants.LaborerBaseCycleHours,
             PlotType.HerbGarden => IslandConstants.LaborerBaseCycleHours,
             PlotType.House => IslandConstants.LaborerBaseCycleHours,
-            PlotType.Pasture => !string.IsNullOrEmpty(configuration)
-                && (configuration.Contains("Horse") || configuration.Contains("Foal") || configuration.Contains("Ox"))
+            PlotType.Pasture => IsExtendedCyclePastureAnimal(configuredObjectName)
                 ? IslandConstants.LaborerExtendedCycleHours : IslandConstants.LaborerBaseCycleHours,
             PlotType.Kennel => IslandConstants.LaborerBaseCycleHours,
             PlotType.Saddler => IslandConstants.LaborerBaseCycleHours,
             _ => 0.0
         };
+    }
+
+    // Animal display names whose pasture breeding runs the extended (52h) cycle rather than the base cycle.
+    private static readonly string[] ExtendedCyclePastureAnimals = { "Horse", "Foal", "Ox" };
+
+    // Exact whole-word match on the PARSED AnimalType, not a Contains on the raw config blob — so an
+    // unrelated value that merely contains "Ox" (e.g. "Oxtongue") can no longer trip the 52h cycle.
+    private static bool IsExtendedCyclePastureAnimal(string configuredObjectName)
+    {
+        if (string.IsNullOrWhiteSpace(configuredObjectName)) return false;
+        var tokens = configuredObjectName.Split(new[] { ' ', '\t', '-', '(', ')' }, StringSplitOptions.RemoveEmptyEntries);
+        return tokens.Any(tok => ExtendedCyclePastureAnimals.Contains(tok, StringComparer.OrdinalIgnoreCase));
     }
 
     public static string GetPremiumEffectSummary(this PlotType plotType, string configuration = "")
