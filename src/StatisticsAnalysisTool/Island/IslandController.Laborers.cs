@@ -86,11 +86,17 @@ public partial class IslandController
         var readyUtc = readyUtcNullable.Value.ToUniversalTime();
         var cycleStartUtc = readyUtc.AddHours(-IslandConstants.LaborerBaseCycleHours);
 
-        var shouldUpdate = !island.LastPlantedAt.HasValue
-            || island.LastPlantedAt.Value.AddHours(IslandConstants.LaborerBaseCycleHours) <= DateTime.UtcNow;
+        // Only a laborer genuinely OUT on a fresh cycle (return still in the future) may drive the island's
+        // collection timer. A back/loot-ready laborer's anchor is already in the past; letting it set
+        // LastCycleStartAt would make the island "first ready" show that laborer's (often shortest) time
+        // instead of the real pending cycles — the island must not consider an already-ready laborer here.
+        if (readyUtc <= DateTime.UtcNow) return;
+
+        var shouldUpdate = !island.LastCycleStartAt.HasValue
+            || island.LastCycleStartAt.Value.AddHours(IslandConstants.LaborerBaseCycleHours) <= DateTime.UtcNow;
         if (!shouldUpdate) return;
 
-        island.LastPlantedAt = cycleStartUtc;
+        island.LastCycleStartAt = cycleStartUtc;
         island.LastHandledAt = DateTime.UtcNow;
         island.UpdateModificationDate();
         RequestSaveToFile();

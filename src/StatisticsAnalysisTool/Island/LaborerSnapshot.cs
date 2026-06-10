@@ -46,12 +46,17 @@ public class LaborerSnapshot
     // home = no active job. Keeping IsOnJob derived (not a sticky bool) is what stops "all on job" from
     // becoming trivially true and firing the owner webhook mid-collection.
     public bool IsOnJob => HasActiveJob && ReadyAtUtc.HasValue && ReadyAtUtc.Value > DateTime.UtcNow;
-    public bool IsLootReady => HasActiveJob && ReadyAtUtc.HasValue && ReadyAtUtc.Value <= DateTime.UtcNow;
+    public bool IsLootReady => HasActiveJob && ReadyAtUtc.HasValue && ReadyAtUtc.Value <= DateTime.UtcNow
+        && DateTime.UtcNow < ReadyAtUtc.Value.AddHours(IslandConstants.LaborerLootExpiryHours);
 
-    // Return/ready-at time: param 8 (already end-of-cycle) when known, else JobStartTime + base cycle.
-    public DateTime? ReadyAtUtc => JobDispatchTime ?? (JobStartTime.HasValue
-        ? JobStartTime.Value.AddHours(IslandConstants.LaborerBaseCycleHours)
-        : null);
+    // Return/ready-at time. Both wire timestamps are job COMPLETION times, not starts:
+    //   param 8 (LaborerObjectInfo) = future completion, present only while the laborer is away;
+    //   param 5 (LaborerObjectJobInfo, stored as JobStartTime) = the completion of the job the laborer is
+    //   back from — it matches the in-game "rewards expire in N days" deadline (7d after completion).
+    // A laborer back with uncollected loot sends only param 5 (recent past) and no param 8, so ReadyAtUtc
+    // is in the past => loot-ready. (Adding a cycle here was the bug: it projected param 5 ~22h into the
+    // future and mislabeled a back/loot-ready laborer as on-job for ~17h.)
+    public DateTime? ReadyAtUtc => JobDispatchTime ?? JobStartTime;
 
     // True once this laborer has been observed at home (IsOnJob=false) at least once.
     // Used to distinguish "already on job when we arrived" from "just dispatched".
