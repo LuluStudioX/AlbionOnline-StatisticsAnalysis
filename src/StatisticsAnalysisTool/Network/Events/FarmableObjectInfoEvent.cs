@@ -54,7 +54,7 @@ public class FarmableObjectInfoEvent
         {
             var serverNow = new DateTime(serverTicks.Value, DateTimeKind.Utc);
             var elapsedMs = elapsed100us.Value / 10.0;
-            var cycleMs   = IslandConstants.LaborerBaseCycleHours * 3_600_000.0;
+            var cycleMs   = IslandConstants.LaborerExtendedCycleHours * 3_600_000.0; // longest cycle (pasture 52h) — a 22h bound wrongly rejected longer-cycle plots
             var plantedAt = serverNow.AddMilliseconds(-elapsedMs);
 
             if (plantedAt < serverNow && elapsedMs >= 0 && elapsedMs <= cycleMs)

@@ -47,17 +47,18 @@ public partial class IslandController
         var island = FindCurrentIsland();
         if (island == null) return;
 
+        // Collecting frees the tile for a replant, so mark its position as awaiting one: the next plant
+        // (code 45) on this position is then a real replant and counts its seed as consumed. This only needs
+        // the cached position (not a resolved plot/slot), so a collect whose plot can't be slot-resolved still
+        // books its replanted seed as consumed. Zone-in re-broadcasts never pass through here, so stay uncounted.
+        MarkTileAwaitingReplant(island, plotObjectId);
+
         var plot = ResolveFarmablePlotByObjectId(island, plotObjectId);
         if (plot == null)
         {
-            Log.Debug("[IslandController] Collect for unresolved farmable objId={ObjectId} — no per-plot timer cleared", plotObjectId);
+            Log.Debug("[IslandController] Collect for unresolved farmable objId={ObjectId} — replant marked, per-plot timer not cleared", plotObjectId);
             return;
         }
-
-        // Collecting frees the tile for a replant, so mark its position as awaiting one: the next plant
-        // (code 45) on this position is then a real replant and counts its seed as consumed. Zone-in
-        // re-broadcasts of pre-existing plants never pass through here, so they stay uncounted.
-        MarkTileAwaitingReplant(island, plotObjectId);
 
         if (!UpdatePlotTile(plot, plotObjectId, null)) return;
         island.UpdateModificationDate();
@@ -156,7 +157,7 @@ public partial class IslandController
 
     private void CommitIslandPlant(Island island)
     {
-        island.PlantAll();
+        island.StartAllCycles();
         island.UpdateModificationDate();
         RequestSaveToFile();
         RefreshIslandStatusAsync(island);
@@ -295,7 +296,7 @@ public partial class IslandController
             island.Name, e.ObjectId, activityTimestampUtc);
 
         // Param 4 (remaining 100µs) + param 5 (server ticks) → derive PlantedAt and update the timer.
-        if (e.PlantedAt.HasValue && e.PlantedAt.Value.AddHours(IslandConstants.LaborerBaseCycleHours) > DateTime.UtcNow)
+        if (e.PlantedAt.HasValue && e.PlantedAt.Value.AddHours(IslandConstants.LaborerExtendedCycleHours) > DateTime.UtcNow)
         {
             // Set only the tile this object belongs to (per-slot); fall back to per-type when unresolved.
             // Persist/refresh only on a real change so a minute-boundary re-process doesn't re-save.
@@ -305,7 +306,7 @@ public partial class IslandController
                 : PersistPlotPlantedAt(island, e.PlantedAt.Value);
             if (changed)
             {
-                island.LastPlantedAt = e.PlantedAt.Value;
+                island.LastCycleStartAt = e.PlantedAt.Value;
                 island.UpdateModificationDate();
                 RequestSaveToFile();
                 RefreshIslandStatusAsync(island);
@@ -323,11 +324,11 @@ public partial class IslandController
                 var cycleRunning = island.NextCollectionReadyAt.HasValue
                     && island.NextCollectionReadyAt.Value > DateTime.UtcNow;
 
-                // Also treat a recently-set LastPlantedAt (within the past 26h) as a running
+                // Also treat a recently-set LastCycleStartAt (within the past 26h) as a running
                 // cycle — prevents re-stamping when the island was planted before this visit
-                // but LastPlantedAt wasn't yet stored (new island added after planting).
-                var recentlyPlanted = island.LastPlantedAt.HasValue
-                    && (DateTime.UtcNow - island.LastPlantedAt.Value.ToUniversalTime()).TotalHours <= 26;
+                // but LastCycleStartAt wasn't yet stored (new island added after planting).
+                var recentlyPlanted = island.LastCycleStartAt.HasValue
+                    && (DateTime.UtcNow - island.LastCycleStartAt.Value.ToUniversalTime()).TotalHours <= 26;
 
                 if (!cycleRunning && !recentlyPlanted)
                 {

@@ -135,8 +135,11 @@ public sealed class IslandLayoutDefinition
 
     // Maximum pixel distance (squared) a projected world position may sit from a slot center and still
     // match it. Beyond this an off-grid position (laborer standing between plots / bad calibration) returns
-    // no match rather than snapping to a far slot (G8b). 50px at the 1024px layout resolution.
-    private const double MaxSlotMatchDistanceSquared = 50.0 * 50.0;
+    // no match rather than snapping to a far slot (G8b). 90px at the 1024px layout resolution: a capture
+    // replay showed the PlayerStandard calibration residual spreads to ~50px, so a 50px cutoff clipped ~18%
+    // of real farmable positions (the 50-100px band) → grey/unmatched plots. 90px covers the residual while
+    // still rejecting the >100px off-grid / wrong-layout positions.
+    private const double MaxSlotMatchDistanceSquared = 90.0 * 90.0;
 
     public int? WorldToNearestSlot(float wx, float wy, bool? requireLarge = null)
     {
