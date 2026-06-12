@@ -703,7 +703,6 @@ public partial class IslandBindings
 
         var allWithdrawals = names
             .SelectMany(n => ReadProfile(n).Withdrawals ?? Enumerable.Empty<OwnerWithdrawalEntry>())
-            .Where(w => w.Timestamp.ToLocalTime().Date < currentWeekStart)
             .ToList();
 
         var weeklyEarned = allHistory
