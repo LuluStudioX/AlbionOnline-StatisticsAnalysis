@@ -29,12 +29,12 @@ public partial class IslandBindings
     private int? _chartWindowDays = null;
     private string _newWithdrawalAmount = string.Empty;
     private string _newWithdrawalNote = string.Empty;
-    private DateTime _newWithdrawalDate = DateTime.Today;
+    private DateTime _newWithdrawalDate = IslandTime.Today;
     private DateTime? _newWithdrawalPaidForWeekStart = null;
     private string _newCycleIslandCount = string.Empty;
     private string _newCycleAmount = string.Empty;
     private string _newCycleNote = string.Empty;
-    private DateTime _newCycleDate = DateTime.Today;
+    private DateTime _newCycleDate = IslandTime.Today;
     private CycleRecordType _newCycleType = CycleRecordType.Islands;
 
     public IEnumerable<string> OwnerOptions => Islands
@@ -387,7 +387,7 @@ public partial class IslandBindings
     {
         get
         {
-            var today = DateTime.Today;
+            var today = IslandTime.Today;
             return GetEffectiveOwnerNames()
                 .Sum(n => ReadProfile(n).CycleHistory?
                     .Where(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands)
@@ -399,7 +399,7 @@ public partial class IslandBindings
     {
         get
         {
-            var today = DateTime.Today;
+            var today = IslandTime.Today;
             return GetEffectiveOwnerNames()
                 .Sum(n => ReadProfile(n).CycleHistory?
                     .Where(c => c.Date.Date == today)
@@ -414,7 +414,7 @@ public partial class IslandBindings
     {
         get
         {
-            var today = DateTime.Today;
+            var today = IslandTime.Today;
             return GetEffectiveOwnerNames()
                 .Sum(n => ReadProfile(n).CycleHistory?
                     .Where(c => c.Date.Date == today && c.RecordType != CycleRecordType.Islands)
@@ -426,7 +426,7 @@ public partial class IslandBindings
     {
         get
         {
-            var today = DateTime.Today;
+            var today = IslandTime.Today;
             return GetEffectiveOwnerNames()
                 .SelectMany(n => ReadProfile(n).CycleHistory?
                     .Where(c => c.Date.Date == today && c.RecordType != CycleRecordType.Islands)
@@ -471,7 +471,7 @@ public partial class IslandBindings
             ? $"✅ {name} - all islands are ready"
             : $"⏳ {name} - {left} island(s) remaining";
 
-        var today = DateTime.Today;
+        var today = IslandTime.Today;
         var islandNotes = GetEffectiveOwnerNames()
             .SelectMany(n => ReadProfile(n).CycleHistory?
                 .Where(c => c.Date.Date == today
@@ -535,7 +535,7 @@ public partial class IslandBindings
         var done = SelectedOwnerTodayRecordedIslandCount;
         var earned = SelectedOwnerTodayRecordedEarned;
         var period = SelectedOwnerCurrentPeriodRecordedEarned;
-        var date = DateTime.Today.ToString("yyyy-MM-dd");
+        var date = IslandTime.Today.ToString("yyyy-MM-dd");
         var raw = $"I{done}/E{(long) earned}/P{(long) period}/D{date}";
         var encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw));
         return $"SAT:{encoded}";
@@ -606,7 +606,9 @@ public partial class IslandBindings
 
         controller.AddCycleRecord(ownerName, new OwnerCycleRecord
         {
-            Date = date.Value.Date,
+            // UTC kind: the day bucketing reads .ToUniversalTime().Date, so a Local-kind midnight would
+            // shift the imported record back a day in the chart/period math.
+            Date = DateTime.SpecifyKind(date.Value.Date, DateTimeKind.Utc),
             IslandCount = islandCount.Value,
             EarnedAmount = earned.Value,
             Notes = "Imported via SAT code"
@@ -620,8 +622,8 @@ public partial class IslandBindings
     {
         get
         {
-            if (Preferences?.UseDailyPayoutMode == true) return DateTime.Today;
-            var today = DateTime.Today;
+            if (Preferences?.UseDailyPayoutMode == true) return IslandTime.Today;
+            var today = IslandTime.Today;
             var dayDelta = ((int) SelectedOwnerPayoutDay - (int) today.DayOfWeek + 7) % 7;
             return today.AddDays(dayDelta);
         }
@@ -633,7 +635,7 @@ public partial class IslandBindings
         {
             if (Preferences?.UseDailyPayoutMode == true) return "Daily";
             var weekStart = Preferences?.WeekStartDay ?? DayOfWeek.Monday;
-            var today = DateTime.Today;
+            var today = IslandTime.Today;
             var dayDelta = ((int) today.DayOfWeek - (int) weekStart + 7) % 7;
             var periodStart = today.AddDays(-dayDelta);
             var periodEnd = periodStart.AddDays(6);
@@ -645,12 +647,12 @@ public partial class IslandBindings
     {
         get
         {
-            if (Preferences?.UseDailyPayoutMode == true) return DateTime.Today;
+            if (Preferences?.UseDailyPayoutMode == true) return IslandTime.Today;
             var name = EffectiveOwnerName;
-            if (string.IsNullOrWhiteSpace(name)) return DateTime.Today;
+            if (string.IsNullOrWhiteSpace(name)) return IslandTime.Today;
             var profile = ReadProfile(name);
             var lastPayout = profile.Withdrawals?
-                .Select(w => w.Timestamp.ToLocalTime().Date)
+                .Select(w => w.Timestamp.ToUniversalTime().Date)
                 .OrderByDescending(d => d).FirstOrDefault();
             return lastPayout.HasValue && lastPayout.Value != default ? lastPayout.Value.AddDays(1) : SelectedOwnerNextPayoutDate.AddDays(-6);
         }
@@ -664,10 +666,10 @@ public partial class IslandBindings
             if (string.IsNullOrWhiteSpace(name)) return 0;
             var profile = ReadProfile(name);
             if (Preferences?.UseDailyPayoutMode == true)
-                return profile.CycleHistory?.Where(c => c.Date.Date == DateTime.Today).Sum(c => c.EarnedAmount) ?? 0;
+                return profile.CycleHistory?.Where(c => c.Date.Date == IslandTime.Today).Sum(c => c.EarnedAmount) ?? 0;
             var weekStart = GetCurrentCalendarWeekStart();
             return profile.CycleHistory?
-                .Where(c => c.Date.Date >= weekStart && c.Date.Date <= DateTime.Today)
+                .Where(c => c.Date.Date >= weekStart && c.Date.Date <= IslandTime.Today)
                 .Sum(c => c.EarnedAmount) ?? 0;
         }
     }
@@ -675,7 +677,7 @@ public partial class IslandBindings
     private DateTime GetCurrentCalendarWeekStart()
     {
         var weekStartDay = Preferences?.WeekStartDay ?? DayOfWeek.Monday;
-        var today = DateTime.Today;
+        var today = IslandTime.Today;
         var delta = ((int) today.DayOfWeek - (int) weekStartDay + 7) % 7;
         return today.AddDays(-delta);
     }
@@ -710,7 +712,7 @@ public partial class IslandBindings
             .ToDictionary(g => g.Key, g => g.Sum(c => c.EarnedAmount));
 
         var weeklyWithdrawn = allWithdrawals
-            .GroupBy(w => w.PaidForWeekStart?.Date ?? GetCalendarWeekBounds(w.Timestamp.ToLocalTime().Date).WeekStart)
+            .GroupBy(w => w.PaidForWeekStart?.Date ?? GetCalendarWeekBounds(w.Timestamp.ToUniversalTime().Date).WeekStart)
             .ToDictionary(g => g.Key, g => g.Sum(w => w.Amount));
 
         // Process weeks chronologically. Overpay in week N can only offset underpays in weeks <= N.
@@ -761,7 +763,7 @@ public partial class IslandBindings
     }
 
     public int SelectedOwnerDaysUntilPayout =>
-        Math.Max(0, (SelectedOwnerNextPayoutDate - DateTime.Today).Days);
+        Math.Max(0, (SelectedOwnerNextPayoutDate - IslandTime.Today).Days);
 
     public decimal SelectedOwnerProjectedAgreementPayout =>
         Preferences?.UseDailyPayoutMode == true
@@ -938,7 +940,7 @@ public partial class IslandBindings
         if (_chartWindowDays == null)
         {
             var start = SelectedOwnerCurrentPeriodStartDate;
-            return Math.Max(1, (int)(DateTime.Today - start).TotalDays + 1);
+            return Math.Max(1, (int)(IslandTime.Today - start).TotalDays + 1);
         }
         return _chartWindowDays.Value;
     }
@@ -951,10 +953,10 @@ public partial class IslandBindings
 
         var profile = ReadProfile(name);
         var earnedByDay = (profile.CycleHistory ?? new List<OwnerCycleRecord>())
-            .GroupBy(c => c.Date.ToLocalTime().Date)
+            .GroupBy(c => c.Date.ToUniversalTime().Date)
             .ToDictionary(g => g.Key, g => g.Sum(c => (double)c.EarnedAmount));
         var payoutByDay = (profile.Withdrawals ?? new List<OwnerWithdrawalEntry>())
-            .GroupBy(w => w.Timestamp.ToLocalTime().Date)
+            .GroupBy(w => w.Timestamp.ToUniversalTime().Date)
             .ToDictionary(g => g.Key, g => g.Sum(w => (double)w.Amount));
         var allDates = earnedByDay.Keys.Union(payoutByDay.Keys).OrderBy(d => d).ToList();
         return (earnedByDay, payoutByDay, allDates);
@@ -964,7 +966,7 @@ public partial class IslandBindings
     {
         if (_chartWindowDays == -1 || allDates.Count == 0) return allDates;
         var windowDays = ResolveWindowDays();
-        var cutoff = DateTime.Today.AddDays(-(windowDays - 1));
+        var cutoff = IslandTime.Today.AddDays(-(windowDays - 1));
         return allDates.Where(d => d >= cutoff).ToList();
     }
 
@@ -1333,7 +1335,7 @@ public partial class IslandBindings
 
     public void QuickFillTodayCycles()
     {
-        NewCycleDate = DateTime.Today;
+        NewCycleDate = IslandTime.Today;
         NewCycleIslandCount = SelectedOwnerTodayLiveCycledCount.ToString();
         NewCycleAmount = SelectedOwnerTodayLiveEstimate.ToString("F0", System.Globalization.CultureInfo.InvariantCulture);
         NewCycleNote = string.Empty;
@@ -1349,7 +1351,7 @@ public partial class IslandBindings
         _ = int.TryParse(NewCycleIslandCount, out var islandCount);
         GetOrCreateProfile(EffectiveOwnerName).CycleHistory.Add(new OwnerCycleRecord
         {
-            Date = DateTime.SpecifyKind(NewCycleDate.Date, DateTimeKind.Local),
+            Date = DateTime.SpecifyKind(NewCycleDate.Date, DateTimeKind.Utc),
             RecordType = NewCycleType,
             IslandCount = NewCycleType == CycleRecordType.Islands ? islandCount : 0,
             EarnedAmount = amount.Value,
@@ -1373,7 +1375,7 @@ public partial class IslandBindings
         { errorMessage = "Enter a valid withdrawal amount greater than zero."; return false; }
         GetOrCreateProfile(EffectiveOwnerName).Withdrawals.Add(new OwnerWithdrawalEntry
         {
-            Timestamp = DateTime.SpecifyKind(NewWithdrawalDate.Date, DateTimeKind.Local),
+            Timestamp = DateTime.SpecifyKind(NewWithdrawalDate.Date, DateTimeKind.Utc),
             Amount = amount.Value,
             Notes = NewWithdrawalNote?.Trim() ?? string.Empty,
             PaidForWeekStart = NewWithdrawalPaidForWeekStart.Date

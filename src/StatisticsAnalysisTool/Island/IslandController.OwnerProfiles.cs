@@ -17,9 +17,14 @@ public partial class IslandController
     // push paths; without it concurrent updates can corrupt the dictionary/hashset.
     private readonly object _sessionTrackingLock = new();
 
-    // Tracks which islands have been auto-prefilled today (keyed by owner name).
-    // Resets when the UTC date rolls over to prevent double-counting within one cycle.
-    private readonly Dictionary<string, (DateTime Date, HashSet<Guid> IslandIds)> _autoPrefillDailyTracker
+    // The island laborer cycle is 22h. Auto-prefill dedup uses this as the minimum gap between two
+    // counts of the same island, so a legitimate second cycle that lands on the SAME calendar day
+    // (e.g. collect 01:00 -> ready 23:00) still counts, while an accidental double-trigger is blocked.
+    private static readonly TimeSpan AutoPrefillCycleGap = TimeSpan.FromHours(22);
+
+    // Tracks the last instant each island was auto-prefilled (owner name -> island id -> UTC time).
+    // Time-based, not calendar-based: a calendar-day key cannot represent two cycles within one day.
+    private readonly Dictionary<string, Dictionary<Guid, DateTime>> _autoPrefillDailyTracker
         = new(StringComparer.OrdinalIgnoreCase);
 
     // Tracks owners for whom the payment-ready dialog has already been shown this session.
@@ -28,15 +33,22 @@ public partial class IslandController
 
     private bool TryClaimAutoPrefillSlot(string ownerName, Guid islandId)
     {
-        var today = DateTime.UtcNow.Date;
+        // UTC instant for the gap math: point-in-time, timezone-agnostic. (Day bucketing of records
+        // and counters lives in IslandTime.Today; this dedup gate only enforces the 22h cycle spacing.)
+        var now = DateTime.UtcNow;
         lock (_sessionTrackingLock)
         {
-            if (!_autoPrefillDailyTracker.TryGetValue(ownerName, out var entry) || entry.Date != today)
+            if (!_autoPrefillDailyTracker.TryGetValue(ownerName, out var islands))
             {
-                entry = (today, new HashSet<Guid>());
-                _autoPrefillDailyTracker[ownerName] = entry;
+                islands = new Dictionary<Guid, DateTime>();
+                _autoPrefillDailyTracker[ownerName] = islands;
             }
-            return entry.IslandIds.Add(islandId);
+
+            if (islands.TryGetValue(islandId, out var last) && now - last < AutoPrefillCycleGap)
+                return false;
+
+            islands[islandId] = now;
+            return true;
         }
     }
     private readonly object _ownerProfilesLock = new();
@@ -205,8 +217,8 @@ public partial class IslandController
         var ownerName = island?.Owner;
         if (string.IsNullOrWhiteSpace(ownerName)) return;
 
-        // Per-island dedup: each island counted at most once per UTC day.
-        // Resets at midnight so a legitimate second daily cycle (22h period) counts correctly.
+        // Per-island dedup: an island re-counts only after the full 22h cycle gap (see TryClaimAutoPrefillSlot),
+        // so a legitimate second daily cycle still counts while an accidental double-trigger does not.
         if (!TryClaimAutoPrefillSlot(ownerName, island.Id))
         {
             Log.Debug("[IslandController] AutoPrefill skipped (already counted today): owner={Owner}, island={Island}",
@@ -217,7 +229,8 @@ public partial class IslandController
         var profile = GetOrCreateProfile(ownerName);
         var pay = island.ManagementPayOverride ?? profile.DefaultPayPerIsland;
 
-        var today = DateTime.UtcNow.Date;
+        // Stamp on the Albion (UTC) accounting day so the record and the "Done today" counter agree.
+        var today = IslandTime.Today;
 
         lock (_ownerProfilesLock)
         {
@@ -295,9 +308,11 @@ public partial class IslandController
 
         lock (_sessionTrackingLock)
         {
-            if (!_autoPrefillDailyTracker.TryGetValue(ownerName, out var entry)
-                || entry.Date != DateTime.UtcNow.Date
-                || entry.IslandIds.Count < totalIslands)
+            var cutoff = DateTime.UtcNow - AutoPrefillCycleGap;
+            var cycledCount = _autoPrefillDailyTracker.TryGetValue(ownerName, out var islands)
+                ? islands.Values.Count(t => t >= cutoff)
+                : 0;
+            if (cycledCount < totalIslands)
             {
                 _paymentDialogShownThisSessionForOwners.Remove(ownerName);
                 return;
@@ -322,7 +337,7 @@ public partial class IslandController
                 {
                     lock (_ownerProfilesLock)
                     {
-                        var today = DateTime.Today;
+                        var today = IslandTime.Today;
                         var record = profile.CycleHistory?
                             .FirstOrDefault(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands);
                         if (record != null && !string.IsNullOrWhiteSpace(notes))

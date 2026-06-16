@@ -40,6 +40,52 @@ public class IslandHandlerWireCodeTests
     }
 }
 
+// Island accounting follows the Albion game day, which rolls at UTC midnight. A cycle finished after the
+// player's LOCAL midnight but before UTC midnight still belongs to the previous UTC day in-game. Records
+// are stamped on IslandTime.Today (UTC) and the "Done today" counters filter by the same basis; bucketing
+// the counter by local day instead is what showed 0/24 right after a late-night session.
+[TestFixture]
+public class IslandAccountingDayTests
+{
+    [Test]
+    public void IslandTime_Today_IsUtcDateAtMidnight()
+    {
+        IslandTime.Today.Should().Be(DateTime.UtcNow.Date);
+        IslandTime.Today.Kind.Should().Be(DateTimeKind.Utc);
+        IslandTime.Today.TimeOfDay.Should().Be(TimeSpan.Zero);
+    }
+
+    // 00:30 in a +02:00 zone is still 22:30 UTC of the previous day. The game day (UTC) and the wall-clock
+    // day (local) disagree by one here, exactly the off-by-one that produced the 0/24 report. UTC bucketing
+    // attributes the cycle to the day it belongs to in-game.
+    [Test]
+    public void CompletionAfterLocalMidnight_ButBeforeUtcMidnight_BucketsToPreviousUtcDay()
+    {
+        var localCompletion = new DateTimeOffset(2026, 6, 16, 0, 30, 0, TimeSpan.FromHours(2));
+        var gameDay = localCompletion.UtcDateTime.Date;
+        var wallClockDay = localCompletion.Date;
+
+        gameDay.Should().Be(new DateTime(2026, 6, 15), "the in-game day rolls at UTC midnight, not local midnight");
+        wallClockDay.Should().Be(new DateTime(2026, 6, 16));
+        gameDay.Should().NotBe(wallClockDay, "this off-by-one is the 0/24 desync; the counter must use the UTC game day");
+    }
+
+    // The auto-prefill stamp and the "Done today" counter share IslandTime.Today, so an auto-recorded
+    // island always satisfies the counter's predicate on the day it was recorded.
+    [Test]
+    public void RecordStampedWithIslandToday_SatisfiesTodayCounterPredicate()
+    {
+        var record = new OwnerCycleRecord
+        {
+            Date = IslandTime.Today,
+            RecordType = CycleRecordType.Islands,
+            IslandCount = 24
+        };
+
+        (record.Date.Date == IslandTime.Today).Should().BeTrue();
+    }
+}
+
 // Regression for the PlotTypeExtensions fixes: the pasture extended-cycle (52h) detection must match the
 // PARSED AnimalType token exactly, not a Contains on the whole config blob.
 [TestFixture]

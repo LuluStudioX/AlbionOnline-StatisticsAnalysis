@@ -90,7 +90,7 @@ public partial class IslandController
             var profile = GetOwnerProfile(ownerName);
             if (profile != null)
             {
-                var today = DateTime.Today;
+                var today = IslandTime.Today;
                 var record = profile.CycleHistory?
                     .FirstOrDefault(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands);
 
