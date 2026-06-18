@@ -85,34 +85,10 @@ public partial class IslandController
     {
         if (string.IsNullOrWhiteSpace(notes) && !emv.HasValue) return;
 
-        lock (_ownerProfilesLock)
-        {
-            var profile = GetOwnerProfile(ownerName);
-            if (profile != null)
-            {
-                var today = IslandTime.Today;
-                var record = profile.CycleHistory?
-                    .FirstOrDefault(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands);
+        var profile = GetOwnerProfile(ownerName);
+        if (profile == null) return;
 
-                if (record != null && !string.IsNullOrWhiteSpace(notes))
-                {
-                    record.Notes = string.IsNullOrWhiteSpace(record.Notes) || string.Equals(record.Notes.Trim(), AutoPrefillNotesMarker, StringComparison.OrdinalIgnoreCase)
-                        ? notes
-                        : $"{record.Notes}; {notes}";
-                }
-
-                if (emv.HasValue)
-                {
-                    profile.CycleHistory.Add(new OwnerCycleRecord
-                    {
-                        Date = today,
-                        RecordType = CycleRecordType.Other,
-                        EarnedAmount = emv.Value,
-                        Notes = "EMV"
-                    });
-                }
-            }
-        }
+        ApplyDailyNotesAndEmvToTodayRecord(profile, notes, emv);
         _ = SaveOwnerProfilesAsync();
         // RefreshOwnerOverview touches UI bindings — marshal to the dispatcher (this runs on the webhook
         // async path, off the UI thread). Every other call site already does this (G6b).

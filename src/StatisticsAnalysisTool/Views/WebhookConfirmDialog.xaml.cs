@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
@@ -19,7 +20,10 @@ public partial class WebhookConfirmDialog : Window
 
     public ConfirmResult Result { get; private set; } = ConfirmResult.DontSend;
     public string DailyNotes => NotesTextBox.Text.Trim();
-    public decimal? EmvAmount => decimal.TryParse(EmvTextBox.Text.Trim(), out var v) && v > 0 ? v : null;
+    // Invariant parse: the input is filtered to [\d.], so '.' is always the decimal point. Under a culture
+    // where '.' is the group separator (e.g. da-DK), the default parse would read "13.7" as 137.
+    public decimal? EmvAmount => decimal.TryParse(EmvTextBox.Text.Trim(),
+        NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var v) && v > 0 ? v : null;
 
     public WebhookConfirmDialog() : this(null) { }
 

@@ -300,6 +300,8 @@ public partial class IslandController
     private void TryShowPaymentReadyDialog(string ownerName)
     {
         if (string.IsNullOrWhiteSpace(ownerName)) return;
+        var prefs = _mainWindowViewModel?.IslandBindings?.Preferences;
+        if (prefs?.AutoPrefillPayouts != true) return;
         lock (_sessionTrackingLock)
             if (!_paymentDialogShownThisSessionForOwners.Add(ownerName)) return;
 
@@ -319,6 +321,16 @@ public partial class IslandController
             }
         }
 
+        // Payout is recorded on an island's FIRST laborer, so the gate above can pass while THIS island
+        // still has laborers home. Wait until all are back out (none tracked => nothing to wait for).
+        var currentSnapshots = _snapshots.Values.ToList();
+        if (currentSnapshots.Count > 0 && !currentSnapshots.All(s => s.IsOnJob))
+        {
+            lock (_sessionTrackingLock)
+                _paymentDialogShownThisSessionForOwners.Remove(ownerName);
+            return;
+        }
+
         Log.Information("[IslandController] All {Count} islands done for owner {Owner} — opening payment dialog", totalIslands, ownerName);
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
@@ -335,28 +347,7 @@ public partial class IslandController
             {
                 if (!string.IsNullOrWhiteSpace(notes) || emv.HasValue)
                 {
-                    lock (_ownerProfilesLock)
-                    {
-                        var today = IslandTime.Today;
-                        var record = profile.CycleHistory?
-                            .FirstOrDefault(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands);
-                        if (record != null && !string.IsNullOrWhiteSpace(notes))
-                        {
-                            record.Notes = string.IsNullOrWhiteSpace(record.Notes) || string.Equals(record.Notes.Trim(), AutoPrefillNotesMarker, StringComparison.OrdinalIgnoreCase)
-                                ? notes
-                                : $"{record.Notes}; {notes}";
-                        }
-                        if (emv.HasValue)
-                        {
-                            profile.CycleHistory?.Add(new OwnerCycleRecord
-                            {
-                                Date = today,
-                                RecordType = CycleRecordType.Other,
-                                EarnedAmount = emv.Value,
-                                Notes = "EMV"
-                            });
-                        }
-                    }
+                    ApplyDailyNotesAndEmvToTodayRecord(profile, notes, emv);
                     _ = SaveOwnerProfilesAsync();
                     Application.Current?.Dispatcher.BeginInvoke(() =>
                         _mainWindowViewModel?.IslandBindings?.RefreshOwnerOverview());
@@ -371,6 +362,33 @@ public partial class IslandController
     }
 
     private const string AutoPrefillNotesMarker = "Auto-prefilled";
+
+    // EMV goes into Notes, not EarnedAmount - that field holds the fixed silver payment, not loot value.
+    // The bare auto-prefill marker is a placeholder, replaced by the addition; real notes are appended to.
+    private void ApplyDailyNotesAndEmvToTodayRecord(OwnerProfile profile, string notes, decimal? emv)
+    {
+        if (profile == null) return;
+
+        var additions = new List<string>();
+        if (!string.IsNullOrWhiteSpace(notes)) additions.Add(notes.Trim());
+        if (emv.HasValue) additions.Add($"{emv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)} EMV");
+        if (additions.Count == 0) return;
+
+        var addition = string.Join("; ", additions);
+
+        lock (_ownerProfilesLock)
+        {
+            var today = IslandTime.Today;
+            var record = profile.CycleHistory?
+                .FirstOrDefault(c => c.Date.Date == today && c.RecordType == CycleRecordType.Islands);
+            if (record == null) return;
+
+            record.Notes = string.IsNullOrWhiteSpace(record.Notes)
+                           || string.Equals(record.Notes.Trim(), AutoPrefillNotesMarker, StringComparison.OrdinalIgnoreCase)
+                ? addition
+                : $"{record.Notes}; {addition}";
+        }
+    }
 
     public void UpdateCycleRecord(string ownerName, OwnerCycleRecord updated)
     {

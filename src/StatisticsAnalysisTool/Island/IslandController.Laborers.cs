@@ -57,6 +57,11 @@ public partial class IslandController
         }
 
         TryAutoStartIslandTimerFromLaborer(snapshot);
+
+        // Re-attempt on each on-job transition so the (gated) dialog opens after the LAST laborer, not the first.
+        if (e.IsOnJob && !wasOnJob)
+            TryShowPaymentReadyDialog(currentIsland?.Owner);
+
         LaborerSnapshotsChanged?.Invoke();
     }
 
@@ -145,7 +150,10 @@ public partial class IslandController
         LaborerSnapshotsChanged?.Invoke();
 
         if (isNewDispatch)
+        {
             TryTriggerCollectionReadyWebhook();
+            TryShowPaymentReadyDialog(FindCurrentIsland()?.Owner);
+        }
     }
 
     public IReadOnlyList<LaborerSnapshot> GetCurrentSnapshots()
