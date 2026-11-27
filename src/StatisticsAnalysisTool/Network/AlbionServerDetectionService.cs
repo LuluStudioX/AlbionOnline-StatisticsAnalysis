@@ -8,8 +8,10 @@ public class AlbionServerDetectionService
 {
     private readonly object _lock = new();
     private static readonly TimeSpan ServerDetectionStabilityDuration = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan ServerDetectionMaxPacketGap = TimeSpan.FromSeconds(2);
     private AlbionServerInfo _candidateServer = AlbionServerRegistry.Unknown;
     private DateTime _candidateFirstSeenUtc = DateTime.MinValue;
+    private DateTime _candidateLastSeenUtc = DateTime.MinValue;
 
     public event EventHandler<AlbionServerChangedEventArgs> ServerChanged;
 
@@ -54,6 +56,7 @@ public class AlbionServerDetectionService
                 CurrentServer = AlbionServerRegistry.Unknown;
                 _candidateServer = detectedServer;
                 _candidateFirstSeenUtc = DateTime.UtcNow;
+                _candidateLastSeenUtc = _candidateFirstSeenUtc;
                 eventArgs = new AlbionServerChangedEventArgs(previousServer, CurrentServer);
                 resetToUnknown = true;
             }
@@ -83,12 +86,19 @@ public class AlbionServerDetectionService
     {
         var now = DateTime.UtcNow;
 
-        if (_candidateServer.ServerLocation != detectedServer.ServerLocation)
+        // The candidate must be seen without a long pause. Game traffic is many packets per second, but a
+        // single old packet (a login screen ping, or one from before the PC went to sleep) must not start
+        // a clock that the next packet, maybe hours later, then completes.
+        if (_candidateServer.ServerLocation != detectedServer.ServerLocation
+            || now - _candidateLastSeenUtc > ServerDetectionMaxPacketGap)
         {
             _candidateServer = detectedServer;
             _candidateFirstSeenUtc = now;
+            _candidateLastSeenUtc = now;
             return null;
         }
+
+        _candidateLastSeenUtc = now;
 
         if (now - _candidateFirstSeenUtc < ServerDetectionStabilityDuration)
         {
